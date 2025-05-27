@@ -47,13 +47,18 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 };
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+
+  const login = () => setIsAuthenticated(true);
+  const logout = () => setIsAuthenticated(false);
+
   return (
-    <AuthProvider>
-      <Router basename="/checkus-teacher-web">
+    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+      <Router basename="/">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
-            path="/"
+            path="/*"
             element={
               <PrivateRoute>
                 <Layout />
@@ -92,7 +97,7 @@ const App = () => {
         </Routes>
         <Toaster />
       </Router>
-    </AuthProvider>
+    </AuthContext.Provider>
   );
 };
 

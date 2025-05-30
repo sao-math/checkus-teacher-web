@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axiosInstance from '../lib/axios';
 import { LoginRequest, LoginResponse, TokenRefreshRequest, TokenRefreshResponse, UserInfo } from '../types/auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 const authService = {
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await axios.post(`${API_URL}/auth/login`, data);
+    const response = await axiosInstance.post('/auth/login', data);
     if (response.data.success) {
       return response.data.data;
     }
@@ -13,7 +13,7 @@ const authService = {
   },
 
   async refreshToken(refreshToken: string): Promise<TokenRefreshResponse> {
-    const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+    const response = await axiosInstance.post('/auth/refresh', { refreshToken });
     if (response.data.success) {
       return response.data.data;
     }
@@ -24,7 +24,7 @@ const authService = {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
       try {
-        await axios.post(`${API_URL}/auth/logout`, { refreshToken });
+        await axiosInstance.post('/auth/logout', { refreshToken });
       } catch (error) {
         console.error('로그아웃 중 오류 발생:', error);
       }
@@ -34,7 +34,7 @@ const authService = {
   },
 
   async getCurrentUser(): Promise<UserInfo> {
-    const response = await axios.get(`${API_URL}/auth/me`);
+    const response = await axiosInstance.get('/auth/me');
     if (response.data.success) {
       return response.data.data;
     }

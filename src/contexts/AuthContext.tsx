@@ -1,13 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../services/auth';
-import { LoginRequest, UserInfo } from '../types/auth';
+import { UserInfo } from '../types/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: UserInfo | null;
-  login: (data: LoginRequest) => Promise<void>;
-  logout: () => void;
+  login: (formData: { username: string; password: string }) => Promise<void>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -20,31 +20,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        setIsAuthenticated(false);
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
+    const initAuth = async () => {
       try {
-        const response = await authService.getCurrentUser();
-        if (response) {
-          setIsAuthenticated(true);
-          setUser(response);
-        } else {
-          // Token is invalid, clear it
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          setIsAuthenticated(false);
-          setUser(null);
-        }
+        // 먼저 토큰 갱신 시도
+        await authService.refreshToken();
+        // 갱신된 토큰으로 사용자 정보 가져오기
+        const userInfo = await authService.getCurrentUser();
+        setUser(userInfo);
+        setIsAuthenticated(true);
       } catch (error) {
-        // Token is invalid, clear it
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         setIsAuthenticated(false);
         setUser(null);
       } finally {
@@ -52,43 +36,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    checkAuth();
+    initAuth();
   }, []);
 
-  const login = async (data: LoginRequest) => {
+  const login = async (formData: { username: string; password: string }) => {
     try {
-      const response = await authService.login(data);
-      if (response) {
-        const { accessToken, refreshToken } = response;
-        authService.setTokens(accessToken, refreshToken);
-        
-        // Verify the token by getting user info
-        const userResponse = await authService.getCurrentUser();
-        if (userResponse) {
-          setIsAuthenticated(true);
-          setUser(userResponse);
-          navigate('/dashboard');
-        } else {
-          throw new Error('Failed to verify user session');
-        }
-      } else {
-        throw new Error('로그인에 실패했습니다.');
-      }
+      const response = await authService.login(formData);
+      const userInfo = await authService.getCurrentUser();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+      navigate('/dashboard');
     } catch (error) {
-      // Clear tokens if login fails
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      setIsAuthenticated(false);
-      setUser(null);
       throw error;
     }
   };
 
-  const logout = () => {
-    authService.logout();
-    setIsAuthenticated(false);
-    setUser(null);
-    navigate('/login');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      setIsAuthenticated(false);
+      setUser(null);
+      navigate('/login');
+    }
   };
 
   return (

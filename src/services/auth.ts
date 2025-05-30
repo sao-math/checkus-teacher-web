@@ -1,52 +1,44 @@
-import axiosInstance from '../lib/axios';
-import { LoginRequest, LoginResponse, TokenRefreshRequest, TokenRefreshResponse, UserInfo } from '../types/auth';
+import api from '../lib/axios';
+import { LoginRequest, LoginResponse, TokenRefreshResponse, UserInfo } from '../types/auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// 메모리에서 토큰 관리
+let accessToken: string | null = null;
 
 const authService = {
-  async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await axiosInstance.post('/auth/login', data);
-    if (response.data.success) {
-      return response.data.data;
-    }
-    throw new Error(response.data.message || '로그인에 실패했습니다.');
+  async login(request: LoginRequest): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/login', request);
+    const { accessToken: newToken } = response.data.data;
+    accessToken = newToken;
+    return response.data;
   },
 
-  async refreshToken(refreshToken: string): Promise<TokenRefreshResponse> {
-    const response = await axiosInstance.post('/auth/refresh', { refreshToken });
-    if (response.data.success) {
-      return response.data.data;
-    }
-    throw new Error(response.data.message || '토큰 갱신에 실패했습니다.');
+  async refreshToken(): Promise<TokenRefreshResponse> {
+    // 쿠키에서 자동으로 refresh token이 전송되므로 별도의 데이터는 필요 없음
+    const response = await api.post<TokenRefreshResponse>('/auth/refresh');
+    const { accessToken: newToken } = response.data.data;
+    accessToken = newToken;
+    return response.data;
   },
 
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (refreshToken) {
-      try {
-        await axiosInstance.post('/auth/logout', { refreshToken });
-      } catch (error) {
-        console.error('로그아웃 중 오류 발생:', error);
-      }
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      accessToken = null;
     }
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
   },
 
   async getCurrentUser(): Promise<UserInfo> {
-    const response = await axiosInstance.get('/auth/me');
-    if (response.data.success) {
-      return response.data.data;
-    }
-    throw new Error(response.data.message || '사용자 정보를 가져오는데 실패했습니다.');
+    const response = await api.get<UserInfo>('/auth/me');
+    return response.data;
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('accessToken');
+    return !!accessToken;
   },
 
   getAccessToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return accessToken;
   },
 
   setTokens(accessToken: string, refreshToken: string): void {

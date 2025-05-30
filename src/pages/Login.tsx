@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, User, Lock } from 'lucide-react';
-import { useAuth } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,18 +23,28 @@ const Login = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    if (formData.username && formData.password) {
-      login();
-      navigate('/');
-    } else {
-      setError('아이디와 비밀번호를 모두 입력해주세요.');
+    try {
+      if (!formData.username || !formData.password) {
+        setError('아이디와 비밀번호를 모두 입력해주세요.');
+        return;
+      }
+
+      await login(formData);
+      navigate('/dashboard');
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('로그인에 실패했습니다.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

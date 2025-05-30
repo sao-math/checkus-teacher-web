@@ -4,13 +4,12 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  userId: number;
-  username: string;
-  name: string;
-  roles: string[];
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+    refreshToken: string;
+  };
 }
 
 export interface TokenRefreshRequest {
@@ -18,16 +17,21 @@ export interface TokenRefreshRequest {
 }
 
 export interface TokenRefreshResponse {
-  accessToken: string;
-  refreshToken: string;
+  success: boolean;
+  message: string;
+  data: {
+    accessToken: string;
+    refreshToken: string;
+  };
 }
 
 export interface UserInfo {
-  id: number;
-  username: string;
-  name: string;
-  phoneNumber: string | null;
-  discordId: string | null;
-  roles: string[];
-  createdAt: string | null;
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+    username: string;
+    name: string;
+    roles: string[];
+  };
 } 

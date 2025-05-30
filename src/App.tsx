@@ -14,55 +14,21 @@ import ClassDetails from '@/pages/ClassDetails';
 import Layout from '@/components/Layout';
 import TaskManagement from './pages/TaskManagement';
 import StudentDetails from './pages/StudentDetails';
-
-// Simple auth context for demo purposes
-const AuthContext = React.createContext<{
-  isAuthenticated: boolean;
-  login: () => void;
-  logout: () => void;
-}>({
-  isAuthenticated: false,
-  login: () => {},
-  logout: () => {},
-});
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-
-  const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
-
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => React.useContext(AuthContext);
-
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
-};
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-
-  const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
-
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
-      <Router basename="/">
+    <Router basename="/">
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
             path="/*"
             element={
-              <PrivateRoute>
+              <ProtectedRoute>
                 <Layout />
-              </PrivateRoute>
+              </ProtectedRoute>
             }
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
@@ -96,8 +62,8 @@ const App = () => {
           </Route>
         </Routes>
         <Toaster />
-      </Router>
-    </AuthContext.Provider>
+      </AuthProvider>
+    </Router>
   );
 };
 

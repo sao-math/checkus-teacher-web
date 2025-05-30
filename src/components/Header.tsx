@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,12 +11,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { User, LogOut } from 'lucide-react';
-import { useAuth } from '@/App';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Header() {
   const navigate = useNavigate();
-  const userName = '김선생님'; // 실제로는 인증된 사용자 정보에서 가져옴
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const userName = user?.name || '';
 
   const handleLogout = () => {
     logout();

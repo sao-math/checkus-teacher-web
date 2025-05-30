@@ -8,6 +8,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
 // Request interceptor
@@ -30,25 +31,21 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error is 401 and we haven't tried to refresh the token yet
+    // Don't retry login requests
+    if (originalRequest.url === '/auth/login') {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-
-        const response = await authService.refreshToken(refreshToken);
-        authService.setTokens(response.accessToken, response.refreshToken);
-
-        // Retry the original request with the new token
-        originalRequest.headers.Authorization = `Bearer ${response.accessToken}`;
+        // 쿠키에서 자동으로 refresh token이 전송됨
+        const response = await axiosInstance.post('/auth/refresh');
+        const { accessToken } = response.data.data;
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, logout and redirect to login
-        await authService.logout();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

@@ -32,6 +32,9 @@ export interface UserInfo {
     id: string;
     username: string;
     name: string;
+    phoneNumber: string | null;
+    discordId: string | null;
     roles: string[];
+    createdAt: string | null;
   };
 } 

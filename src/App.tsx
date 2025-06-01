@@ -36,6 +36,9 @@ const App = () => {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             
+            {/* Profile route */}
+            <Route path="profile" element={<TeacherDetails />} />
+            
             {/* Student routes */}
             <Route path="students">
               <Route index element={<StudentManagement />} />

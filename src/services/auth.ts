@@ -20,8 +20,13 @@ const authService = {
   },
 
   async getCurrentUser(): Promise<UserInfo> {
-    const response = await api.get<UserInfo>('/user/me');
-    return response.data;
+    try {
+      const response = await api.get<UserInfo>('/user/me');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      throw error;
+    }
   },
 
   async checkUsername(username: string): Promise<{ success: boolean; data: boolean }> {
@@ -35,35 +40,24 @@ const authService = {
   },
 
   isAuthenticated(): boolean {
-    const hasToken = !!this.getAccessToken();
-    console.log('Checking authentication:', hasToken);
-    return hasToken;
+    const token = localStorage.getItem('accessToken');
+    return !!token;
   },
 
   getAccessToken(): string | null {
-    if (!accessToken) {
-      accessToken = localStorage.getItem('accessToken');
-      console.log('Retrieved token from localStorage:', !!accessToken);
-    }
-    return accessToken;
+    return localStorage.getItem('accessToken');
   },
 
   setTokens(accessToken: string, refreshToken: string): void {
-    console.log('Setting tokens...');
-    this.accessToken = accessToken;
     localStorage.setItem('accessToken', accessToken);
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken);
     }
-    console.log('Tokens set successfully');
   },
 
   removeTokens(): void {
-    console.log('Removing tokens...');
-    this.accessToken = null;
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    console.log('Tokens removed');
   },
 };
 

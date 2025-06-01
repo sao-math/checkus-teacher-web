@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Phone, Mail, Users, School, Edit } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Teacher {
   id: number;
@@ -44,10 +45,56 @@ const mockTeachers: Teacher[] = [
 const TeacherDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const isProfile = id === 'profile';
+  const { user, isLoading, error } = useAuth();
+  const isProfile = !id || id === 'profile';
 
+  useEffect(() => {
+    console.log('TeacherDetails mounted');
+    console.log('id:', id);
+    console.log('isProfile:', isProfile);
+    console.log('user:', user);
+    console.log('isLoading:', isLoading);
+    console.log('error:', error);
+  }, [id, isProfile, user, isLoading, error]);
+
+  if (isLoading) {
+    console.log('Rendering loading state');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isProfile && !user) {
+    console.log('Rendering error state - no user data');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">{error || '사용자 정보를 불러올 수 없습니다.'}</p>
+          <Button onClick={() => navigate('/login')} className="mt-4">
+            로그인 페이지로 이동
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('Rendering main content');
   // 실제로는 API에서 가져와야 함
-  const teacher = mockTeachers.find(t => t.id === Number(id)) || mockTeachers[0];
+  const teacher = isProfile && user ? {
+    id: Number(user.data.id),
+    username: user.data.username,
+    name: user.data.name,
+    phoneNumber: user.data.phoneNumber || '',
+    discordId: user.data.discordId || undefined,
+    createdAt: user.data.createdAt || new Date().toISOString().split('T')[0],
+    status: 'active' as const,
+    classes: [] // TODO: Get classes from API
+  } : mockTeachers.find(t => t.id === Number(id)) || mockTeachers[0];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,11 +115,11 @@ const TeacherDetails = () => {
   };
 
   const handleBack = () => {
-    navigate('/teachers');
+    navigate(isProfile ? '/dashboard' : '/teachers');
   };
 
   const handleEdit = () => {
-    navigate(`/teachers/${id}/edit`);
+    navigate(isProfile ? '/profile/edit' : `/teachers/${id}/edit`);
   };
 
   return (

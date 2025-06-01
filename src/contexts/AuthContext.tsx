@@ -20,15 +20,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initAuth = async () => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        setIsAuthenticated(false);
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        // 먼저 토큰 갱신 시도
-        await authService.refreshToken();
-        // 갱신된 토큰으로 사용자 정보 가져오기
-        const userInfo = await authService.getCurrentUser();
-        setUser(userInfo);
-        setIsAuthenticated(true);
+        const response = await authService.getCurrentUser();
+        if (response.success && response.data) {
+          setIsAuthenticated(true);
+          setUser(response.data);
+        } else {
+          // Token is invalid, clear it
+          localStorage.removeItem('accessToken');
+          setIsAuthenticated(false);
+          setUser(null);
+        }
       } catch (error) {
+        // Token is invalid, clear it
+        localStorage.removeItem('accessToken');
         setIsAuthenticated(false);
         setUser(null);
       } finally {
@@ -36,17 +50,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    initAuth();
+    checkAuth();
   }, []);
 
   const login = async (formData: { username: string; password: string }) => {
     try {
       const response = await authService.login(formData);
-      const userInfo = await authService.getCurrentUser();
-      setUser(userInfo);
-      setIsAuthenticated(true);
-      navigate('/dashboard');
+      if (response.success && response.data) {
+        const { accessToken } = response.data;
+        localStorage.setItem('accessToken', accessToken);
+        // Verify the token by getting user info
+        const userResponse = await authService.getCurrentUser();
+        if (userResponse.success && userResponse.data) {
+          setIsAuthenticated(true);
+          setUser(userResponse.data);
+          navigate('/dashboard');
+        } else {
+          throw new Error('Failed to verify user session');
+        }
+      } else {
+        throw new Error(response.message || '로그인에 실패했습니다.');
+      }
     } catch (error) {
+      // Clear tokens if login fails
+      localStorage.removeItem('accessToken');
+      setIsAuthenticated(false);
+      setUser(null);
       throw error;
     }
   };
@@ -55,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await authService.logout();
     } finally {
+      localStorage.removeItem('accessToken');
       setIsAuthenticated(false);
       setUser(null);
       navigate('/login');

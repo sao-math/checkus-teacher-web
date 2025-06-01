@@ -16,6 +16,7 @@ import TaskManagement from './pages/TaskManagement';
 import StudentDetails from './pages/StudentDetails';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import Register from '@/pages/Register';
 
 const App = () => {
   return (
@@ -23,6 +24,7 @@ const App = () => {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route
             path="/*"
             element={

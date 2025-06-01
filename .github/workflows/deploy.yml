@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  VITE_API_URL: https://api.checkus.com
+  VITE_API_URL: https://api.checkus.app
 
 jobs:
   build:

@@ -7,6 +7,25 @@ export interface User {
   createdAt: string;
 }
 
+export interface Guardian {
+  id: number;
+  name: string;
+  phoneNumber: string;
+  relationship: string;
+}
+
+export interface Student {
+  id: number;
+  name: string;
+  phoneNumber: string | null;
+  studentPhoneNumber: string;
+  school: string;
+  grade: number;
+  classes: string[];
+  status: 'ENROLLED' | 'GRADUATED' | 'WITHDRAWN';
+  guardians: Guardian[];
+}
+
 export interface StudentProfile {
   userId: number;
   status: 'active' | 'inactive' | 'graduated';
@@ -18,15 +37,6 @@ export interface StudentProfile {
 export interface School {
   id: number;
   name: string;
-}
-
-export interface Student extends User {
-  status: '문의' | '상담예약' | '재원' | '대기' | '퇴원' | '미등록';
-  schoolId: number;
-  schoolName: string;
-  grade: number;
-  gender: 'male' | 'female';
-  completionRate: number;
 }
 
 export interface WeeklySchedule {

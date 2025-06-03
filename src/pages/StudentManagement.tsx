@@ -38,7 +38,7 @@ const StudentManagement = () => {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'문의' | '상담예약' | '재원' | '대기' | '퇴원' | '미등록' | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<'ENROLLED' | 'GRADUATED' | 'WITHDRAWN' | 'all'>('all');
 
   useEffect(() => {
     fetchStudents();
@@ -65,24 +65,18 @@ const StudentManagement = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '문의': return 'bg-yellow-100 text-yellow-800';
-      case '상담예약': return 'bg-blue-100 text-blue-800';
-      case '재원': return 'bg-green-100 text-green-800';
-      case '대기': return 'bg-gray-100 text-gray-800';
-      case '퇴원': return 'bg-red-100 text-red-800';
-      case '미등록': return 'bg-gray-200 text-gray-500';
+      case 'ENROLLED': return 'bg-green-100 text-green-800';
+      case 'GRADUATED': return 'bg-blue-100 text-blue-800';
+      case 'WITHDRAWN': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case '문의': return '문의';
-      case '상담예약': return '상담예약';
-      case '재원': return '재원';
-      case '대기': return '대기';
-      case '퇴원': return '퇴원';
-      case '미등록': return '미등록';
+      case 'ENROLLED': return '재원';
+      case 'GRADUATED': return '졸업';
+      case 'WITHDRAWN': return '퇴원';
       default: return '알 수 없음';
     }
   };
@@ -94,11 +88,11 @@ const StudentManagement = () => {
   };
 
   const handleStudentClick = (student: Student) => {
-    navigate(`/students/${student.id}`);
+    navigate(`/student/${student.id}`);
   };
 
   const handleEditStudent = (student: Student) => {
-    navigate(`/students/${student.id}/edit`);
+    navigate(`/student/${student.id}/edit`);
   };
 
   const handleDeleteStudent = async (student: Student) => {
@@ -122,9 +116,8 @@ const StudentManagement = () => {
   const filteredStudents = students.filter(student =>
     (filterStatus === 'all' || student.status === filterStatus) &&
     (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.phoneNumber.includes(searchTerm))
+      student.school.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.studentPhoneNumber && student.studentPhoneNumber.includes(searchTerm)))
   );
 
   if (loading) {
@@ -150,7 +143,7 @@ const StudentManagement = () => {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="학생 이름, 사용자명, 학교, 전화번호로 검색..."
+                placeholder="학생 이름, 학교, 전화번호로 검색..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -159,16 +152,13 @@ const StudentManagement = () => {
             <div className="flex gap-2">
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as '문의' | '상담예약' | '재원' | '대기' | '퇴원' | '미등록' | 'all')}
+                onChange={(e) => setFilterStatus(e.target.value as 'ENROLLED' | 'GRADUATED' | 'WITHDRAWN' | 'all')}
                 className="h-8 px-3 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">전체</option>
-                <option value="문의">문의</option>
-                <option value="상담예약">상담예약</option>
-                <option value="재원">재원</option>
-                <option value="대기">대기</option>
-                <option value="퇴원">퇴원</option>
-                <option value="미등록">미등록</option>
+                <option value="ENROLLED">재원</option>
+                <option value="GRADUATED">졸업</option>
+                <option value="WITHDRAWN">퇴원</option>
               </select>
             </div>
           </div>
@@ -201,77 +191,48 @@ const StudentManagement = () => {
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleStudentClick(student)}>
-                          <Eye className="h-4 w-4 mr-2" />
+                          <Eye className="mr-2 h-4 w-4" />
                           상세보기
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEditStudent(student)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          정보 수정
+                          <Edit className="mr-2 h-4 w-4" />
+                          수정
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <AlertDialog open={studentToDelete?.id === student.id} onOpenChange={(open) => !open && setStudentToDelete(null)}>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem 
-                              className="text-red-600 focus:text-red-600"
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                setStudentToDelete(student);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              삭제
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {student.name} 학생의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>취소</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleDeleteStudent(student)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                삭제
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => setStudentToDelete(student)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          삭제
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <p className="text-sm text-gray-600">{student.grade}학년 · @{student.username}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className={getStatusColor(student.status)}>
+                      {getStatusText(student.status)}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge className={getStatusColor(student.status)}>
-                  {getStatusText(student.status)}
-                </Badge>
-                <span className={`text-sm font-medium ${getCompletionRateColor(student.completionRate)}`}>
-                  완료율 {student.completionRate}%
-                </span>
-              </div>
-
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <School className="h-4 w-4" />
-                  <span>{student.schoolName}</span>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-gray-600">
+                  <School className="h-4 w-4 mr-2" />
+                  {student.school} {student.grade}학년
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  <span>{student.phoneNumber}</span>
+                <div className="flex items-center text-sm text-gray-600">
+                  <Phone className="h-4 w-4 mr-2" />
+                  {student.studentPhoneNumber}
                 </div>
-                {student.discordId && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span>{student.discordId}</span>
+                {student.classes.length > 0 && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Users className="h-4 w-4 mr-2" />
+                    {student.classes.join(', ')}
                   </div>
                 )}
               </div>
@@ -279,6 +240,24 @@ const StudentManagement = () => {
           </Card>
         ))}
       </div>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <AlertDialog open={!!studentToDelete} onOpenChange={() => setStudentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>학생 삭제</AlertDialogTitle>
+            <AlertDialogDescription>
+              {studentToDelete?.name} 학생을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={() => studentToDelete && handleDeleteStudent(studentToDelete)}>
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

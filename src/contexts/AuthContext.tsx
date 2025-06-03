@@ -23,8 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
+      if (!authService.isAuthenticated()) {
         setIsAuthenticated(false);
         setUser(null);
         setIsLoading(false);
@@ -64,8 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       const response = await authService.login(formData);
       if (response.success && response.data) {
-        const { accessToken } = response.data;
-        authService.setTokens(accessToken, '');
+        const { accessToken, refreshToken } = response.data;
+        authService.setTokens(accessToken, refreshToken);
         // Verify the token by getting user info
         const userResponse = await authService.getCurrentUser();
         if (userResponse.success && userResponse.data) {

@@ -8,17 +8,27 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false // Changed to false to avoid CORS issues
+  withCredentials: false
 });
 
 // Request interceptor
 axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      // Skip token check for login and refresh endpoints
+      if (config.url === '/auth/login' || config.url === '/auth/refresh') {
+        return config;
+      }
+
+      await authService.ensureValidToken();
+      const token = authService.getAccessToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    } catch (error) {
+      return Promise.reject(error);
     }
-    return config;
   },
   (error) => {
     return Promise.reject(error);
@@ -29,26 +39,28 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-
-    // Don't retry login requests
-    if (originalRequest.url === '/auth/login') {
+    // If there's no config or it's not an axios error, reject immediately
+    if (!error.config) {
       return Promise.reject(error);
     }
 
+    const originalRequest = error.config;
+
+    // Don't retry login or refresh token requests
+    if (originalRequest.url === '/auth/login' || originalRequest.url === '/auth/refresh') {
+      return Promise.reject(error);
+    }
+
+    // Only retry if it's a 401 error and we haven't retried yet
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        // No body, just POST
-        const response = await axiosInstance.post('/auth/refresh');
-        const { accessToken } = response.data.data;
-        localStorage.setItem('accessToken', accessToken);
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        await authService.refreshToken();
+        const token = authService.getAccessToken();
+        originalRequest.headers.Authorization = `Bearer ${token}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        authService.removeTokens();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

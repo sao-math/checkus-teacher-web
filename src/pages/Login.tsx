@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff, User, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import authService from '@/services/auth';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +18,7 @@ const Login = () => {
     username: '',
     password: '',
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(location.state?.error || '');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -35,7 +37,22 @@ const Login = () => {
       }
 
       await login(formData);
-      navigate('/dashboard');
+      
+      // Get user info to check role
+      const userResponse = await authService.getCurrentUser();
+      if (userResponse.success && userResponse.data) {
+        const userRoles = userResponse.data.roles.map(role => role.toUpperCase());
+        
+        // Check if user has either TEACHER or ADMIN role
+        if (userRoles.includes('TEACHER') || userRoles.includes('ADMIN')) {
+          navigate('/dashboard');
+        } else {
+          // For users without TEACHER or ADMIN roles
+          setError('접근 권한이 없습니다. 관리자에게 문의해주세요.');
+          // Logout the user since they don't have access
+          await authService.logout();
+        }
+      }
     } catch (err: any) {
       if (err.response?.data?.message) {
         setError(err.response.data.message);

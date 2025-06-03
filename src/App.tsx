@@ -23,8 +23,14 @@ const App = () => {
     <Router basename="/">
       <AuthProvider>
         <Routes>
+          {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          
+          {/* Redirect root to login if not authenticated */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+
+          {/* Protected routes */}
           <Route
             path="/*"
             element={
@@ -33,7 +39,6 @@ const App = () => {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             
             {/* Profile route */}

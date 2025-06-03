@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -23,6 +23,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Check if user has TEACHER or ADMIN role
+  const hasRequiredRole = user?.data?.roles.some(role => 
+    role.toUpperCase() === 'TEACHER' || role.toUpperCase() === 'ADMIN'
+  );
+
+  if (!hasRequiredRole) {
+    // If user doesn't have required role, redirect to login with error message
+    return <Navigate 
+      to="/login" 
+      state={{ 
+        error: '접근 권한이 없습니다. 관리자에게 문의해주세요.' 
+      }} 
+      replace 
+    />;
   }
 
   return <>{children}</>;

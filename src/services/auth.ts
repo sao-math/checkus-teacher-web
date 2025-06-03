@@ -3,20 +3,39 @@ import { LoginRequest, LoginResponse, TokenRefreshResponse, UserInfo } from '../
 
 // 메모리에서 토큰 관리
 let accessToken: string | null = null;
+let refreshToken: string | null = null;
 
 const authService = {
   async login(request: LoginRequest): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>('/auth/login', request);
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
+    this.setTokens(newAccessToken, newRefreshToken);
     return response.data;
   },
 
   async refreshToken(): Promise<TokenRefreshResponse> {
-    const response = await api.post<TokenRefreshResponse>('/auth/refresh');
-    return response.data;
+    try {
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+      const response = await api.post<TokenRefreshResponse>('/auth/refresh', {
+        refreshToken
+      });
+      const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
+      this.setTokens(newAccessToken, newRefreshToken);
+      return response.data;
+    } catch (error) {
+      this.removeTokens();
+      throw error;
+    }
   },
 
   async logout(): Promise<void> {
-    await api.post('/auth/logout');
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      this.removeTokens();
+    }
   },
 
   async getCurrentUser(): Promise<UserInfo> {
@@ -40,25 +59,42 @@ const authService = {
   },
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('accessToken');
-    return !!token;
+    return !!accessToken;
   },
 
   getAccessToken(): string | null {
-    return localStorage.getItem('accessToken');
+    return accessToken;
   },
 
-  setTokens(accessToken: string, refreshToken: string): void {
-    localStorage.setItem('accessToken', accessToken);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
+  setTokens(newAccessToken: string, newRefreshToken: string): void {
+    accessToken = newAccessToken;
+    refreshToken = newRefreshToken;
   },
 
   removeTokens(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    accessToken = null;
+    refreshToken = null;
   },
+
+  // 토큰이 만료되었는지 확인
+  isTokenExpired(token: string): boolean {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000 < Date.now();
+    } catch {
+      return true;
+    }
+  },
+
+  // 토큰 갱신이 필요한지 확인
+  async ensureValidToken(): Promise<void> {
+    if (!accessToken || this.isTokenExpired(accessToken)) {
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+      await this.refreshToken();
+    }
+  }
 };
 
 export default authService; 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Search, Users, Phone, Mail, MoreVertical, Filter, School } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
+import { studentApi } from '@/services/studentApi';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,72 +29,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Eye, Edit, Trash2 } from 'lucide-react';
 
-const mockStudents: Student[] = [
-  {
-    id: 1,
-    username: 'minsu123',
-    name: '김민수',
-    phoneNumber: '010-1234-5678',
-    discordId: 'minsu#1234',
-    createdAt: '2024-01-01',
-    status: '재원',
-    schoolId: 1,
-    schoolName: '리플랜고등학교',
-    grade: 3,
-    gender: 'male',
-    completionRate: 85
-  },
-  {
-    id: 2,
-    username: 'jiwon456',
-    name: '박지원',
-    phoneNumber: '010-2345-6789',
-    discordId: 'jiwon#5678',
-    createdAt: '2024-01-01',
-    status: '상담예약',
-    schoolId: 2,
-    schoolName: '사오중학교',
-    grade: 2,
-    gender: 'female',
-    completionRate: 92
-  },
-  {
-    id: 3,
-    username: 'soyoung789',
-    name: '이소영',
-    phoneNumber: '010-3456-7890',
-    createdAt: '2024-01-01',
-    status: '문의',
-    schoolId: 1,
-    schoolName: '리플랜고등학교',
-    grade: 1,
-    gender: 'female',
-    completionRate: 78
-  },
-  {
-    id: 4,
-    username: 'hyunwoo012',
-    name: '최현우',
-    phoneNumber: '010-4567-8901',
-    createdAt: '2024-01-01',
-    status: '대기',
-    schoolId: 1,
-    schoolName: '리플랜고등학교',
-    grade: 3,
-    gender: 'male',
-    completionRate: 45
-  }
-];
-
 const StudentManagement = () => {
   const navigate = useNavigate();
-  const [students, setStudents] = useState<Student[]>(mockStudents);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'문의' | '상담예약' | '재원' | '대기' | '퇴원' | '미등록' | 'all'>('all');
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching students...');
+      const data = await studentApi.getStudents();
+      console.log('Received student data:', data);
+      setStudents(data);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch students: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -133,12 +101,21 @@ const StudentManagement = () => {
     navigate(`/students/${student.id}/edit`);
   };
 
-  const handleDeleteStudent = (student: Student) => {
-    setStudents(prev => prev.filter(s => s.id !== student.id));
-    toast({
-      title: "학생 삭제",
-      description: `${student.name} 학생이 삭제되었습니다.`,
-    });
+  const handleDeleteStudent = async (student: Student) => {
+    try {
+      // TODO: Implement delete API call
+      setStudents(prev => prev.filter(s => s.id !== student.id));
+      toast({
+        title: "학생 삭제",
+        description: `${student.name} 학생이 삭제되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete student",
+        variant: "destructive",
+      });
+    }
     setStudentToDelete(null);
   };
 
@@ -149,6 +126,14 @@ const StudentManagement = () => {
       student.schoolName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.phoneNumber.includes(searchTerm))
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

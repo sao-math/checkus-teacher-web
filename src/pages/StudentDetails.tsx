@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,24 +17,9 @@ import { WeeklyScheduleGrid } from '@/components/students/WeeklyScheduleGrid';
 import { StudyTimeCalendar } from '@/components/students/StudyTimeCalendar';
 import { TaskSidebar } from '@/components/students/TaskSidebar';
 import { WeeklyScheduleDialog } from '@/components/students/WeeklyScheduleDialog';
+import { studentApi } from '@/services/studentApi';
 
-// Mock data - 실제로는 API에서 가져와야 함
-const mockStudent: Student = {
-  id: 1,
-  username: 'minsu123',
-  name: '김민수',
-  phoneNumber: '010-1234-5678',
-  discordId: 'minsu#1234',
-  createdAt: '2024-01-01',
-  status: '문의',
-  schoolId: 1,
-  schoolName: '리플랜고등학교',
-  grade: 3,
-  gender: 'male',
-  completionRate: 0,
-  lastActivity: new Date().toISOString()
-};
-
+// Mock data for activities - TODO: Move to API
 const mockActivities: Activity[] = [
   { id: 1, name: '사오수학', type: '학원', isStudyAssignable: false },
   { id: 2, name: '영어학원', type: '학원', isStudyAssignable: false },
@@ -42,77 +27,40 @@ const mockActivities: Activity[] = [
   { id: 4, name: '자습시간', type: '자습', isStudyAssignable: true },
 ];
 
-const mockWeeklySchedule: WeeklySchedule[] = [
-  {
-    id: 1,
-    studentId: 1,
-    activityId: 1,
-    dayOfWeek: 1,
-    startTime: '09:00',
-    endTime: '12:00',
-    activity: mockActivities[0]
-  },
-  {
-    id: 2,
-    studentId: 1,
-    activityId: 2,
-    dayOfWeek: 1,
-    startTime: '13:00',
-    endTime: '15:00',
-    activity: mockActivities[1]
-  },
-  {
-    id: 3,
-    studentId: 1,
-    activityId: 3,
-    dayOfWeek: 1,
-    startTime: '12:00',
-    endTime: '13:00',
-    activity: mockActivities[2]
-  },
-  {
-    id: 4,
-    studentId: 1,
-    activityId: 4,
-    dayOfWeek: 3,
-    startTime: '10:00',
-    endTime: '12:00',
-    activity: mockActivities[3]
-  },
-  {
-    id: 5,
-    studentId: 1,
-    activityId: 1,
-    dayOfWeek: 2,
-    startTime: '14:00',
-    endTime: '16:00',
-    activity: mockActivities[0]
-  },
-  {
-    id: 6,
-    studentId: 1,
-    activityId: 4,
-    dayOfWeek: 5,
-    startTime: '09:00',
-    endTime: '11:00',
-    activity: mockActivities[3]
-  },
-];
-
 const StudentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showTaskSidebar, setShowTaskSidebar] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const studentId = parseInt(id || '1');
-  const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule[]>(mockWeeklySchedule);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule[]>([]);
   const [assignedStudyTimes, setAssignedStudyTimes] = useState<AssignedStudyTime[]>([]);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
 
-  // 실제로는 API 호출로 학생 데이터를 가져와야 함
-  const student = mockStudent;
+  useEffect(() => {
+    fetchStudentDetails();
+  }, [studentId]);
+
+  const fetchStudentDetails = async () => {
+    try {
+      setLoading(true);
+      const data = await studentApi.getStudentDetail(studentId);
+      setStudent(data);
+      // TODO: Fetch weekly schedule and assigned study times from API
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch student details",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleBack = () => {
     navigate('/students');
@@ -126,70 +74,110 @@ const StudentDetails = () => {
     setShowTaskSidebar(true);
   };
 
-  const handleUpdateSchedule = (updatedSchedule: WeeklySchedule) => {
-    setWeeklySchedule(prev => 
-      prev.map(schedule => 
-        schedule.id === updatedSchedule.id ? updatedSchedule : schedule
-      )
-    );
-    toast({
-      title: "일정이 수정되었습니다.",
-      description: `${updatedSchedule.activity?.name} 일정이 수정되었습니다.`,
-    });
+  const handleUpdateSchedule = async (updatedSchedule: WeeklySchedule) => {
+    try {
+      // TODO: Implement API call to update schedule
+      setWeeklySchedule(prev => 
+        prev.map(schedule => 
+          schedule.id === updatedSchedule.id ? updatedSchedule : schedule
+        )
+      );
+      toast({
+        title: "일정이 수정되었습니다.",
+        description: `${updatedSchedule.activity?.name} 일정이 수정되었습니다.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update schedule",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteSchedule = (scheduleId: number) => {
-    setWeeklySchedule(prev => prev.filter(schedule => schedule.id !== scheduleId));
-    toast({
-      title: "일정이 삭제되었습니다.",
-      description: "선택한 일정이 삭제되었습니다.",
-    });
+  const handleDeleteSchedule = async (scheduleId: number) => {
+    try {
+      // TODO: Implement API call to delete schedule
+      setWeeklySchedule(prev => prev.filter(schedule => schedule.id !== scheduleId));
+      toast({
+        title: "일정이 삭제되었습니다.",
+        description: "선택한 일정이 삭제되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete schedule",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleAddSchedule = () => {
     setShowScheduleDialog(true);
   };
 
-  const handleSaveNewSchedule = (newSchedule: Partial<WeeklySchedule>) => {
-    setWeeklySchedule(prev => [...prev, newSchedule as WeeklySchedule]);
-    toast({
-      title: "일정이 추가되었습니다.",
-      description: `${newSchedule.activity?.name} 일정이 추가되었습니다.`,
-    });
-    setShowScheduleDialog(false);
+  const handleSaveNewSchedule = async (newSchedule: Partial<WeeklySchedule>) => {
+    try {
+      // TODO: Implement API call to add schedule
+      setWeeklySchedule(prev => [...prev, newSchedule as WeeklySchedule]);
+      toast({
+        title: "일정이 추가되었습니다.",
+        description: `${newSchedule.activity?.name} 일정이 추가되었습니다.`,
+      });
+      setShowScheduleDialog(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add schedule",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGenerateStudyTimes = async (startDate: Date, days: number) => {
-    console.log('Generate study times:', { startDate, days, studentId });
-    
-    // TODO: 실제 API 호출로 대체
-    // 시뮬레이션: 2초 후 완료
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock data for demonstration
-    const mockAssignedTimes: AssignedStudyTime[] = [
-      {
-        id: 1,
-        studentId,
-        activityId: 1,
-        startTime: new Date(startDate.getTime() + 9 * 60 * 60 * 1000).toISOString(),
-        endTime: new Date(startDate.getTime() + 12 * 60 * 60 * 1000).toISOString(),
-        assignedBy: 1,
-        activity: mockActivities[0]
-      },
-      {
-        id: 2,
-        studentId,
-        activityId: 2,
-        startTime: new Date(startDate.getTime() + 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000).toISOString(),
-        endTime: new Date(startDate.getTime() + 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000).toISOString(),
-        assignedBy: 1,
-        activity: mockActivities[1]
-      }
-    ];
-    
-    setAssignedStudyTimes(mockAssignedTimes);
+    try {
+      // TODO: Implement API call to generate study times
+      console.log('Generate study times:', { startDate, days, studentId });
+      
+      // Mock data for demonstration
+      const mockAssignedTimes: AssignedStudyTime[] = [
+        {
+          id: 1,
+          studentId,
+          activityId: 1,
+          startTime: new Date(startDate.getTime() + 9 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(startDate.getTime() + 12 * 60 * 60 * 1000).toISOString(),
+          assignedBy: 1,
+          activity: mockActivities[0]
+        },
+        {
+          id: 2,
+          studentId,
+          activityId: 2,
+          startTime: new Date(startDate.getTime() + 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000).toISOString(),
+          endTime: new Date(startDate.getTime() + 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000).toISOString(),
+          assignedBy: 1,
+          activity: mockActivities[1]
+        }
+      ];
+      
+      setAssignedStudyTimes(mockAssignedTimes);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate study times",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading || !student) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   // 학습시간 업데이트 핸들러
   const handleUpdateStudyTime = (id: number, updates: Partial<AssignedStudyTime>) => {

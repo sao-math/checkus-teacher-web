@@ -40,7 +40,7 @@ const authService = {
 
   async getCurrentUser(): Promise<UserInfo> {
     try {
-      const response = await api.get<UserInfo>('/user/me');
+      const response = await api.get<UserInfo>('/users/me');
       return response.data;
     } catch (error) {
       console.error('Error fetching current user:', error);

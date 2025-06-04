@@ -66,4 +66,30 @@ export const studentApi = {
       throw error;
     }
   },
+
+  updateStudent: async (studentId: number, data: Partial<Student>) => {
+    try {
+      console.log('Making API request to:', `${API_BASE_URL}/students/${studentId}`);
+      const token = authService.getAccessToken();
+      console.log('Auth token present:', !!token);
+      
+      const response = await axios.put(`${API_BASE_URL}/students/${studentId}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      console.log('API Response:', response);
+      return response.data.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
 }; 

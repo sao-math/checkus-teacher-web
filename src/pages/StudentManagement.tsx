@@ -87,12 +87,12 @@ const StudentManagement = () => {
     return 'text-red-600';
   };
 
-  const handleStudentClick = (student: Student) => {
-    navigate(`/student/${student.id}`);
+  const handleViewDetails = (student: Student) => {
+    navigate(`/students/${student.id}`);
   };
 
-  const handleEditStudent = (student: Student) => {
-    navigate(`/student/${student.id}/edit`);
+  const handleEdit = (student: Student) => {
+    navigate(`/students/${student.id}/edit`);
   };
 
   const handleDeleteStudent = async (student: Student) => {
@@ -192,11 +192,11 @@ const StudentManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleStudentClick(student)}>
+                        <DropdownMenuItem onClick={() => handleViewDetails(student)}>
                           <Eye className="mr-2 h-4 w-4" />
                           상세보기
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditStudent(student)}>
+                        <DropdownMenuItem onClick={() => handleEdit(student)}>
                           <Edit className="mr-2 h-4 w-4" />
                           수정
                         </DropdownMenuItem>

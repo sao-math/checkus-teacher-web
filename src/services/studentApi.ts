@@ -16,11 +16,11 @@ export interface GetStudentsParams {
 export const studentApi = {
   getStudents: async (params?: GetStudentsParams) => {
     try {
-      console.log('Making API request to:', `${API_BASE_URL}/student`);
+      console.log('Making API request to:', `${API_BASE_URL}/students`);
       const token = authService.getAccessToken();
       console.log('Auth token present:', !!token);
       
-      const response = await axios.get(`${API_BASE_URL}/student`, {
+      const response = await axios.get(`${API_BASE_URL}/students`, {
         params,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -43,11 +43,11 @@ export const studentApi = {
 
   getStudentDetail: async (studentId: number) => {
     try {
-      console.log('Making API request to:', `${API_BASE_URL}/student/${studentId}`);
+      console.log('Making API request to:', `${API_BASE_URL}/students/${studentId}`);
       const token = authService.getAccessToken();
       console.log('Auth token present:', !!token);
       
-      const response = await axios.get(`${API_BASE_URL}/student/${studentId}`, {
+      const response = await axios.get(`${API_BASE_URL}/students/${studentId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

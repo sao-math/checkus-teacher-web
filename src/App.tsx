@@ -17,6 +17,7 @@ import StudentDetails from './pages/StudentDetails';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Register from '@/pages/Register';
+import StudentSchedule from '@/pages/StudentSchedule';
 
 const App = () => {
   return (
@@ -49,6 +50,7 @@ const App = () => {
               <Route index element={<StudentManagement />} />
               <Route path=":id" element={<StudentDetails />} />
               <Route path=":id/edit" element={<StudentEdit />} />
+              <Route path=":id/schedule" element={<StudentSchedule />} />
             </Route>
 
             {/* Teacher routes */}

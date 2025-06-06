@@ -176,10 +176,12 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
   const handleDrop = async (date: Date, event: React.DragEvent) => {
     event.preventDefault();
-    const data = event.dataTransfer.getData('application/json');
-    if (!data) return;
-
+    event.stopPropagation();
+    
     try {
+      const data = event.dataTransfer.getData('application/json');
+      if (!data) return;
+
       const { type, task } = JSON.parse(data);
       if (type !== 'task') return;
 
@@ -229,6 +231,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
+    event.stopPropagation();
   };
 
   const renderWeekView = () => {
@@ -262,6 +265,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               onClick={() => setSelectedDate(date)}
               onDrop={(e) => handleDrop(date, e)}
               onDragOver={handleDragOver}
+              onDragEnter={(e) => e.preventDefault()}
+              onDragLeave={(e) => e.preventDefault()}
             >
               <div className={`text-sm font-medium mb-2 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
                 {format(date, 'd', { locale: ko })}
@@ -375,6 +380,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               onClick={() => setSelectedDate(date)}
               onDrop={(e) => handleDrop(date, e)}
               onDragOver={handleDragOver}
+              onDragEnter={(e) => e.preventDefault()}
+              onDragLeave={(e) => e.preventDefault()}
             >
               <div className={`text-sm font-medium mb-2 ${
                 isToday ? 'text-blue-600' : isCurrentMonth ? 'text-gray-900' : 'text-gray-400'

@@ -22,28 +22,8 @@ export const TaskTreeNode: React.FC<TaskTreeNodeProps> = ({
   const paddingLeft = level * 16;
 
   const handleDragStart = (e: React.DragEvent) => {
-    console.log('Drag started for task:', node.title);
-    
     if (node.isLeaf && onTaskDragStart) {
       onTaskDragStart(node, e);
-      e.dataTransfer.setData('application/json', JSON.stringify(node));
-      e.dataTransfer.effectAllowed = 'copy';
-      
-      // 드래그 이미지 설정
-      const dragImage = document.createElement('div');
-      dragImage.textContent = node.title;
-      dragImage.style.position = 'absolute';
-      dragImage.style.top = '-1000px';
-      dragImage.style.background = 'white';
-      dragImage.style.padding = '8px';
-      dragImage.style.border = '1px solid #ccc';
-      dragImage.style.borderRadius = '4px';
-      document.body.appendChild(dragImage);
-      e.dataTransfer.setDragImage(dragImage, 0, 0);
-      
-      setTimeout(() => {
-        document.body.removeChild(dragImage);
-      }, 0);
     }
   };
 

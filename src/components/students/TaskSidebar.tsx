@@ -90,6 +90,28 @@ export const TaskSidebar: React.FC<TaskSidebarProps> = ({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
 
+  const handleDragStart = (task: TaskNode, event: React.DragEvent) => {
+    if (onTaskDragStart) {
+      onTaskDragStart(task, event);
+    }
+    
+    // 드래그 이미지 설정
+    const dragImage = document.createElement('div');
+    dragImage.textContent = task.title;
+    dragImage.style.position = 'absolute';
+    dragImage.style.top = '-1000px';
+    dragImage.style.background = 'white';
+    dragImage.style.padding = '8px';
+    dragImage.style.border = '1px solid #ccc';
+    dragImage.style.borderRadius = '4px';
+    document.body.appendChild(dragImage);
+    event.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
+  };
+
   const toggleNode = (nodeId: number) => {
     const updateNodeRecursively = (nodes: TaskNode[]): TaskNode[] => {
       return nodes.map(node => {
@@ -161,7 +183,7 @@ export const TaskSidebar: React.FC<TaskSidebarProps> = ({
                     onSearchChange={setSearchTerm}
                     onToggleNode={toggleNode}
                     onAssignTask={handleAssignTask}
-                    onTaskDragStart={onTaskDragStart}
+                    onTaskDragStart={handleDragStart}
                   />
                 </TabsContent>
               ))}

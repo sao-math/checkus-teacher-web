@@ -2,8 +2,8 @@ import api from '../lib/axios';
 import { LoginRequest, LoginResponse, TokenRefreshResponse, UserInfo } from '../types/auth';
 
 // 메모리에서 토큰 관리
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+let accessToken: string | null = localStorage.getItem('accessToken');
+let refreshToken: string | null = localStorage.getItem('refreshToken');
 
 const authService = {
   async login(request: LoginRequest): Promise<LoginResponse> {
@@ -69,11 +69,15 @@ const authService = {
   setTokens(newAccessToken: string, newRefreshToken: string): void {
     accessToken = newAccessToken;
     refreshToken = newRefreshToken;
+    localStorage.setItem('accessToken', newAccessToken);
+    localStorage.setItem('refreshToken', newRefreshToken);
   },
 
   removeTokens(): void {
     accessToken = null;
     refreshToken = null;
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   },
 
   // 토큰이 만료되었는지 확인

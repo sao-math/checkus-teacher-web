@@ -32,6 +32,7 @@ interface WeeklyScheduleDialogProps {
   scheduleItem?: WeeklySchedule | null;
   onSave: (data: Partial<WeeklySchedule>) => void;
   activities: Activity[];
+  fetchActivities: () => void;
 }
 
 interface FormData {
@@ -47,6 +48,7 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
   scheduleItem,
   onSave,
   activities,
+  fetchActivities,
 }) => {
   const form = useForm<FormData>({
     defaultValues: {
@@ -140,7 +142,11 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>활동</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                    onOpenChange={(open) => { if (open) fetchActivities(); }}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="활동을 선택하세요" />

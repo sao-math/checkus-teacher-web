@@ -306,6 +306,7 @@ const StudentDetails = () => {
               scheduleItem={selectedSchedule}
               onSave={handleSaveNewSchedule}
               activities={activities}
+              fetchActivities={fetchActivities}
             />
 
             {/* 학습시간 달력 (주간 또는 월간) */}

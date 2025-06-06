@@ -11,12 +11,22 @@ const axiosInstance = axios.create({
   withCredentials: false
 });
 
+// List of endpoints that do NOT require authentication
+const PUBLIC_ENDPOINTS = [
+  '/auth/login',
+  '/auth/refresh',
+  '/auth/register/teacher',
+  '/auth/check-username',
+  '/auth/check-phone',
+  // Add more public endpoints as needed
+];
+
 // Request interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
     try {
-      // Skip token check for login and refresh endpoints
-      if (config.url === '/auth/login' || config.url === '/auth/refresh') {
+      // Skip token check for public endpoints
+      if (config.url && PUBLIC_ENDPOINTS.some(url => config.url.startsWith(url))) {
         return config;
       }
 

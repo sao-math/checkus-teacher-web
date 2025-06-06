@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,6 +81,13 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [assignedTasks, setAssignedTasks] = useState<{[key: string]: TaskNode[]}>({});
+
+  // Add effect to handle onAddTask prop changes
+  useEffect(() => {
+    if (onAddTask) {
+      setIsSidebarOpen(true);
+    }
+  }, [onAddTask]);
 
   const handleCopySchedule = async () => {
     setIsLoading(true);
@@ -544,14 +551,6 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           )}
         </CardContent>
       </Card>
-
-      {/* 할일 추가 사이드바 */}
-      <TaskSidebar
-        open={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        studentId={studentId}
-        onTaskDragStart={handleTaskDragStart}
-      />
     </div>
   );
 };

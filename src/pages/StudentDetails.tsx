@@ -99,6 +99,10 @@ const StudentDetails = () => {
     setShowTaskSidebar(true);
   };
 
+  const handleCloseTaskSidebar = () => {
+    setShowTaskSidebar(false);
+  };
+
   const handleUpdateSchedule = async (updatedSchedule: WeeklySchedule) => {
     try {
       const data = await studentApi.updateWeeklySchedule(updatedSchedule.id, {
@@ -321,7 +325,7 @@ const StudentDetails = () => {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               onGenerateStudyTimes={handleGenerateStudyTimes}
-              onAddTask={() => setShowTaskSidebar(true)}
+              onAddTask={handleAddTask}
             />
           </div>
         </div>
@@ -330,8 +334,15 @@ const StudentDetails = () => {
       {/* 태스크 사이드바 */}
       <TaskSidebar
         open={showTaskSidebar}
-        onClose={() => setShowTaskSidebar(false)}
+        onClose={handleCloseTaskSidebar}
         studentId={studentId}
+        onTaskDragStart={(task, event) => {
+          const dragData = {
+            type: 'task',
+            task
+          };
+          event.dataTransfer.setData('application/json', JSON.stringify(dragData));
+        }}
       />
     </div>
   );

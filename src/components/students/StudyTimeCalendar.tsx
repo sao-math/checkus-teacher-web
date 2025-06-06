@@ -9,10 +9,11 @@ import { ko } from 'date-fns/locale';
 import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
 import { AssignedStudyTime, WeeklySchedule, ActualStudyTime } from '@/types/schedule';
-import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
+import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, isSameMonth, addHours } from 'date-fns';
 import { TaskTree } from '@/components/tasks/TaskTree';
 import { TaskNode } from '@/types/task';
 import { TaskSidebar } from './TaskSidebar';
+import { toast } from '@/components/ui/use-toast';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -84,58 +85,64 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const handleCopySchedule = async () => {
     setIsLoading(true);
     try {
-      console.log('Original weekly schedule:', weeklySchedule);
-      
-      // 학습 가능한 일정만 필터링 (isStudyAssignable이 true인 활동만)
+      // Get study-assignable schedules
       const studyAssignableSchedules = weeklySchedule.filter(schedule => {
-        const isAssignable = schedule.activity?.isStudyAssignable === true;
-        console.log('Schedule:', schedule.activity?.name, 'isAssignable:', isAssignable);
+        const isAssignable = schedule.activity?.isStudyAssignable;
+        console.log('Schedule:', schedule.activityName, 'isAssignable:', isAssignable);
         return isAssignable;
       });
 
-      console.log('Filtered study-assignable schedules:', studyAssignableSchedules);
+      if (studyAssignableSchedules.length === 0) {
+        toast({
+          title: "알림",
+          description: "복사할 수 있는 학습 일정이 없습니다.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      // 선택된 날짜 범위에 대해 일정 생성
+      // Clear existing study times for the date range
+      const start = startDate;
+      const end = addDays(startDate, days - 1);
+      
+      // Generate study times for each day in the range
       for (let i = 0; i < days; i++) {
         const currentDate = addDays(startDate, i);
         const dayOfWeek = currentDate.getDay();
 
-        // 해당 요일의 학습 가능한 일정 찾기
+        // Find schedules for this day of week
         const daySchedules = studyAssignableSchedules.filter(
           schedule => schedule.dayOfWeek === dayOfWeek
         );
 
-        console.log(`Day ${dayOfWeek} schedules:`, daySchedules);
-
-        // 각 일정에 대해 학습시간 생성
+        // Create study times for each schedule
         for (const schedule of daySchedules) {
-          // activity가 없거나 isStudyAssignable이 false인 경우 건너뛰기
-          if (!schedule.activity || schedule.activity.isStudyAssignable !== true) {
-            console.log('Skipping schedule:', schedule.activity?.name);
-            continue;
-          }
-
           const startTime = parse(schedule.startTime, 'HH:mm', currentDate);
           const endTime = parse(schedule.endTime, 'HH:mm', currentDate);
 
-          const studyTime: AssignedStudyTime = {
-            id: Date.now() + Math.random(), // 임시 ID 생성
+          const studyTime: Partial<AssignedStudyTime> = {
             studentId: studentId,
-            studentName: schedule.studentName,
             activityId: schedule.activityId,
-            activityName: schedule.activityName,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            assignedBy: 1, // TODO: Replace with actual user ID
-            assignedByName: 'Teacher', // TODO: Replace with actual teacher name
-            activity: schedule.activity
+            assignedBy: 1 // TODO: Replace with actual user ID
           };
 
-          console.log('Adding study time:', studyTime);
-          // 학습시간 목록에 추가
-          setAssignedStudyTimes(prev => [...prev, studyTime]);
+          await onGenerateStudyTimes(currentDate, 1);
         }
       }
+
+      toast({
+        title: "일정이 복사되었습니다.",
+        description: `${format(start, 'M월 d일')}부터 ${format(end, 'M월 d일')}까지의 일정이 복사되었습니다.`,
+      });
+    } catch (error) {
+      console.error('Failed to copy schedule:', error);
+      toast({
+        title: "Error",
+        description: "일정 복사 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -160,13 +167,15 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     event.dataTransfer.setData('application/json', JSON.stringify(dragData));
   };
 
-  const handleDrop = (date: Date, event: React.DragEvent) => {
+  const handleDrop = async (date: Date, event: React.DragEvent) => {
     event.preventDefault();
     const data = event.dataTransfer.getData('application/json');
     if (!data) return;
 
     try {
-      const task = JSON.parse(data);
+      const { type, task } = JSON.parse(data);
+      if (type !== 'task') return;
+
       const dateKey = format(date, 'yyyy-MM-dd');
       
       // 이미 해당 날짜에 같은 할일이 있는지 확인
@@ -174,13 +183,40 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       const isTaskAlreadyAssigned = existingTasks.some(t => t.id === task.id);
       
       if (!isTaskAlreadyAssigned) {
+        // API를 통해 할일 할당
+        const studyTime: Partial<AssignedStudyTime> = {
+          studentId: studentId,
+          activityId: task.id,
+          startTime: date.toISOString(),
+          endTime: addHours(date, 1).toISOString(), // 기본 1시간으로 설정
+          assignedBy: 1 // TODO: Replace with actual user ID
+        };
+
+        await onGenerateStudyTimes(date, 1);
+        
         setAssignedTasks(prev => ({
           ...prev,
           [dateKey]: [...existingTasks, task]
         }));
+
+        toast({
+          title: "할일이 할당되었습니다.",
+          description: `${format(date, 'M월 d일')}에 할일이 할당되었습니다.`,
+        });
+      } else {
+        toast({
+          title: "알림",
+          description: "이미 해당 날짜에 할당된 할일입니다.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      console.error('Failed to parse drag data:', error);
+      console.error('Failed to handle task drop:', error);
+      toast({
+        title: "Error",
+        description: "할일 할당 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     }
   };
 

@@ -321,7 +321,7 @@ const StudentDetails = () => {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               onGenerateStudyTimes={handleGenerateStudyTimes}
-              onAddTask={() => {/* TODO: Implement add task */}}
+              onAddTask={() => setShowTaskSidebar(true)}
             />
           </div>
         </div>

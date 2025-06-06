@@ -8,7 +8,7 @@ import DatePicker from 'react-datepicker';
 import { ko } from 'date-fns/locale';
 import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
-import { AssignedStudyTime, WeeklySchedule } from '@/types/schedule';
+import { AssignedStudyTime, WeeklySchedule, ActualStudyTime } from '@/types/schedule';
 import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
 import { TaskTree } from '@/components/tasks/TaskTree';
 import { TaskNode } from '@/types/task';
@@ -17,6 +17,7 @@ import { TaskSidebar } from './TaskSidebar';
 interface StudyTimeCalendarProps {
   studentId: number;
   assignedStudyTimes: AssignedStudyTime[];
+  actualStudyTimes: ActualStudyTime[];
   setAssignedStudyTimes: React.Dispatch<React.SetStateAction<AssignedStudyTime[]>>;
   weeklySchedule: WeeklySchedule[];
   onUpdateStudyTime: (id: number, updates: Partial<AssignedStudyTime>) => void;
@@ -65,6 +66,7 @@ const mockTasks: TaskNode[] = [
 export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   studentId,
   assignedStudyTimes,
+  actualStudyTimes,
   setAssignedStudyTimes,
   weeklySchedule,
   viewMode,
@@ -119,11 +121,14 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           const studyTime: AssignedStudyTime = {
             id: Date.now() + Math.random(), // 임시 ID 생성
             studentId: studentId,
+            studentName: schedule.studentName,
             activityId: schedule.activityId,
+            activityName: schedule.activityName,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
             assignedBy: 1, // TODO: Replace with actual user ID
-            activity: schedule.activity // activity 정보 포함
+            assignedByName: 'Teacher', // TODO: Replace with actual teacher name
+            activity: schedule.activity
           };
 
           console.log('Adding study time:', studyTime);
@@ -137,9 +142,13 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   };
 
   const getStudyTimesForDate = (date: Date) => {
-    return assignedStudyTimes.filter(studyTime => 
+    const assigned = assignedStudyTimes.filter(studyTime => 
       isSameDay(new Date(studyTime.startTime), date)
     );
+    const actual = actualStudyTimes.filter(studyTime =>
+      isSameDay(new Date(studyTime.startTime), date)
+    );
+    return { assigned, actual };
   };
 
   const handleTaskDragStart = (task: TaskNode, event: React.DragEvent) => {
@@ -195,7 +204,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         
         {/* 날짜 및 할당된 학습시간/할일 */}
         {days.map((date) => {
-          const studyTimes = getStudyTimesForDate(date);
+          const { assigned, actual } = getStudyTimesForDate(date);
           const isToday = isSameDay(date, new Date());
           const isSelected = selectedDate && isSameDay(date, selectedDate);
           const dateKey = format(date, 'yyyy-MM-dd');
@@ -218,7 +227,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               {/* 공부시간 섹션 */}
               <div className="mb-2">
                 <div className="space-y-1">
-                  {studyTimes.slice(0, 3).map((studyTime) => (
+                  {/* 할당된 공부시간 */}
+                  {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
                       className={`text-xs p-1 rounded truncate ${
@@ -227,12 +237,21 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {studyTime.activity?.name}
+                      {studyTime.activityName}
                     </div>
                   ))}
-                  {studyTimes.length > 3 && (
+                  {/* 실제 공부시간 */}
+                  {actual.slice(0, 3).map((studyTime) => (
+                    <div
+                      key={studyTime.id}
+                      className="text-xs p-1 rounded truncate bg-blue-100 text-blue-800"
+                    >
+                      {studyTime.studentName} (실제)
+                    </div>
+                  ))}
+                  {(assigned.length + actual.length) > 3 && (
                     <div className="text-xs text-gray-500">
-                      +{studyTimes.length - 3} more
+                      +{(assigned.length + actual.length) - 3} more
                     </div>
                   )}
                 </div>
@@ -295,7 +314,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         
         {/* 날짜 및 할당된 학습시간/할일 */}
         {allDays.map((date) => {
-          const studyTimes = getStudyTimesForDate(date);
+          const { assigned, actual } = getStudyTimesForDate(date);
           const isToday = isSameDay(date, new Date());
           const isSelected = selectedDate && isSameDay(date, selectedDate);
           const isCurrentMonth = isSameMonth(date, startDate);
@@ -323,7 +342,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               {/* 공부시간 섹션 */}
               <div className="mb-2">
                 <div className="space-y-1">
-                  {studyTimes.slice(0, 3).map((studyTime) => (
+                  {/* 할당된 공부시간 */}
+                  {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
                       className={`text-xs p-1 rounded truncate ${
@@ -332,12 +352,21 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                           : 'bg-gray-100 text-gray-600'
                       }`}
                     >
-                      {studyTime.activity?.name}
+                      {studyTime.activityName}
                     </div>
                   ))}
-                  {studyTimes.length > 3 && (
+                  {/* 실제 공부시간 */}
+                  {actual.slice(0, 3).map((studyTime) => (
+                    <div
+                      key={studyTime.id}
+                      className="text-xs p-1 rounded truncate bg-blue-100 text-blue-800"
+                    >
+                      {studyTime.studentName} (실제)
+                    </div>
+                  ))}
+                  {(assigned.length + actual.length) > 3 && (
                     <div className="text-xs text-gray-500">
-                      +{studyTimes.length - 3} more
+                      +{(assigned.length + actual.length) - 3} more
                     </div>
                   )}
                 </div>
@@ -462,10 +491,10 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                 {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}의 학습시간
               </h4>
               <div className="space-y-2">
-                {getStudyTimesForDate(selectedDate).length > 0 ? (
-                  getStudyTimesForDate(selectedDate).map((studyTime) => (
+                {getStudyTimesForDate(selectedDate).assigned.length > 0 ? (
+                  getStudyTimesForDate(selectedDate).assigned.map((studyTime) => (
                     <div key={studyTime.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                      <span>{studyTime.activity?.name}</span>
+                      <span>{studyTime.activityName}</span>
                       <span className="text-sm text-gray-500">
                         {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
                       </span>

@@ -31,14 +31,14 @@ interface WeeklyScheduleDialogProps {
   onClose: () => void;
   scheduleItem?: WeeklySchedule | null;
   onSave: (data: Partial<WeeklySchedule>) => void;
+  activities: Activity[];
 }
 
 interface FormData {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
-  activityType: '자습' | '학원';
-  activityName: string;
+  activityId: string;
 }
 
 export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
@@ -46,14 +46,14 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
   onClose,
   scheduleItem,
   onSave,
+  activities,
 }) => {
   const form = useForm<FormData>({
     defaultValues: {
       dayOfWeek: scheduleItem?.dayOfWeek?.toString() || '1',
       startTime: scheduleItem?.startTime || '09:00',
       endTime: scheduleItem?.endTime || '10:00',
-      activityType: (scheduleItem?.activity?.type as '자습' | '학원') || '자습',
-      activityName: scheduleItem?.activity?.name || '',
+      activityId: scheduleItem?.activityId?.toString() || '',
     },
   });
 
@@ -63,35 +63,29 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
         dayOfWeek: scheduleItem.dayOfWeek.toString(),
         startTime: scheduleItem.startTime,
         endTime: scheduleItem.endTime,
-        activityType: (scheduleItem.activity?.type as '자습' | '학원') || '자습',
-        activityName: scheduleItem.activity?.name || '',
+        activityId: scheduleItem.activityId?.toString() || '',
       });
     } else {
       form.reset({
         dayOfWeek: '1',
         startTime: '09:00',
         endTime: '10:00',
-        activityType: '자습',
-        activityName: '',
+        activityId: '',
       });
     }
   }, [scheduleItem, form]);
 
   const onSubmit = (data: FormData) => {
-    const activity: Activity = {
-      id: scheduleItem?.activity?.id || Math.floor(Math.random() * 1000),
-      name: data.activityName,
-      type: data.activityType,
-      isStudyAssignable: data.activityType === '자습'
-    };
+    const selectedActivity = activities.find(a => a.id.toString() === data.activityId);
+    if (!selectedActivity) return;
 
     onSave({
       ...scheduleItem,
       dayOfWeek: parseInt(data.dayOfWeek),
       startTime: data.startTime,
       endTime: data.endTime,
-      activityId: activity.id,
-      activity: activity
+      activityId: selectedActivity.id,
+      activity: selectedActivity
     });
     onClose();
   };
@@ -142,34 +136,24 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
             />
             <FormField
               control={form.control}
-              name="activityType"
+              name="activityId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>활동 유형</FormLabel>
+                  <FormLabel>활동</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="활동 유형을 선택하세요" />
+                        <SelectValue placeholder="활동을 선택하세요" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="자습">자습</SelectItem>
-                      <SelectItem value="학원">학원</SelectItem>
+                      {activities.map((activity) => (
+                        <SelectItem key={activity.id} value={activity.id.toString()}>
+                          {activity.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="activityName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>활동 제목</FormLabel>
-                  <FormControl>
-                    <Input placeholder="활동 제목을 입력하세요" {...field} />
-                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -1,10 +1,9 @@
-import axios from 'axios';
+import api from '@/lib/axios';
+import { isAxiosError } from 'axios';
 import { Student } from '@/types/student';
+import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
+import { Activity } from '@/types/activity';
 import authService from './auth';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-console.log('API Base URL:', API_BASE_URL);
 
 export interface GetStudentsParams {
   classId?: number;
@@ -13,24 +12,29 @@ export interface GetStudentsParams {
   schoolId?: number;
 }
 
+export interface WeeklyScheduleRequest {
+  studentId: number;
+  activityId: number;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface StudyTimeRequest {
+  studentId: number;
+  activityId: number;
+  startTime: string;
+  endTime: string;
+}
+
 export const studentApi = {
+  // Student Management
   getStudents: async (params?: GetStudentsParams) => {
     try {
-      console.log('Making API request to:', `${API_BASE_URL}/students`);
-      const token = authService.getAccessToken();
-      console.log('Auth token present:', !!token);
-      
-      const response = await axios.get(`${API_BASE_URL}/students`, {
-        params,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      console.log('API Response:', response);
+      const response = await api.get('/students', { params });
       return response.data.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         console.error('API Error:', {
           status: error.response?.status,
           data: error.response?.data,
@@ -43,20 +47,10 @@ export const studentApi = {
 
   getStudentDetail: async (studentId: number) => {
     try {
-      console.log('Making API request to:', `${API_BASE_URL}/students/${studentId}`);
-      const token = authService.getAccessToken();
-      console.log('Auth token present:', !!token);
-      
-      const response = await axios.get(`${API_BASE_URL}/students/${studentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      console.log('API Response:', response);
+      const response = await api.get(`/students/${studentId}`);
       return response.data.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
         console.error('API Error:', {
           status: error.response?.status,
           data: error.response?.data,
@@ -69,20 +63,177 @@ export const studentApi = {
 
   updateStudent: async (studentId: number, data: Partial<Student>) => {
     try {
-      console.log('Making API request to:', `${API_BASE_URL}/students/${studentId}`);
-      const token = authService.getAccessToken();
-      console.log('Auth token present:', !!token);
-      
-      const response = await axios.put(`${API_BASE_URL}/students/${studentId}`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      
-      console.log('API Response:', response);
+      const response = await api.put(`/students/${studentId}`, data);
       return response.data.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  // Weekly Schedule Management
+  getWeeklySchedule: async (studentId: number) => {
+    try {
+      const response = await api.get(`/weekly-schedule/student/${studentId}`);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  createWeeklySchedule: async (data: WeeklyScheduleRequest) => {
+    try {
+      const response = await api.post('/weekly-schedule', data);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  updateWeeklySchedule: async (scheduleId: number, data: WeeklyScheduleRequest) => {
+    try {
+      const response = await api.put(`/weekly-schedule/${scheduleId}`, data);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  deleteWeeklySchedule: async (scheduleId: number) => {
+    try {
+      const response = await api.delete(`/weekly-schedule/${scheduleId}`);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  // Study Time Management
+  getAssignedStudyTimes: async (studentId: number, startDate: string, endDate: string) => {
+    try {
+      const response = await api.get(`/study-time/assigned/student/${studentId}`, {
+        params: { startDate, endDate }
+      });
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  getActualStudyTimes: async (studentId: number, startDate: string, endDate: string) => {
+    try {
+      const response = await api.get(`/study-time/actual/student/${studentId}`, {
+        params: { startDate, endDate }
+      });
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  assignStudyTime: async (data: StudyTimeRequest) => {
+    try {
+      const response = await api.post('/study-time/assign', data);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  updateStudyTime: async (studyTimeId: number, data: Partial<StudyTimeRequest>) => {
+    try {
+      const response = await api.put(`/study-time/${studyTimeId}`, data);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  deleteStudyTime: async (studyTimeId: number) => {
+    try {
+      const response = await api.delete(`/study-time/${studyTimeId}`);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
+  // Activities
+  getActivities: async () => {
+    try {
+      const response = await api.get('/study-time/activities');
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
         console.error('API Error:', {
           status: error.response?.status,
           data: error.response?.data,

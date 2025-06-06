@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
-import { WeeklySchedule, AssignedStudyTime } from '@/types/schedule';
+import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
 import { Activity } from '@/types/activity';
 import { StudentBasicInfo } from '@/components/students/StudentBasicInfo';
 import { WeeklyScheduleGrid } from '@/components/students/WeeklyScheduleGrid';
@@ -18,14 +18,6 @@ import { StudyTimeCalendar } from '@/components/students/StudyTimeCalendar';
 import { TaskSidebar } from '@/components/students/TaskSidebar';
 import { WeeklyScheduleDialog } from '@/components/students/WeeklyScheduleDialog';
 import { studentApi } from '@/services/studentApi';
-
-// Mock data for activities - TODO: Move to API
-const mockActivities: Activity[] = [
-  { id: 1, name: '사오수학', type: '학원', isStudyAssignable: false },
-  { id: 2, name: '영어학원', type: '학원', isStudyAssignable: false },
-  { id: 3, name: '사오숙제', type: '자습', isStudyAssignable: true },
-  { id: 4, name: '자습시간', type: '자습', isStudyAssignable: true },
-];
 
 const StudentDetails = () => {
   const { id } = useParams();
@@ -38,19 +30,39 @@ const StudentDetails = () => {
   const [student, setStudent] = useState<Student | null>(null);
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule[]>([]);
   const [assignedStudyTimes, setAssignedStudyTimes] = useState<AssignedStudyTime[]>([]);
+  const [actualStudyTimes, setActualStudyTimes] = useState<ActualStudyTime[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<WeeklySchedule | null>(null);
 
   useEffect(() => {
     fetchStudentDetails();
+    fetchActivities();
   }, [studentId]);
 
   const fetchStudentDetails = async () => {
     try {
       setLoading(true);
-      const data = await studentApi.getStudentDetail(studentId);
-      setStudent(data);
-      // TODO: Fetch weekly schedule and assigned study times from API
+      const [studentData, weeklyScheduleData] = await Promise.all([
+        studentApi.getStudentDetail(studentId),
+        studentApi.getWeeklySchedule(studentId)
+      ]);
+      setStudent(studentData);
+      setWeeklySchedule(weeklyScheduleData);
+
+      // Fetch study times for current month
+      const now = new Date();
+      const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+      
+      const [assignedTimes, actualTimes] = await Promise.all([
+        studentApi.getAssignedStudyTimes(studentId, startDate, endDate),
+        studentApi.getActualStudyTimes(studentId, startDate, endDate)
+      ]);
+      
+      setAssignedStudyTimes(assignedTimes);
+      setActualStudyTimes(actualTimes);
     } catch (error) {
       toast({
         title: "Error",
@@ -59,6 +71,19 @@ const StudentDetails = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchActivities = async () => {
+    try {
+      const data = await studentApi.getActivities();
+      setActivities(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch activities",
+        variant: "destructive",
+      });
     }
   };
 
@@ -76,15 +101,23 @@ const StudentDetails = () => {
 
   const handleUpdateSchedule = async (updatedSchedule: WeeklySchedule) => {
     try {
-      // TODO: Implement API call to update schedule
+      const data = await studentApi.updateWeeklySchedule(updatedSchedule.id, {
+        studentId: studentId,
+        activityId: updatedSchedule.activityId,
+        dayOfWeek: updatedSchedule.dayOfWeek,
+        startTime: updatedSchedule.startTime,
+        endTime: updatedSchedule.endTime
+      });
+      
       setWeeklySchedule(prev => 
         prev.map(schedule => 
-          schedule.id === updatedSchedule.id ? updatedSchedule : schedule
+          schedule.id === updatedSchedule.id ? data : schedule
         )
       );
+      
       toast({
         title: "일정이 수정되었습니다.",
-        description: `${updatedSchedule.activity?.name} 일정이 수정되었습니다.`,
+        description: `${updatedSchedule.activityName} 일정이 수정되었습니다.`,
       });
     } catch (error) {
       toast({
@@ -97,7 +130,7 @@ const StudentDetails = () => {
 
   const handleDeleteSchedule = async (scheduleId: number) => {
     try {
-      // TODO: Implement API call to delete schedule
+      await studentApi.deleteWeeklySchedule(scheduleId);
       setWeeklySchedule(prev => prev.filter(schedule => schedule.id !== scheduleId));
       toast({
         title: "일정이 삭제되었습니다.",
@@ -118,11 +151,18 @@ const StudentDetails = () => {
 
   const handleSaveNewSchedule = async (newSchedule: Partial<WeeklySchedule>) => {
     try {
-      // TODO: Implement API call to add schedule
-      setWeeklySchedule(prev => [...prev, newSchedule as WeeklySchedule]);
+      const data = await studentApi.createWeeklySchedule({
+        studentId: studentId,
+        activityId: newSchedule.activityId!,
+        dayOfWeek: newSchedule.dayOfWeek!,
+        startTime: newSchedule.startTime!,
+        endTime: newSchedule.endTime!
+      });
+      
+      setWeeklySchedule(prev => [...prev, data]);
       toast({
         title: "일정이 추가되었습니다.",
-        description: `${newSchedule.activity?.name} 일정이 추가되었습니다.`,
+        description: `${newSchedule.activityName} 일정이 추가되었습니다.`,
       });
       setShowScheduleDialog(false);
     } catch (error) {
@@ -136,36 +176,72 @@ const StudentDetails = () => {
 
   const handleGenerateStudyTimes = async (startDate: Date, days: number) => {
     try {
-      // TODO: Implement API call to generate study times
-      console.log('Generate study times:', { startDate, days, studentId });
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + days - 1);
       
-      // Mock data for demonstration
-      const mockAssignedTimes: AssignedStudyTime[] = [
-        {
-          id: 1,
+      const [assignedTimes, actualTimes] = await Promise.all([
+        studentApi.getAssignedStudyTimes(
           studentId,
-          activityId: 1,
-          startTime: new Date(startDate.getTime() + 9 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(startDate.getTime() + 12 * 60 * 60 * 1000).toISOString(),
-          assignedBy: 1,
-          activity: mockActivities[0]
-        },
-        {
-          id: 2,
+          startDate.toISOString(),
+          endDate.toISOString()
+        ),
+        studentApi.getActualStudyTimes(
           studentId,
-          activityId: 2,
-          startTime: new Date(startDate.getTime() + 24 * 60 * 60 * 1000 + 14 * 60 * 60 * 1000).toISOString(),
-          endTime: new Date(startDate.getTime() + 24 * 60 * 60 * 1000 + 16 * 60 * 60 * 1000).toISOString(),
-          assignedBy: 1,
-          activity: mockActivities[1]
-        }
-      ];
+          startDate.toISOString(),
+          endDate.toISOString()
+        )
+      ]);
       
-      setAssignedStudyTimes(mockAssignedTimes);
+      setAssignedStudyTimes(assignedTimes);
+      setActualStudyTimes(actualTimes);
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to generate study times",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateStudyTime = async (id: number, updates: Partial<AssignedStudyTime>) => {
+    try {
+      const data = await studentApi.updateStudyTime(id, {
+        activityId: updates.activityId!,
+        startTime: updates.startTime!,
+        endTime: updates.endTime!
+      });
+      
+      setAssignedStudyTimes(prev => 
+        prev.map(item => 
+          item.id === id ? data : item
+        )
+      );
+      
+      toast({
+        title: "학습시간이 수정되었습니다.",
+        description: "선택한 학습시간이 수정되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update study time",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteStudyTime = async (id: number) => {
+    try {
+      await studentApi.deleteStudyTime(id);
+      setAssignedStudyTimes(prev => prev.filter(item => item.id !== id));
+      toast({
+        title: "학습시간이 삭제되었습니다.",
+        description: "선택한 학습시간이 삭제되었습니다.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete study time",
         variant: "destructive",
       });
     }
@@ -178,20 +254,6 @@ const StudentDetails = () => {
       </div>
     );
   }
-
-  // 학습시간 업데이트 핸들러
-  const handleUpdateStudyTime = (id: number, updates: Partial<AssignedStudyTime>) => {
-    setAssignedStudyTimes(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, ...updates } : item
-      )
-    );
-  };
-
-  // 학습시간 삭제 핸들러
-  const handleDeleteStudyTime = (id: number) => {
-    setAssignedStudyTimes(prev => prev.filter(item => item.id !== id));
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -206,7 +268,7 @@ const StudentDetails = () => {
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
                 <p className="text-sm text-gray-500">
-                  {student.grade}학년 · {student.schoolName}
+                  {student.grade}학년 · {student.school}
                 </p>
               </div>
             </div>
@@ -241,53 +303,34 @@ const StudentDetails = () => {
             <WeeklyScheduleDialog
               open={showScheduleDialog}
               onClose={() => setShowScheduleDialog(false)}
+              scheduleItem={selectedSchedule}
               onSave={handleSaveNewSchedule}
+              activities={activities}
             />
 
             {/* 학습시간 달력 (주간 또는 월간) */}
-            {viewMode === 'week' ? (
-              <StudyTimeCalendar
-                studentId={studentId}
-                assignedStudyTimes={assignedStudyTimes}
-                setAssignedStudyTimes={setAssignedStudyTimes}
-                weeklySchedule={weeklySchedule}
-                onUpdateStudyTime={handleUpdateStudyTime}
-                onDeleteStudyTime={handleDeleteStudyTime}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                onGenerateStudyTimes={handleGenerateStudyTimes}
-                onAddTask={handleAddTask}
-              />
-            ) : (
-              <StudyTimeCalendar
-                studentId={studentId}
-                assignedStudyTimes={assignedStudyTimes}
-                setAssignedStudyTimes={setAssignedStudyTimes}
-                weeklySchedule={weeklySchedule}
-                onUpdateStudyTime={handleUpdateStudyTime}
-                onDeleteStudyTime={handleDeleteStudyTime}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                onGenerateStudyTimes={handleGenerateStudyTimes}
-                onAddTask={handleAddTask}
-              />
-            )}
+            <StudyTimeCalendar
+              studentId={student?.id || 0}
+              assignedStudyTimes={assignedStudyTimes}
+              actualStudyTimes={actualStudyTimes}
+              setAssignedStudyTimes={setAssignedStudyTimes}
+              weeklySchedule={weeklySchedule}
+              onUpdateStudyTime={handleUpdateStudyTime}
+              onDeleteStudyTime={handleDeleteStudyTime}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              onGenerateStudyTimes={handleGenerateStudyTimes}
+              onAddTask={() => {/* TODO: Implement add task */}}
+            />
           </div>
         </div>
       </div>
 
-      {/* 할일 추가 사이드바 */}
-      <TaskSidebar 
+      {/* 태스크 사이드바 */}
+      <TaskSidebar
         open={showTaskSidebar}
         onClose={() => setShowTaskSidebar(false)}
-        studentId={student.id}
-        onTaskDragStart={(task, event) => {
-          const dragData = {
-            type: 'task',
-            task
-          };
-          event.dataTransfer.setData('application/json', JSON.stringify(dragData));
-        }}
+        studentId={studentId}
       />
     </div>
   );

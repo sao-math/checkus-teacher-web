@@ -14,15 +14,25 @@ export interface Guardian {
   relationship: string;
 }
 
-export interface Student {
+export interface Class {
   id: number;
   name: string;
-  phoneNumber: string | null;
+}
+
+export interface Student {
+  id: number;
+  username: string;
+  name: string;
+  phoneNumber: string;
   studentPhoneNumber: string;
+  discordId: string;
+  createdAt: string;
+  status: 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
   school: string;
+  schoolId: number;
   grade: number;
-  classes: string[];
-  status: 'ENROLLED' | 'GRADUATED' | 'WITHDRAWN';
+  gender: 'MALE' | 'FEMALE';
+  classes: Class[];
   guardians: Guardian[];
 }
 
@@ -64,4 +74,18 @@ export interface ActualStudyTime {
   endTime: string;
   activity: string;
   source: string;
+}
+
+export interface StudentUpdateRequest {
+  name?: string;
+  phoneNumber?: string;
+  discordId?: string;
+  profile?: {
+    status?: string;
+    schoolId?: number;
+    grade?: number;
+    gender?: string;
+  };
+  classIds?: number[];
+  guardians?: Guardian[];
 }

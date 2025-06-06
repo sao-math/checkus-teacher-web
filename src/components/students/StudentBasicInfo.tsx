@@ -25,33 +25,64 @@ export const StudentBasicInfo: React.FC<StudentBasicInfoProps> = ({
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '문의': return 'bg-yellow-100 text-yellow-800';
-      case '상담예약': return 'bg-blue-100 text-blue-800';
-      case '재원': return 'bg-green-100 text-green-800';
-      case '대기': return 'bg-gray-100 text-gray-800';
-      case '퇴원': return 'bg-red-100 text-red-800';
-      case '미등록': return 'bg-gray-200 text-gray-500';
-      default: return 'bg-gray-100 text-gray-800';
+      case '문의':
+      case 'INQUIRY':
+        return 'bg-yellow-100 text-yellow-800';
+      case '상담예약':
+      case 'CONSULTATION':
+        return 'bg-blue-100 text-blue-800';
+      case '재원':
+      case 'ENROLLED':
+        return 'bg-green-100 text-green-800';
+      case '대기':
+      case 'WAITING':
+        return 'bg-gray-100 text-gray-800';
+      case '퇴원':
+      case 'WITHDRAWN':
+        return 'bg-red-100 text-red-800';
+      case '미등록':
+      case 'UNREGISTERED':
+        return 'bg-gray-200 text-gray-500';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case '문의': return '문의';
-      case '상담예약': return '상담예약';
-      case '재원': return '재원';
-      case '대기': return '대기';
-      case '퇴원': return '퇴원';
-      case '미등록': return '미등록';
-      default: return '알 수 없음';
+      case '문의':
+      case 'INQUIRY':
+        return '문의';
+      case '상담예약':
+      case 'CONSULTATION':
+        return '상담예약';
+      case '재원':
+      case 'ENROLLED':
+        return '재원';
+      case '대기':
+      case 'WAITING':
+        return '대기';
+      case '퇴원':
+      case 'WITHDRAWN':
+        return '퇴원';
+      case '미등록':
+      case 'UNREGISTERED':
+        return '미등록';
+      default:
+        return '알 수 없음';
     }
   };
 
   const getGenderText = (gender: string) => {
     switch (gender) {
-      case 'male': return '남성';
-      case 'female': return '여성';
-      default: return '미설정';
+      case 'male':
+      case 'MALE':
+        return '남성';
+      case 'female':
+      case 'FEMALE':
+        return '여성';
+      default:
+        return '미설정';
     }
   };
 
@@ -124,7 +155,7 @@ export const StudentBasicInfo: React.FC<StudentBasicInfoProps> = ({
                 <School className="h-4 w-4 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">학교명</p>
-                  <p className="font-medium">{student.schoolName}</p>
+                  <p className="font-medium">{student.school}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

@@ -5,6 +5,7 @@ import { Calendar, Clock, Edit, Trash2, Plus } from 'lucide-react';
 import { WeeklySchedule } from '@/types/schedule';
 import { Button } from '@/components/ui/button';
 import { WeeklyScheduleDialog } from './WeeklyScheduleDialog';
+import { Activity } from '@/types/activity';
 
 interface WeeklyScheduleGridProps {
   weeklySchedule: WeeklySchedule[];
@@ -12,6 +13,8 @@ interface WeeklyScheduleGridProps {
   onUpdateSchedule?: (schedule: WeeklySchedule) => void;
   onDeleteSchedule?: (scheduleId: number) => void;
   onAddSchedule?: () => void;
+  activities: Activity[];
+  fetchActivities: () => void;
 }
 
 export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
@@ -19,7 +22,9 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
   studentId,
   onUpdateSchedule,
   onDeleteSchedule,
-  onAddSchedule
+  onAddSchedule,
+  activities,
+  fetchActivities
 }) => {
   const [showDialog, setShowDialog] = React.useState(false);
   const [editingSchedule, setEditingSchedule] = React.useState<WeeklySchedule | null>(null);
@@ -87,12 +92,16 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
                     {daySchedule.map((item) => (
                       <div
                         key={item.id}
-                        className="p-3 border rounded-lg transition-all duration-200 bg-white hover:bg-gray-50 group"
+                        className={`p-3 border rounded-lg transition-all duration-200 group ${
+                          item.isStudyAssignable
+                            ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                            : 'bg-white hover:bg-gray-50'
+                        }`}
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-gray-900">
-                              {item.activity?.name}
+                              {item.title}
                             </p>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
@@ -115,13 +124,9 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
                           </div>
                           <Badge 
                             variant="outline" 
-                            className={`text-xs ${
-                              item.activity?.isStudyAssignable 
-                                ? 'bg-blue-100 text-blue-800 border-blue-300' 
-                                : 'bg-gray-100 text-gray-800 border-gray-300'
-                            }`}
+                            className="text-xs bg-gray-100 text-gray-800 border-gray-300"
                           >
-                            {item.activity?.type}
+                            {item.activityName}
                           </Badge>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-gray-500" />
@@ -153,6 +158,8 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
         }}
         scheduleItem={editingSchedule}
         onSave={handleSaveSchedule}
+        activities={activities}
+        fetchActivities={fetchActivities}
       />
     </>
   );

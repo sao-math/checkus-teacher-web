@@ -3,9 +3,10 @@ import { Activity } from './activity';
 export interface WeeklySchedule {
   id: number;
   studentId: number;
-  studentName: string;
+  title: string;
   activityId: number;
   activityName: string;
+  isStudyAssignable: boolean;
   dayOfWeek: number; // 1=월요일, 7=일요일
   dayOfWeekName: string;
   startTime: string; // "HH:mm:ss"

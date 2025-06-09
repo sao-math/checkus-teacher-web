@@ -302,6 +302,8 @@ const StudentDetails = () => {
               onUpdateSchedule={handleUpdateSchedule}
               onDeleteSchedule={handleDeleteSchedule}
               onAddSchedule={handleAddSchedule}
+              activities={activities}
+              fetchActivities={fetchActivities}
             />
 
             <WeeklyScheduleDialog

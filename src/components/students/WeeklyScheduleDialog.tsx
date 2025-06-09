@@ -40,6 +40,7 @@ interface FormData {
   startTime: string;
   endTime: string;
   activityId: string;
+  title: string;
 }
 
 export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
@@ -56,6 +57,7 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
       startTime: scheduleItem?.startTime || '09:00',
       endTime: scheduleItem?.endTime || '10:00',
       activityId: scheduleItem?.activityId?.toString() || '',
+      title: scheduleItem?.title || '',
     },
   });
 
@@ -66,6 +68,7 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
         startTime: scheduleItem.startTime,
         endTime: scheduleItem.endTime,
         activityId: scheduleItem.activityId?.toString() || '',
+        title: scheduleItem.title || '',
       });
     } else {
       form.reset({
@@ -73,6 +76,7 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
         startTime: '09:00',
         endTime: '10:00',
         activityId: '',
+        title: '',
       });
     }
   }, [scheduleItem, form]);
@@ -87,7 +91,10 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
       startTime: data.startTime,
       endTime: data.endTime,
       activityId: selectedActivity.id,
-      activity: selectedActivity
+      activity: selectedActivity,
+      title: data.title,
+      isStudyAssignable: selectedActivity.isStudyAssignable,
+      activityName: selectedActivity.name
     });
     onClose();
   };
@@ -112,6 +119,19 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>일정 이름</FormLabel>
+                  <FormControl>
+                    <Input placeholder="일정 이름을 입력하세요" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="dayOfWeek"

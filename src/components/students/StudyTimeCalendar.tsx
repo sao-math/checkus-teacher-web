@@ -15,6 +15,9 @@ import { TaskNode } from '@/types/task';
 import { TaskSidebar } from './TaskSidebar';
 import { toast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useForm } from 'react-hook-form';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -89,6 +92,16 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [manualActivityId, setManualActivityId] = useState<number | null>(null);
   const [manualStartTime, setManualStartTime] = useState<Date | null>(null);
   const [manualEndTime, setManualEndTime] = useState<Date | null>(null);
+
+  const form = useForm({
+    defaultValues: {
+      title: '',
+      activityId: '',
+      date: new Date(),
+      startTime: '09:00',
+      endTime: '10:00',
+    },
+  });
 
   // Add effect to handle onAddTask prop changes
   useEffect(() => {
@@ -268,6 +281,45 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       setManualActivityId(null);
       setManualStartTime(null);
       setManualEndTime(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const onSubmit = async (data: any) => {
+    if (!data.date || !data.startTime || !data.endTime || !data.activityId) return;
+
+    try {
+      setIsLoading(true);
+      const [startHours, startMinutes] = data.startTime.split(':').map(Number);
+      const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+
+      const startTime = new Date(data.date);
+      startTime.setHours(startHours, startMinutes, 0, 0);
+
+      const endTime = new Date(data.date);
+      endTime.setHours(endHours, endMinutes, 0, 0);
+
+      const studyTime: Partial<AssignedStudyTime> = {
+        studentId: studentId,
+        activityId: Number(data.activityId),
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        assignedBy: 1, // TODO: Replace with actual user ID
+        title: data.title,
+        activityName: activities.find(a => a.id === Number(data.activityId))?.name
+      };
+
+      await onGenerateStudyTimes(startTime, 1, studyTime);
+      setShowManualModal(false);
+      form.reset();
+    } catch (error) {
+      console.error('Failed to add study time:', error);
+      toast({
+        title: "Error",
+        description: "공부시간 추가 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -617,48 +669,112 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
       {/* 직접 공부시간 추가 모달 */}
       <Dialog open={showManualModal} onOpenChange={setShowManualModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>직접 공부시간 추가</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              placeholder="제목"
-              value={manualTitle}
-              onChange={e => setManualTitle(e.target.value)}
-            />
-            <select
-              className="w-full border rounded px-2 py-1 text-sm"
-              value={manualActivityId ?? ''}
-              onChange={e => setManualActivityId(Number(e.target.value))}
-            >
-              <option value="" disabled>활동 선택</option>
-              {activities.map(act => (
-                <option key={act.id} value={act.id}>{act.name}</option>
-              ))}
-            </select>
-            <Label>시작 시간</Label>
-            <DatePicker
-              selected={manualStartTime}
-              onChange={(date: Date | null) => setManualStartTime(date)}
-              showTimeSelect
-              dateFormat="Pp"
-              className="w-full"
-            />
-            <Label>종료 시간</Label>
-            <DatePicker
-              selected={manualEndTime}
-              onChange={(date: Date | null) => setManualEndTime(date)}
-              showTimeSelect
-              dateFormat="Pp"
-              className="w-full"
-            />
-          </div>
-          <DialogFooter>
-            <Button onClick={handleManualAdd} disabled={isLoading || !manualTitle || !manualActivityId || !manualStartTime || !manualEndTime}>
-              추가
-            </Button>
-          </DialogFooter>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>일정 이름</FormLabel>
+                    <FormControl>
+                      <Input placeholder="일정 이름을 입력하세요" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="activityId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>활동</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="활동을 선택하세요" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {activities.map((activity) => (
+                          <SelectItem key={activity.id} value={activity.id.toString()}>
+                            {activity.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>날짜</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <DatePicker
+                          selected={field.value}
+                          onChange={(date: Date | null) => field.onChange(date)}
+                          dateFormat="yyyy-MM-dd"
+                          locale={ko}
+                          placeholderText="날짜를 선택하세요"
+                          customInput={<Input className="pr-10" />}
+                          className="w-full"
+                        />
+                        <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>시작 시간</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="endTime"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>종료 시간</FormLabel>
+                    <FormControl>
+                      <Input type="time" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowManualModal(false)}>
+                  취소
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  추가
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

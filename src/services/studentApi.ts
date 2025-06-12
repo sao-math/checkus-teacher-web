@@ -22,6 +22,7 @@ export interface WeeklyScheduleRequest {
 
 export interface StudyTimeRequest {
   studentId: number;
+  title: string;
   activityId: number;
   startTime: string;
   endTime: string;

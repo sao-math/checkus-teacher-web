@@ -32,6 +32,7 @@ export interface AssignedStudyTime {
   studentName: string;
   activityId: number;
   activityName: string;
+  title: string;
   startTime: string; // "2025-06-01T10:00:00"
   endTime: string;   // "2025-06-01T12:00:00"
   assignedBy: number;

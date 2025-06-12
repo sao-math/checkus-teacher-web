@@ -178,8 +178,21 @@ const StudentDetails = () => {
     }
   };
 
-  const handleGenerateStudyTimes = async (startDate: Date, days: number) => {
+  const handleGenerateStudyTimes = async (startDate: Date, days: number, studyTime: Partial<AssignedStudyTime>) => {
     try {
+      // Create the study time using the API
+      const createdStudyTime = await studentApi.assignStudyTime({
+        studentId: studyTime.studentId!,
+        activityId: studyTime.activityId!,
+        title: studyTime.title!,
+        startTime: studyTime.startTime!,
+        endTime: studyTime.endTime!
+      });
+
+      // Add the newly created study time to the state
+      setAssignedStudyTimes(prev => [...prev, createdStudyTime]);
+
+      // Fetch updated study times for the date range
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + days - 1);
       

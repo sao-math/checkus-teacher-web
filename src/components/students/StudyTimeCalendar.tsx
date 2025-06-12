@@ -25,7 +25,7 @@ interface StudyTimeCalendarProps {
   onDeleteStudyTime: (id: number) => void;
   viewMode: 'week' | 'month';
   onViewModeChange: (mode: 'week' | 'month') => void;
-  onGenerateStudyTimes: (startDate: Date, days: number) => Promise<void>;
+  onGenerateStudyTimes: (startDate: Date, days: number, studyTime: Partial<AssignedStudyTime>) => Promise<void>;
   onAddTask: () => void;
 }
 
@@ -93,11 +93,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     setIsLoading(true);
     try {
       // Get study-assignable schedules
-      const studyAssignableSchedules = weeklySchedule.filter(schedule => {
-        const isAssignable = schedule.activity?.isStudyAssignable;
-        console.log('Schedule:', schedule.activityName, 'isAssignable:', isAssignable);
-        return isAssignable;
-      });
+      const studyAssignableSchedules = weeklySchedule.filter(
+        schedule => schedule.isStudyAssignable
+      );
 
       if (studyAssignableSchedules.length === 0) {
         toast({
@@ -124,18 +122,30 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
         // Create study times for each schedule
         for (const schedule of daySchedules) {
-          const startTime = parse(schedule.startTime, 'HH:mm', currentDate);
-          const endTime = parse(schedule.endTime, 'HH:mm', currentDate);
+          // Parse the time strings (HH:mm:ss format)
+          const [startHours, startMinutes] = schedule.startTime.split(':').map(Number);
+          const [endHours, endMinutes] = schedule.endTime.split(':').map(Number);
 
+          // Create new Date objects with the current date and parsed time
+          const startTime = new Date(currentDate);
+          startTime.setHours(startHours, startMinutes, 0, 0);
+
+          const endTime = new Date(currentDate);
+          endTime.setHours(endHours, endMinutes, 0, 0);
+
+          // Create study time object
           const studyTime: Partial<AssignedStudyTime> = {
             studentId: studentId,
             activityId: schedule.activityId,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString(),
-            assignedBy: 1 // TODO: Replace with actual user ID
+            assignedBy: 1, // TODO: Replace with actual user ID
+            title: schedule.title,
+            activityName: schedule.activityName
           };
 
-          await onGenerateStudyTimes(currentDate, 1);
+          // Generate study time with the created study time information
+          await onGenerateStudyTimes(currentDate, 1, studyTime);
         }
       }
 
@@ -201,7 +211,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           assignedBy: 1 // TODO: Replace with actual user ID
         };
 
-        await onGenerateStudyTimes(date, 1);
+        await onGenerateStudyTimes(date, 1, studyTime);
         
         setAssignedTasks(prev => ({
           ...prev,
@@ -279,13 +289,13 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className={`text-xs p-1 rounded truncate ${
-                        studyTime.activity?.isStudyAssignable 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
+                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800"
                     >
-                      {studyTime.activityName}
+                      <div className="font-medium">{studyTime.title}</div>
+                      <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
+                      <div className="text-[10px] text-green-600">
+                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                      </div>
                     </div>
                   ))}
                   {/* 실제 공부시간 */}
@@ -294,7 +304,10 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       key={studyTime.id}
                       className="text-xs p-1 rounded truncate bg-blue-100 text-blue-800"
                     >
-                      {studyTime.studentName} (실제)
+                      <div className="font-medium">{studyTime.studentName} (실제)</div>
+                      <div className="text-[10px] text-blue-600">
+                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                      </div>
                     </div>
                   ))}
                   {(assigned.length + actual.length) > 3 && (
@@ -396,13 +409,13 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className={`text-xs p-1 rounded truncate ${
-                        studyTime.activity?.isStudyAssignable 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
+                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800"
                     >
-                      {studyTime.activityName}
+                      <div className="font-medium">{studyTime.title}</div>
+                      <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
+                      <div className="text-[10px] text-green-600">
+                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                      </div>
                     </div>
                   ))}
                   {/* 실제 공부시간 */}
@@ -411,7 +424,10 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       key={studyTime.id}
                       className="text-xs p-1 rounded truncate bg-blue-100 text-blue-800"
                     >
-                      {studyTime.studentName} (실제)
+                      <div className="font-medium">{studyTime.studentName} (실제)</div>
+                      <div className="text-[10px] text-blue-600">
+                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                      </div>
                     </div>
                   ))}
                   {(assigned.length + actual.length) > 3 && (

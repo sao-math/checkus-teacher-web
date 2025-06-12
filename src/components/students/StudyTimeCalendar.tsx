@@ -14,6 +14,7 @@ import { TaskTree } from '@/components/tasks/TaskTree';
 import { TaskNode } from '@/types/task';
 import { TaskSidebar } from './TaskSidebar';
 import { toast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -27,6 +28,7 @@ interface StudyTimeCalendarProps {
   onViewModeChange: (mode: 'week' | 'month') => void;
   onGenerateStudyTimes: (startDate: Date, days: number, studyTime: Partial<AssignedStudyTime>) => Promise<void>;
   onAddTask: () => void;
+  activities: { id: number; name: string }[];
 }
 
 // 임시 mock 데이터 (실제 데이터로 교체 필요)
@@ -73,7 +75,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   viewMode,
   onViewModeChange,
   onGenerateStudyTimes,
-  onAddTask
+  onAddTask,
+  activities
 }) => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [days, setDays] = useState(7);
@@ -81,6 +84,11 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [assignedTasks, setAssignedTasks] = useState<{[key: string]: TaskNode[]}>({});
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualActivityId, setManualActivityId] = useState<number | null>(null);
+  const [manualStartTime, setManualStartTime] = useState<Date | null>(null);
+  const [manualEndTime, setManualEndTime] = useState<Date | null>(null);
 
   // Add effect to handle onAddTask prop changes
   useEffect(() => {
@@ -242,6 +250,27 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
+  };
+
+  const handleManualAdd = async () => {
+    if (!manualTitle || !manualActivityId || !manualStartTime || !manualEndTime) return;
+    setIsLoading(true);
+    try {
+      await onGenerateStudyTimes(manualStartTime, 1, {
+        studentId,
+        title: manualTitle,
+        activityId: manualActivityId,
+        startTime: manualStartTime.toISOString(),
+        endTime: manualEndTime.toISOString(),
+      });
+      setShowManualModal(false);
+      setManualTitle('');
+      setManualActivityId(null);
+      setManualStartTime(null);
+      setManualEndTime(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderWeekView = () => {
@@ -530,6 +559,17 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   )}
                 </Button>
 
+                {/* 직접 공부시간 추가 버튼 */}
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
+                  onClick={() => setShowManualModal(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  공부시간 직접 추가
+                </Button>
+
                 {/* 할일 추가 버튼 */}
                 <Button
                   variant="default"
@@ -574,6 +614,53 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* 직접 공부시간 추가 모달 */}
+      <Dialog open={showManualModal} onOpenChange={setShowManualModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>직접 공부시간 추가</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="제목"
+              value={manualTitle}
+              onChange={e => setManualTitle(e.target.value)}
+            />
+            <select
+              className="w-full border rounded px-2 py-1 text-sm"
+              value={manualActivityId ?? ''}
+              onChange={e => setManualActivityId(Number(e.target.value))}
+            >
+              <option value="" disabled>활동 선택</option>
+              {activities.map(act => (
+                <option key={act.id} value={act.id}>{act.name}</option>
+              ))}
+            </select>
+            <Label>시작 시간</Label>
+            <DatePicker
+              selected={manualStartTime}
+              onChange={(date: Date | null) => setManualStartTime(date)}
+              showTimeSelect
+              dateFormat="Pp"
+              className="w-full"
+            />
+            <Label>종료 시간</Label>
+            <DatePicker
+              selected={manualEndTime}
+              onChange={(date: Date | null) => setManualEndTime(date)}
+              showTimeSelect
+              dateFormat="Pp"
+              className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleManualAdd} disabled={isLoading || !manualTitle || !manualActivityId || !manualStartTime || !manualEndTime}>
+              추가
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

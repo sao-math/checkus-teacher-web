@@ -341,6 +341,7 @@ const StudentDetails = () => {
               onViewModeChange={setViewMode}
               onGenerateStudyTimes={handleGenerateStudyTimes}
               onAddTask={handleAddTask}
+              activities={activities || []}
             />
           </div>
         </div>

@@ -95,6 +95,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [manualActivityId, setManualActivityId] = useState<number | null>(null);
   const [manualStartTime, setManualStartTime] = useState<Date | null>(null);
   const [manualEndTime, setManualEndTime] = useState<Date | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -333,6 +334,11 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
   const handleStudyTimeDragStart = (studyTime: AssignedStudyTime, event: React.DragEvent) => {
     event.dataTransfer.setData('application/json', JSON.stringify({ type: 'studyTime', studyTime }));
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
   };
 
   const handleStudyTimeDrop = async (date: Date, event: React.DragEvent) => {
@@ -439,6 +445,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-move"
                       draggable
                       onDragStart={e => handleStudyTimeDragStart(studyTime, e)}
+                      onDragEnd={handleDragEnd}
                     >
                       <div className="font-medium">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
@@ -561,6 +568,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-move"
                       draggable
                       onDragStart={e => handleStudyTimeDragStart(studyTime, e)}
+                      onDragEnd={handleDragEnd}
                     >
                       <div className="font-medium">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
@@ -848,14 +856,16 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* 휴지통 영역 추가 (컴포넌트 하단) */}
-      <div
-        onDrop={handleTrashDrop}
-        onDragOver={e => e.preventDefault()}
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-center w-24 h-24 bg-red-100 border-2 border-red-300 rounded-full shadow-lg z-50"
-      >
-        <Trash2 className="w-10 h-10 text-red-500" />
-      </div>
+      {/* 휴지통 영역 - 드래그 중일 때만 표시 */}
+      {isDragging && (
+        <div
+          onDrop={handleTrashDrop}
+          onDragOver={e => e.preventDefault()}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-center w-24 h-24 bg-red-100 border-2 border-red-300 rounded-full shadow-lg z-50 animate-bounce"
+        >
+          <Trash2 className="w-10 h-10 text-red-500" />
+        </div>
+      )}
     </div>
   );
 };

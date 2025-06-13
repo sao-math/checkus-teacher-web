@@ -244,4 +244,21 @@ export const studentApi = {
       throw error;
     }
   },
+
+  // Get actual study times by assigned study time ID
+  getActualStudyTimesByAssigned: async (assignedId: number) => {
+    try {
+      const response = await api.get(`/study-time/actual/assigned/${assignedId}`);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
 }; 

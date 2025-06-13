@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { isAxiosError } from 'axios';
+import { studentApi } from '@/services/studentApi';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -96,6 +97,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [manualStartTime, setManualStartTime] = useState<Date | null>(null);
   const [manualEndTime, setManualEndTime] = useState<Date | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedDateActuals, setSelectedDateActuals] = useState<{[assignedId: number]: ActualStudyTime[]}>({});
 
   const form = useForm({
     defaultValues: {
@@ -198,6 +200,35 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       isSameDay(new Date(studyTime.startTime), date)
     );
     return { assigned, actual };
+  };
+
+  const fetchActualStudyTimesForDate = async (date: Date) => {
+    const { assigned } = getStudyTimesForDate(date);
+    const actualsMap: {[assignedId: number]: ActualStudyTime[]} = {};
+    
+    try {
+      // Fetch actual study times for each assigned study time
+      const promises = assigned.map(async (assignedStudyTime) => {
+        try {
+          const actuals = await studentApi.getActualStudyTimesByAssigned(assignedStudyTime.id);
+          actualsMap[assignedStudyTime.id] = actuals;
+        } catch (error) {
+          console.error(`Failed to fetch actuals for assigned study time ${assignedStudyTime.id}:`, error);
+          actualsMap[assignedStudyTime.id] = [];
+        }
+      });
+      
+      await Promise.all(promises);
+      setSelectedDateActuals(actualsMap);
+    } catch (error) {
+      console.error('Failed to fetch actual study times:', error);
+      setSelectedDateActuals({});
+    }
+  };
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    fetchActualStudyTimesForDate(date);
   };
 
   const handleTaskDragStart = (task: TaskNode, event: React.DragEvent) => {
@@ -397,7 +428,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               className={`min-h-[200px] p-2 border rounded-lg cursor-pointer transition-all ${
                 isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'
               } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
-              onClick={() => setSelectedDate(date)}
+              onClick={() => handleDateClick(date)}
               onDrop={(e) => handleStudyTimeDrop(date, e)}
               onDragOver={handleDragOver}
               onDragEnter={(e) => e.preventDefault()}
@@ -518,7 +549,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               } ${isToday ? 'ring-2 ring-blue-500' : ''} ${
                 !isCurrentMonth ? 'opacity-50' : ''
               }`}
-              onClick={() => setSelectedDate(date)}
+              onClick={() => handleDateClick(date)}
               onDrop={(e) => handleStudyTimeDrop(date, e)}
               onDragOver={handleDragOver}
               onDragEnter={(e) => e.preventDefault()}
@@ -695,19 +726,75 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           {renderCalendar()}
           {selectedDate && (
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium mb-2">
+              <h4 className="font-medium mb-4">
                 {format(selectedDate, 'M월 d일 (EEEE)', { locale: ko })}의 학습시간
               </h4>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {getStudyTimesForDate(selectedDate).assigned.length > 0 ? (
-                  getStudyTimesForDate(selectedDate).assigned.map((studyTime) => (
-                    <div key={studyTime.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                      <span>{studyTime.activityName}</span>
-                      <span className="text-sm text-gray-500">
-                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
-                      </span>
-                    </div>
-                  ))
+                  getStudyTimesForDate(selectedDate).assigned.map((studyTime) => {
+                    const actuals = selectedDateActuals[studyTime.id] || [];
+                    const totalConnectedMinutes = actuals.reduce((total, actual) => {
+                      if (actual.endTime) {
+                        const duration = new Date(actual.endTime).getTime() - new Date(actual.startTime).getTime();
+                        return total + Math.round(duration / (1000 * 60));
+                      }
+                      return total;
+                    }, 0);
+                    
+                    const assignedDuration = new Date(studyTime.endTime).getTime() - new Date(studyTime.startTime).getTime();
+                    const assignedMinutes = Math.round(assignedDuration / (1000 * 60));
+                    const progressPercent = assignedMinutes > 0 ? Math.round((totalConnectedMinutes / assignedMinutes) * 100) : 0;
+                    
+                    return (
+                      <div key={studyTime.id} className="bg-white rounded-lg border p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h5 className="font-medium text-gray-900">{studyTime.title || studyTime.activityName}</h5>
+                            <p className="text-sm text-gray-600">{studyTime.activityName}</p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-medium text-gray-900">
+                              {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              배정: {assignedMinutes}분 | 접속: {totalConnectedMinutes}분 ({Math.min(progressPercent, 100)}%)
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {actuals.length > 0 ? (
+                          <div className="space-y-2">
+                            <h6 className="text-sm font-medium text-gray-700 mb-2">실제 접속 기록</h6>
+                            {actuals.map((actual) => (
+                              <div key={actual.id} className="flex items-center justify-between p-2 bg-blue-50 rounded text-sm">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${
+                                    actual.source === 'discord' ? 'bg-indigo-500' : 
+                                    actual.source === 'zoom' ? 'bg-blue-500' : 'bg-gray-500'
+                                  }`}></div>
+                                  <span className="capitalize text-gray-700">{actual.source}</span>
+                                </div>
+                                <div className="text-gray-600">
+                                  {format(new Date(actual.startTime), 'HH:mm')} - {
+                                    actual.endTime ? format(new Date(actual.endTime), 'HH:mm') : '진행중'
+                                  }
+                                  {actual.endTime && (
+                                    <span className="ml-2 text-xs text-gray-500">
+                                      ({Math.round((new Date(actual.endTime).getTime() - new Date(actual.startTime).getTime()) / (1000 * 60))}분)
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500 bg-gray-100 p-2 rounded">
+                            아직 접속 기록이 없습니다.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
                   <p className="text-gray-500 text-sm">할당된 학습시간이 없습니다.</p>
                 )}

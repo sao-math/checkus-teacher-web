@@ -1,37 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Search, Users, Phone, Mail, MoreVertical, Filter, School, Eye, Edit, Trash2 } from 'lucide-react';
+import { Search, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import ManagementList from '@/components/ui/ManagementList';
 
 interface Teacher {
   id: number;
@@ -82,8 +57,6 @@ const mockPendingTeachers: Teacher[] = [
 const TeacherManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'active' | 'pending' | 'resigned' | 'all'>('all');
-  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
-  const [teacherToDelete, setTeacherToDelete] = useState<Teacher | null>(null);
   const [teachers, setTeachers] = useState<Teacher[]>([...mockTeachers, ...mockPendingTeachers]);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -127,8 +100,58 @@ const TeacherManagement = () => {
       title: "선생님 삭제",
       description: `${teacher.name} 선생님이 삭제되었습니다.`,
     });
-    setTeacherToDelete(null);
   };
+
+  const columns = [
+    {
+      key: 'name',
+      label: '선생님명',
+      render: (value: string, teacher: Teacher) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="/placeholder.svg" />
+            <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+              {teacher.name.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{value}</div>
+            <div className="text-sm text-gray-500">@{teacher.username}</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'status',
+      label: '상태',
+      render: (value: string) => (
+        <Badge className={getStatusColor(value)}>
+          {getStatusText(value)}
+        </Badge>
+      )
+    },
+    {
+      key: 'phoneNumber',
+      label: '전화번호'
+    },
+    {
+      key: 'classes',
+      label: '담당반',
+      render: (value: string[]) => (
+        value.length > 0 ? value.join(', ') : '담당반 없음'
+      )
+    },
+    {
+      key: 'discordId',
+      label: 'Discord',
+      render: (value: string) => value || '-'
+    },
+    {
+      key: 'createdAt',
+      label: '가입일',
+      render: (value: string) => new Date(value).toLocaleDateString()
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -168,177 +191,18 @@ const TeacherManagement = () => {
       </Card>
 
       {/* 선생님 목록 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredTeachers.map((teacher) => (
-          <Card key={teacher.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback className="bg-blue-100 text-blue-700">
-                    {teacher.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">{teacher.name}</h3>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => handleViewDetails(teacher)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          상세보기
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleEditTeacher(teacher)}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          정보 수정
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <AlertDialog open={teacherToDelete?.id === teacher.id} onOpenChange={(open) => !open && setTeacherToDelete(null)}>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem 
-                              className="text-red-600 focus:text-red-600"
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                setTeacherToDelete(teacher);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              삭제
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {teacher.name} 선생님의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>취소</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => handleDelete(teacher)}
-                                className="bg-red-600 hover:bg-red-700"
-                              >
-                                삭제
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <p className="text-sm text-gray-600">@{teacher.username}</p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge className={getStatusColor(teacher.status)}>
-                  {getStatusText(teacher.status)}
-                </Badge>
-              </div>
-
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  <span>{teacher.phoneNumber}</span>
-                </div>
-                {teacher.discordId && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4" />
-                    <span>{teacher.discordId}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>{teacher.classes.length > 0 ? teacher.classes.join(', ') : '담당 반 없음'}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* 선생님 상세 정보 다이얼로그 */}
-      <Dialog open={!!selectedTeacher} onOpenChange={() => setSelectedTeacher(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback className="bg-blue-100 text-blue-700">
-                  {selectedTeacher?.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="font-semibold">{selectedTeacher?.name}</h3>
-                <p className="text-sm text-gray-500">@{selectedTeacher?.username}</p>
-              </div>
-            </DialogTitle>
-            <DialogDescription>
-              <Badge className={selectedTeacher ? getStatusColor(selectedTeacher.status) : ''}>
-                {selectedTeacher ? getStatusText(selectedTeacher.status) : ''}
-              </Badge>
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedTeacher && (
-            <div className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span>{selectedTeacher.phoneNumber}</span>
-                </div>
-                {selectedTeacher.discordId && (
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <span>{selectedTeacher.discordId}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <School className="h-4 w-4 text-gray-400" />
-                  <span>가입일: {selectedTeacher.createdAt}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">담당 반</h4>
-                {selectedTeacher.classes.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {selectedTeacher.classes.map((cls, index) => (
-                      <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                        {cls}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">담당 반이 없습니다.</p>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {filteredTeachers.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">검색 결과가 없습니다</h3>
-            <p className="text-gray-500">다른 검색어를 시도해보세요</p>
-          </CardContent>
-        </Card>
-      )}
+      <ManagementList
+        items={filteredTeachers}
+        columns={columns}
+        onView={handleViewDetails}
+        onEdit={handleEditTeacher}
+        onDelete={handleDelete}
+        getDeleteConfirmation={(teacher: Teacher) => ({
+          title: '정말 삭제하시겠습니까?',
+          description: `${teacher.name} 선생님의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
+        })}
+        emptyMessage="검색 결과가 없습니다. 다른 검색어를 시도해보세요."
+      />
     </div>
   );
 };

@@ -209,61 +209,6 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     event.dataTransfer.setData('application/json', JSON.stringify(dragData));
   };
 
-  const handleDrop = async (date: Date, event: React.DragEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    
-    try {
-      const data = event.dataTransfer.getData('application/json');
-      if (!data) return;
-
-      const { type, task } = JSON.parse(data);
-      if (type !== 'task') return;
-
-      const dateKey = format(date, 'yyyy-MM-dd');
-      
-      // 이미 해당 날짜에 같은 할일이 있는지 확인
-      const existingTasks = assignedTasks[dateKey] || [];
-      const isTaskAlreadyAssigned = existingTasks.some(t => t.id === task.id);
-      
-      if (!isTaskAlreadyAssigned) {
-        // API를 통해 할일 할당
-        const studyTime: Partial<AssignedStudyTime> = {
-          studentId: studentId,
-          activityId: task.id,
-          startTime: date.toISOString(),
-          endTime: addHours(date, 1).toISOString(), // 기본 1시간으로 설정
-          assignedBy: 1 // TODO: Replace with actual user ID
-        };
-
-        await onGenerateStudyTimes(date, 1, studyTime);
-        
-        setAssignedTasks(prev => ({
-          ...prev,
-          [dateKey]: [...existingTasks, task]
-        }));
-
-        toast({
-          title: "할일이 할당되었습니다.",
-          description: `${format(date, 'M월 d일')}에 할일이 할당되었습니다.`,
-        });
-      } else {
-        toast({
-          title: "알림",
-          description: "이미 해당 날짜에 할당된 할일입니다.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Failed to handle task drop:', error);
-      toast({
-        title: "Error",
-        description: "할일 할당 중 오류가 발생했습니다.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleDragOver = (event: React.DragEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -346,8 +291,11 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     event.stopPropagation();
     const data = event.dataTransfer.getData('application/json');
     if (!data) return;
+    
     try {
       const parsed = JSON.parse(data);
+      
+      // 공부시간 드롭 처리
       if (parsed.type === 'studyTime') {
         const { studyTime } = parsed;
         // 날짜만 변경해서 업데이트
@@ -357,12 +305,12 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         const oldEnd = new Date(studyTime.endTime);
         start.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
         end.setHours(oldEnd.getHours(), oldEnd.getMinutes(), 0, 0);
+        
         try {
           await onUpdateStudyTime(studyTime.id, {
             startTime: start.toISOString(),
             endTime: end.toISOString(),
           });
-          // Success toast is already handled in handleUpdateStudyTime
           // Update local state for immediate UI reflection
           setAssignedStudyTimes(prev => 
             prev.map(item => 
@@ -384,11 +332,27 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         }
         return;
       }
-      // 기존 할일 드롭 처리
+      
+      // 할일 드롭 처리
       if (parsed.type === 'task') {
-        // ... 기존 코드 ...
+        const { task } = parsed;
+        
+        // 아직 할일 추가 API가 구현되지 않았음을 알림
+        toast({
+          title: "기능 준비 중",
+          description: "할일 추가 기능은 아직 구현되지 않았습니다. 서버 API 구현 후 사용 가능합니다.",
+          variant: "default",
+        });
+        return;
       }
-    } catch (e) {}
+    } catch (error) {
+      console.error('Failed to handle drop:', error);
+      toast({
+        title: "Error",
+        description: "드롭 처리 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleTrashDrop = async (event: React.DragEvent) => {

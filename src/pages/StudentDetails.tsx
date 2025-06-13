@@ -180,69 +180,82 @@ const StudentDetails = () => {
 
   const handleGenerateStudyTimes = async (startDate: Date, days: number, studyTime: Partial<AssignedStudyTime>) => {
     try {
-      // Create the study time using the API
-      const createdStudyTime = await studentApi.assignStudyTime({
+      const result = await studentApi.assignStudyTime({
         studentId: studyTime.studentId!,
         activityId: studyTime.activityId!,
         title: studyTime.title!,
         startTime: studyTime.startTime!,
         endTime: studyTime.endTime!
       });
+      if (!result.success) {
+        toast({
+          title: 'Error',
+          description: result.message || '공부시간 배정에 실패했습니다.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-      // Add the newly created study time to the state
-      setAssignedStudyTimes(prev => [...prev, createdStudyTime]);
+      // Refresh study times data to ensure UI reflects all changes
+      const now = new Date();
+      const startOfPeriod = new Date(Math.min(startDate.getTime(), new Date(now.getFullYear(), now.getMonth(), 1).getTime()));
+      const endOfPeriod = new Date(Math.max(
+        new Date(startDate.getTime() + (days - 1) * 24 * 60 * 60 * 1000).getTime(),
+        new Date(now.getFullYear(), now.getMonth() + 1, 0).getTime()
+      ));
 
-      // Fetch updated study times for the date range
-      const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + days - 1);
-      
       const [assignedTimes, actualTimes] = await Promise.all([
         studentApi.getAssignedStudyTimes(
           studentId,
-          startDate.toISOString(),
-          endDate.toISOString()
+          startOfPeriod.toISOString(),
+          endOfPeriod.toISOString()
         ),
         studentApi.getActualStudyTimes(
           studentId,
-          startDate.toISOString(),
-          endDate.toISOString()
+          startOfPeriod.toISOString(),
+          endOfPeriod.toISOString()
         )
       ]);
-      
       setAssignedStudyTimes(assignedTimes);
       setActualStudyTimes(actualTimes);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to generate study times",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to generate study times',
+        variant: 'destructive',
       });
     }
   };
 
   const handleUpdateStudyTime = async (id: number, updates: Partial<AssignedStudyTime>) => {
     try {
-      const data = await studentApi.updateStudyTime(id, {
+      const result = await studentApi.updateStudyTime(id, {
         activityId: updates.activityId!,
         startTime: updates.startTime!,
         endTime: updates.endTime!
       });
-      
-      setAssignedStudyTimes(prev => 
-        prev.map(item => 
-          item.id === id ? data : item
+      if (!result.success) {
+        toast({
+          title: 'Error',
+          description: result.message || '학습시간 수정에 실패했습니다.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      setAssignedStudyTimes(prev =>
+        prev.map(item =>
+          item.id === id ? result.data : item
         )
       );
-      
       toast({
-        title: "학습시간이 수정되었습니다.",
-        description: "선택한 학습시간이 수정되었습니다.",
+        title: '학습시간이 수정되었습니다.',
+        description: '선택한 학습시간이 수정되었습니다.',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update study time",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update study time',
+        variant: 'destructive',
       });
     }
   };

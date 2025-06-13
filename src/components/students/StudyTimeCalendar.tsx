@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar as CalendarIcon, Copy, Loader2, Plus } from 'lucide-react';
+import { Calendar as CalendarIcon, Copy, Loader2, Plus, Trash2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { ko } from 'date-fns/locale';
 import "react-datepicker/dist/react-datepicker.css";
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
+import { isAxiosError } from 'axios';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -79,7 +80,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   onViewModeChange,
   onGenerateStudyTimes,
   onAddTask,
-  activities
+  activities,
+  onUpdateStudyTime,
+  onDeleteStudyTime
 }) => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [days, setDays] = useState(7);
@@ -313,16 +316,79 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       await onGenerateStudyTimes(startTime, 1, studyTime);
       setShowManualModal(false);
       form.reset();
-    } catch (error) {
-      console.error('Failed to add study time:', error);
+    } catch (error: any) {
+      let msg = '공부시간 추가 중 오류가 발생했습니다.';
+      if (isAxiosError?.(error) && error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
       toast({
-        title: "Error",
-        description: "공부시간 추가 중 오류가 발생했습니다.",
-        variant: "destructive",
+        title: 'Error',
+        description: msg,
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleStudyTimeDragStart = (studyTime: AssignedStudyTime, event: React.DragEvent) => {
+    event.dataTransfer.setData('application/json', JSON.stringify({ type: 'studyTime', studyTime }));
+  };
+
+  const handleStudyTimeDrop = async (date: Date, event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const data = event.dataTransfer.getData('application/json');
+    if (!data) return;
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.type === 'studyTime') {
+        const { studyTime } = parsed;
+        // 날짜만 변경해서 업데이트
+        const start = new Date(date);
+        const end = new Date(date);
+        const oldStart = new Date(studyTime.startTime);
+        const oldEnd = new Date(studyTime.endTime);
+        start.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
+        end.setHours(oldEnd.getHours(), oldEnd.getMinutes(), 0, 0);
+        try {
+          await onUpdateStudyTime(studyTime.id, {
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+          });
+          toast({ title: '이동 완료', description: '공부시간이 이동되었습니다.' });
+        } catch (error: any) {
+          let msg = '공부시간 이동 중 오류가 발생했습니다.';
+          if (isAxiosError?.(error) && error.response?.data?.message) {
+            msg = error.response.data.message;
+          }
+          toast({
+            title: 'Error',
+            description: msg,
+            variant: 'destructive',
+          });
+        }
+        return;
+      }
+      // 기존 할일 드롭 처리
+      if (parsed.type === 'task') {
+        // ... 기존 코드 ...
+      }
+    } catch (e) {}
+  };
+
+  const handleTrashDrop = async (event: React.DragEvent) => {
+    event.preventDefault();
+    const data = event.dataTransfer.getData('application/json');
+    if (!data) return;
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.type === 'studyTime') {
+        const { studyTime } = parsed;
+        await onDeleteStudyTime(studyTime.id);
+        toast({ title: '삭제 완료', description: '공부시간이 삭제되었습니다.' });
+      }
+    } catch (e) {}
   };
 
   const renderWeekView = () => {
@@ -354,7 +420,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                 isSelected ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'
               } ${isToday ? 'ring-2 ring-blue-500' : ''}`}
               onClick={() => setSelectedDate(date)}
-              onDrop={(e) => handleDrop(date, e)}
+              onDrop={(e) => handleStudyTimeDrop(date, e)}
               onDragOver={handleDragOver}
               onDragEnter={(e) => e.preventDefault()}
               onDragLeave={(e) => e.preventDefault()}
@@ -370,7 +436,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800"
+                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-move"
+                      draggable
+                      onDragStart={e => handleStudyTimeDragStart(studyTime, e)}
                     >
                       <div className="font-medium">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
@@ -472,7 +540,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                 !isCurrentMonth ? 'opacity-50' : ''
               }`}
               onClick={() => setSelectedDate(date)}
-              onDrop={(e) => handleDrop(date, e)}
+              onDrop={(e) => handleStudyTimeDrop(date, e)}
               onDragOver={handleDragOver}
               onDragEnter={(e) => e.preventDefault()}
               onDragLeave={(e) => e.preventDefault()}
@@ -490,7 +558,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800"
+                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-move"
+                      draggable
+                      onDragStart={e => handleStudyTimeDragStart(studyTime, e)}
                     >
                       <div className="font-medium">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
@@ -777,6 +847,15 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* 휴지통 영역 추가 (컴포넌트 하단) */}
+      <div
+        onDrop={handleTrashDrop}
+        onDragOver={e => e.preventDefault()}
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-center w-24 h-24 bg-red-100 border-2 border-red-300 rounded-full shadow-lg z-50"
+      >
+        <Trash2 className="w-10 h-10 text-red-500" />
+      </div>
     </div>
   );
 };

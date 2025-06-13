@@ -183,7 +183,7 @@ export const studentApi = {
   assignStudyTime: async (data: StudyTimeRequest) => {
     try {
       const response = await api.post('/study-time/assign', data);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       if (isAxiosError(error)) {
         console.error('API Error:', {
@@ -199,7 +199,7 @@ export const studentApi = {
   updateStudyTime: async (studyTimeId: number, data: Partial<StudyTimeRequest>) => {
     try {
       const response = await api.put(`/study-time/${studyTimeId}`, data);
-      return response.data.data;
+      return response.data;
     } catch (error) {
       if (isAxiosError(error)) {
         console.error('API Error:', {

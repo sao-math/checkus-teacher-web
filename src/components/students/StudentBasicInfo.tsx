@@ -86,6 +86,20 @@ export const StudentBasicInfo: React.FC<StudentBasicInfoProps> = ({
     }
   };
 
+  const getGradeText = (grade: number) => {
+    if (grade >= 1 && grade <= 6) {
+      return `초등학교 ${grade}학년`;
+    } else if (grade >= 7 && grade <= 9) {
+      return `중학교 ${grade - 6}학년`;
+    } else if (grade >= 10 && grade <= 12) {
+      return `고등학교 ${grade - 9}학년`;
+    } else if (grade === 13) {
+      return 'N수';
+    } else {
+      return `${grade}학년`;
+    }
+  };
+
   const getRelationshipText = (relationship: string) => {
     switch (relationship) {
       case 'father': return '아버지';
@@ -230,7 +244,7 @@ export const StudentBasicInfo: React.FC<StudentBasicInfoProps> = ({
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">학년</p>
-                    <p className="font-medium text-gray-900">{student.grade}학년</p>
+                    <p className="font-medium text-gray-900">{getGradeText(student.grade)}</p>
                   </div>
                 </div>
               </div>

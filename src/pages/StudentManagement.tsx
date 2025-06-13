@@ -60,6 +60,20 @@ const StudentManagement = () => {
     }
   };
 
+  const getGradeText = (grade: number) => {
+    if (grade >= 1 && grade <= 6) {
+      return `초등학교 ${grade}학년`;
+    } else if (grade >= 7 && grade <= 9) {
+      return `중학교 ${grade - 6}학년`;
+    } else if (grade >= 10 && grade <= 12) {
+      return `고등학교 ${grade - 9}학년`;
+    } else if (grade === 13) {
+      return 'N수';
+    } else {
+      return `${grade}학년`;
+    }
+  };
+
   const getRelationshipText = (relationship: string) => {
     switch (relationship) {
       case 'father': return '아버지';
@@ -128,9 +142,16 @@ const StudentManagement = () => {
     },
     {
       key: 'school',
-      label: '학교/학년',
+      label: '학교',
       render: (value: string, student: Student) => (
-        <span>{value} {student.grade}학년</span>
+        <span>{value}</span>
+      )
+    },
+    {
+      key: 'grade',
+      label: '학년',
+      render: (value: number, student: Student) => (
+        <span>{getGradeText(value)}</span>
       )
     },
     {

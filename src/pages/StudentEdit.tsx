@@ -32,6 +32,32 @@ const StudentEdit = () => {
   const [loading, setLoading] = useState(false);
   const [loadingSchools, setLoadingSchools] = useState(true);
 
+  const getGradeText = (grade: number) => {
+    if (grade >= 1 && grade <= 6) {
+      return `초등학교 ${grade}학년`;
+    } else if (grade >= 7 && grade <= 9) {
+      return `중학교 ${grade - 6}학년`;
+    } else if (grade >= 10 && grade <= 12) {
+      return `고등학교 ${grade - 9}학년`;
+    } else if (grade === 13) {
+      return 'N수';
+    } else {
+      return `${grade}학년`;
+    }
+  };
+
+  const generateGradeOptions = () => {
+    const options = [];
+    for (let i = 1; i <= 13; i++) {
+      options.push(
+        <SelectItem key={i} value={i.toString()}>
+          {getGradeText(i)}
+        </SelectItem>
+      );
+    }
+    return options;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -221,9 +247,7 @@ const StudentEdit = () => {
                     <SelectValue placeholder="학년을 선택하세요" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1학년</SelectItem>
-                    <SelectItem value="2">2학년</SelectItem>
-                    <SelectItem value="3">3학년</SelectItem>
+                    {generateGradeOptions()}
                   </SelectContent>
                 </Select>
               </div>

@@ -235,15 +235,13 @@ const StudentDetails = () => {
         endTime: updates.endTime!
       });
       if (!result.success) {
-        toast({
-          title: 'Error',
-          description: result.message || '학습시간 수정에 실패했습니다.',
-          variant: 'destructive',
-        });
-        return;
+        // Create an error object that includes the server message
+        const error = new Error(result.message || '학습시간 수정에 실패했습니다.');
+        (error as any).response = { data: { message: result.message } };
+        throw error;
       }
-      setAssignedStudyTimes(prev =>
-        prev.map(item =>
+      setAssignedStudyTimes(prev => 
+        prev.map(item => 
           item.id === id ? result.data : item
         )
       );
@@ -252,11 +250,8 @@ const StudentDetails = () => {
         description: '선택한 학습시간이 수정되었습니다.',
       });
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update study time',
-        variant: 'destructive',
-      });
+      // Let StudyTimeCalendar handle the error toast display
+      throw error;
     }
   };
 

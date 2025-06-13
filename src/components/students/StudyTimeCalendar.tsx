@@ -362,7 +362,15 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
             startTime: start.toISOString(),
             endTime: end.toISOString(),
           });
-          toast({ title: '이동 완료', description: '공부시간이 이동되었습니다.' });
+          // Success toast is already handled in handleUpdateStudyTime
+          // Update local state for immediate UI reflection
+          setAssignedStudyTimes(prev => 
+            prev.map(item => 
+              item.id === studyTime.id 
+                ? { ...item, startTime: start.toISOString(), endTime: end.toISOString() }
+                : item
+            )
+          );
         } catch (error: any) {
           let msg = '공부시간 이동 중 오류가 발생했습니다.';
           if (isAxiosError?.(error) && error.response?.data?.message) {

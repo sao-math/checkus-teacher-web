@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
+import { MoreVertical, Edit, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +72,12 @@ const ManagementList: React.FC<ManagementListProps> = ({
     setDeleteItem(null);
   };
 
+  const handleRowClick = (item: ManagementListItem) => {
+    if (onView) {
+      onView(item);
+    }
+  };
+
   if (items.length === 0) {
     return (
       <div className="text-center py-12 border rounded-lg bg-gray-50">
@@ -96,7 +102,11 @@ const ManagementList: React.FC<ManagementListProps> = ({
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.id} className="hover:bg-gray-50">
+              <TableRow 
+                key={item.id} 
+                className="hover:bg-gray-50 cursor-pointer"
+                onClick={() => handleRowClick(item)}
+              >
                 {columns.map((column) => (
                   <TableCell key={column.key} className={column.className}>
                     {column.render ? column.render(item[column.key], item) : item[column.key]}
@@ -105,29 +115,34 @@ const ManagementList: React.FC<ManagementListProps> = ({
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      {onView && (
-                        <DropdownMenuItem onClick={() => onView(item)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          상세보기
-                        </DropdownMenuItem>
-                      )}
                       {onEdit && (
-                        <DropdownMenuItem onClick={() => onEdit(item)}>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(item);
+                        }}>
                           <Edit className="h-4 w-4 mr-2" />
                           수정
                         </DropdownMenuItem>
                       )}
                       {onDelete && (
                         <>
-                          <DropdownMenuSeparator />
+                          {onEdit && <DropdownMenuSeparator />}
                           <DropdownMenuItem 
                             className="text-red-600 focus:text-red-600"
-                            onClick={() => setDeleteItem(item)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteItem(item);
+                            }}
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             삭제

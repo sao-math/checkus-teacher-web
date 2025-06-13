@@ -60,6 +60,15 @@ const StudentManagement = () => {
     }
   };
 
+  const getRelationshipText = (relationship: string) => {
+    switch (relationship) {
+      case 'father': return '아버지';
+      case 'mother': return '어머니';
+      case 'guardian': return '보호자';
+      default: return relationship;
+    }
+  };
+
   const handleViewDetails = (student: Student) => {
     navigate(`/students/${student.id}`);
   };
@@ -126,14 +135,40 @@ const StudentManagement = () => {
     },
     {
       key: 'studentPhoneNumber',
-      label: '전화번호',
-      render: (value: string) => value || '연락처 없음'
+      label: '학생 번호',
+      render: (value: string) => value || '-'
+    },
+    {
+      key: 'guardians',
+      label: '학부모 정보',
+      render: (guardians: any[], student: Student) => {
+        if (!guardians || guardians.length === 0) {
+          return <span className="text-gray-500">-</span>;
+        }
+
+        const firstGuardian = guardians[0];
+        const additionalCount = guardians.length - 1;
+        
+        return (
+          <div className="text-sm">
+            <div className="font-medium">
+              {firstGuardian.name} ({getRelationshipText(firstGuardian.relationship)})
+            </div>
+            <div className="text-gray-600">
+              {firstGuardian.phoneNumber}
+              {additionalCount > 0 && (
+                <span className="text-blue-600 ml-1">+{additionalCount}명</span>
+              )}
+            </div>
+          </div>
+        );
+      }
     },
     {
       key: 'classes',
-      label: '담당반',
+      label: '반',
       render: (value: string[]) => (
-        value.length > 0 ? value.join(', ') : '담당반 없음'
+        value.length > 0 ? value.join(', ') : '-'
       )
     }
   ];

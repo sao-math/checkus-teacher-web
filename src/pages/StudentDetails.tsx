@@ -318,7 +318,11 @@ const StudentDetails = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="space-y-6">
             {/* 기본 정보 */}
-            <StudentBasicInfo student={student} />
+            <StudentBasicInfo 
+              student={student} 
+              classes={student.classes || []} 
+              guardians={student.guardians || []} 
+            />
 
             {/* 주간 고정 일정표 */}
             <WeeklyScheduleGrid 

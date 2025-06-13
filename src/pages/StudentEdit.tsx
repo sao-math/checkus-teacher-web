@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Student, StudentUpdateRequest } from '@/types/student';
 import { studentApi } from '@/services/studentApi';
+import { schoolApi, School } from '@/services/schoolApi';
 import { Save } from 'lucide-react';
 
 const StudentEdit = () => {
@@ -27,38 +28,49 @@ const StudentEdit = () => {
     guardians: []
   });
 
+  const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingSchools, setLoadingSchools] = useState(true);
 
   useEffect(() => {
-    const fetchStudent = async () => {
+    const fetchData = async () => {
       try {
-        const data = await studentApi.getStudentDetail(Number(id));
-        console.log('Fetched student data:', data);
-        setFormData({
-          name: data.name || '',
-          phoneNumber: data.phoneNumber || '',
-          discordId: data.discordId || '',
-          school: data.school || '',
-          schoolId: data.schoolId || undefined,
-          grade: data.grade || 1,
-          status: data.status || 'ENROLLED',
-          gender: data.gender || 'MALE',
-          classes: data.classes || [],
-          guardians: data.guardians || []
-        });
+        // 학교 목록과 학생 정보를 병렬로 가져오기
+        const [schoolsData, studentData] = await Promise.all([
+          schoolApi.getSchools(),
+          id ? studentApi.getStudentDetail(Number(id)) : Promise.resolve(null)
+        ]);
+
+        setSchools(schoolsData);
+
+        if (studentData) {
+          console.log('Fetched student data:', studentData);
+          setFormData({
+            name: studentData.name || '',
+            phoneNumber: studentData.phoneNumber || '',
+            discordId: studentData.discordId || '',
+            school: studentData.school || '',
+            schoolId: studentData.schoolId || undefined,
+            grade: studentData.grade || 1,
+            status: studentData.status || 'ENROLLED',
+            gender: studentData.gender || 'MALE',
+            classes: studentData.classes || [],
+            guardians: studentData.guardians || []
+          });
+        }
       } catch (error) {
-        console.error('Failed to fetch student details:', error);
+        console.error('Failed to fetch data:', error);
         toast({
           title: "오류",
-          description: "학생 정보를 불러오는데 실패했습니다",
+          description: "데이터를 불러오는데 실패했습니다",
           variant: "destructive",
         });
+      } finally {
+        setLoadingSchools(false);
       }
     };
 
-    if (id) {
-      fetchStudent();
-    }
+    fetchData();
   }, [id, toast]);
 
   const handleInputChange = (field: keyof Student, value: any) => {
@@ -66,6 +78,17 @@ const StudentEdit = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleSchoolChange = (schoolId: string) => {
+    const selectedSchool = schools.find(school => school.id === Number(schoolId));
+    if (selectedSchool) {
+      setFormData(prev => ({
+        ...prev,
+        schoolId: selectedSchool.id,
+        school: selectedSchool.name
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,6 +133,20 @@ const StudentEdit = () => {
       setLoading(false);
     }
   };
+
+  if (loadingSchools) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-900">학생 정보 수정</h1>
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">데이터를 불러오는 중...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -157,13 +194,21 @@ const StudentEdit = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="school">학교 *</Label>
-                <Input
-                  id="school"
-                  value={formData.school || ''}
-                  onChange={(e) => handleInputChange('school', e.target.value)}
-                  placeholder="학교를 입력하세요"
-                  disabled
-                />
+                <Select
+                  value={formData.schoolId?.toString() || ''}
+                  onValueChange={handleSchoolChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="학교를 선택하세요" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {schools.map((school) => (
+                      <SelectItem key={school.id} value={school.id.toString()}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

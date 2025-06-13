@@ -143,6 +143,23 @@ export const studentApi = {
     }
   },
 
+  // Get all activities for weekly schedule
+  getAllActivities: async () => {
+    try {
+      const response = await api.get('/weekly-schedule/activities');
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
   // Study Time Management
   getAssignedStudyTimes: async (studentId: number, startDate: string, endDate: string) => {
     try {

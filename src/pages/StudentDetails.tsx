@@ -80,7 +80,7 @@ const StudentDetails = () => {
 
   const fetchActivities = async () => {
     try {
-      const data = await studentApi.getActivities();
+      const data = await studentApi.getAllActivities();
       setActivities(data);
     } catch (error) {
       toast({

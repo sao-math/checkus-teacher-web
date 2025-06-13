@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,9 +12,12 @@ import {
   Edit, 
   Calendar,
   Clock,
-  Plus
+  Plus,
+  User,
+  BookOpen
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
 import { Student } from '@/types/student';
 import { StudentBasicInfo } from '@/components/students/StudentBasicInfo';
 import { StudentWeeklySchedule } from '@/components/students/StudentWeeklySchedule';
@@ -28,15 +30,16 @@ const mockStudent: Student = {
   username: 'minsu123',
   name: '김민수',
   phoneNumber: '010-1234-5678',
+  studentPhoneNumber: '010-1234-5678',
   discordId: 'minsu#1234',
   createdAt: '2024-01-01',
-  status: 'active',
+  status: 'ENROLLED',
+  school: '리플랜고등학교',
   schoolId: 1,
-  schoolName: '리플랜고등학교',
   grade: 3,
-  gender: 'male',
-  completionRate: 85,
-  lastActivity: '2024-01-24'
+  gender: 'MALE',
+  classes: [],
+  guardians: []
 };
 
 const StudentSchedule = () => {
@@ -47,6 +50,9 @@ const StudentSchedule = () => {
 
   // 실제로는 API 호출로 학생 데이터를 가져와야 함
   const student = mockStudent;
+
+  // Automatically close AppSidebar when TaskSidebar opens or screen becomes mobile
+  useAutoCloseSidebar(showTaskSidebar);
 
   const handleBack = () => {
     navigate('/students');
@@ -74,7 +80,7 @@ const StudentSchedule = () => {
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
                 <p className="text-sm text-gray-500">
-                  {student.grade}학년 · {student.schoolName}
+                  {student.grade}학년 · {student.school}
                 </p>
               </div>
             </div>

@@ -8,6 +8,7 @@ import { CalendarHeader } from './CalendarHeader';
 import { CalendarNavigation } from './CalendarNavigation';
 import { CalendarEventList } from './CalendarEventList';
 import { useToast } from '@/hooks/use-toast';
+import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
 
 interface StudentCalendarViewProps {
   studentId: number;
@@ -55,13 +56,16 @@ const mockEvents: CalendarEvent[] = [
 
 export const StudentCalendarView: React.FC<StudentCalendarViewProps> = ({ studentId }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const [viewMode, setViewMode] = useState<'week' | 'month'>('month');
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
   const [events, setEvents] = useState<CalendarEvent[]>(mockEvents);
   const [showTaskSidebar, setShowTaskSidebar] = useState(false);
   const [draggedTask, setDraggedTask] = useState<any>(null);
   const [targetDate, setTargetDate] = useState<Date | null>(null);
   const { toast } = useToast();
+
+  // Automatically close AppSidebar when TaskSidebar opens or screen becomes mobile
+  useAutoCloseSidebar(showTaskSidebar);
 
   const getEventsForDate = (date: Date) => {
     return events.filter(event => isSameDay(event.date, date));

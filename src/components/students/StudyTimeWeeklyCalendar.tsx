@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSa
 import { TaskTree } from '@/components/tasks/TaskTree';
 import { TaskNode } from '@/types/task';
 import { TaskSidebar } from './TaskSidebar';
+import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -74,6 +75,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [assignedTasks, setAssignedTasks] = useState<{[key: string]: TaskNode[]}>({});
+
+  // Automatically close AppSidebar when TaskSidebar opens or screen becomes mobile
+  useAutoCloseSidebar(isSidebarOpen);
 
   const handleCopySchedule = async () => {
     setIsLoading(true);

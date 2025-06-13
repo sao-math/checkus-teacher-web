@@ -9,6 +9,7 @@ import {
   Plus
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
 import { Student } from '@/types/student';
 import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
 import { Activity } from '@/types/activity';
@@ -26,6 +27,9 @@ const StudentDetails = () => {
   const [showTaskSidebar, setShowTaskSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
   
+  // Automatically close AppSidebar when TaskSidebar opens or screen becomes mobile
+  useAutoCloseSidebar(showTaskSidebar);
+
   const studentId = parseInt(id || '1');
   const [student, setStudent] = useState<Student | null>(null);
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule[]>([]);

@@ -1,25 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import { format, isSameDay, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameMonth, addHours, parse } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Calendar as CalendarIcon, Copy, Loader2, Plus, Trash2 } from 'lucide-react';
-import DatePicker from 'react-datepicker';
-import { ko } from 'date-fns/locale';
-import "react-datepicker/dist/react-datepicker.css";
-import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
-import { AssignedStudyTime, WeeklySchedule, ActualStudyTime } from '@/types/schedule';
-import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, isSameMonth, addHours } from 'date-fns';
-import { TaskTree } from '@/components/tasks/TaskTree';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays, CalendarIcon, Copy, Loader2, Trash2 } from 'lucide-react';
+import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
+import { Activity } from '@/types/activity';
 import { TaskNode } from '@/types/task';
-import { TaskSidebar } from './TaskSidebar';
-import { toast } from '@/components/ui/use-toast';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TaskSidebar } from '@/components/students/TaskSidebar';
+import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
+import { StudyTimeDayModal } from '@/components/students/StudyTimeDayModal';
+import { StudyTimeEventModal } from '@/components/students/StudyTimeEventModal';
+import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { isAxiosError } from 'axios';
 import { studentApi } from '@/services/studentApi';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
+import { TaskTree } from '@/components/tasks/TaskTree';
+import { toast } from '@/components/ui/use-toast';
+import { Label } from '@/components/ui/label';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -98,6 +104,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [manualEndTime, setManualEndTime] = useState<Date | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedDateActuals, setSelectedDateActuals] = useState<{[assignedId: number]: ActualStudyTime[]}>({});
+  const [studyTimeActivities, setStudyTimeActivities] = useState<Activity[]>([]);
 
   const form = useForm({
     defaultValues: {
@@ -108,6 +115,16 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       endTime: '10:00',
     },
   });
+
+  // Fetch study-assignable activities for study time assignment
+  const fetchStudyTimeActivities = async () => {
+    try {
+      const data = await studentApi.getActivities(); // This calls /study-time/activities
+      setStudyTimeActivities(data);
+    } catch (error) {
+      console.error('Failed to fetch study time activities:', error);
+    }
+  };
 
   // Add effect to handle onAddTask prop changes
   useEffect(() => {
@@ -287,7 +304,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         endTime: endTime.toISOString(),
         assignedBy: 1, // TODO: Replace with actual user ID
         title: data.title,
-        activityName: activities.find(a => a.id === Number(data.activityId))?.name
+        activityName: studyTimeActivities.find(a => a.id === Number(data.activityId))?.name
       };
 
       await onGenerateStudyTimes(startTime, 1, studyTime);
@@ -834,6 +851,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
+                      onOpenChange={(open) => { 
+                        if (open) fetchStudyTimeActivities(); 
+                      }}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -841,7 +861,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {activities.map((activity) => (
+                        {studyTimeActivities.map((activity) => (
                           <SelectItem key={activity.id} value={activity.id.toString()}>
                             {activity.name}
                           </SelectItem>

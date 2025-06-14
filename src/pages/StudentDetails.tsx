@@ -111,6 +111,7 @@ const StudentDetails = () => {
     try {
       const data = await studentApi.updateWeeklySchedule(updatedSchedule.id, {
         studentId: studentId,
+        title: updatedSchedule.title,
         activityId: updatedSchedule.activityId,
         dayOfWeek: updatedSchedule.dayOfWeek,
         startTime: updatedSchedule.startTime,
@@ -161,6 +162,7 @@ const StudentDetails = () => {
     try {
       const data = await studentApi.createWeeklySchedule({
         studentId: studentId,
+        title: newSchedule.title!,
         activityId: newSchedule.activityId!,
         dayOfWeek: newSchedule.dayOfWeek!,
         startTime: newSchedule.startTime!,
@@ -296,9 +298,6 @@ const StudentDetails = () => {
               </Button>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
-                <p className="text-sm text-gray-500">
-                  {student.grade}학년 · {student.school}
-                </p>
               </div>
             </div>
             <div className="flex gap-2">

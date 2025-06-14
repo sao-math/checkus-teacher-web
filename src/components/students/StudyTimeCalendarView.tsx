@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-reac
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, addWeeks, subWeeks, addMonths, subMonths, isSameDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { AssignedStudyTime } from '@/types/schedule';
+import { formatKoreanTimeRange } from '@/utils/dateUtils';
 
 interface StudyTimeCalendarViewProps {
   studentId: number;
@@ -144,9 +144,9 @@ export const StudyTimeCalendarView: React.FC<StudyTimeCalendarViewProps> = ({
               {getStudyTimesForDate(selectedDate).length > 0 ? (
                 getStudyTimesForDate(selectedDate).map((studyTime) => (
                   <div key={studyTime.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                    <span>{studyTime.activity?.name}</span>
+                    <span>{studyTime.title || '공부시간'}</span>
                     <span className="text-sm text-gray-500">
-                      {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                      {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                     </span>
                   </div>
                 ))

@@ -14,6 +14,7 @@ export interface GetStudentsParams {
 
 export interface WeeklyScheduleRequest {
   studentId: number;
+  title: string;
   activityId: number;
   dayOfWeek: number;
   startTime: string;

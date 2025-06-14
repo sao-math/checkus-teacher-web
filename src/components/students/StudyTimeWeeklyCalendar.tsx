@@ -3,17 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar as CalendarIcon, Copy, Loader2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays, CalendarIcon, Copy, Loader2, Trash2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { ko } from 'date-fns/locale';
 import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
-import { AssignedStudyTime, WeeklySchedule } from '@/types/schedule';
-import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
-import { TaskTree } from '@/components/tasks/TaskTree';
+import { AssignedStudyTime, WeeklySchedule, ActualStudyTime } from '@/types/schedule';
+import { Activity } from '@/types/activity';
 import { TaskNode } from '@/types/task';
-import { TaskSidebar } from './TaskSidebar';
+import { TaskSidebar } from '@/components/students/TaskSidebar';
 import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
+import { StudyTimeDayModal } from '@/components/students/StudyTimeDayModal';
+import { StudyTimeEventModal } from '@/components/students/StudyTimeEventModal';
+import { useToast } from '@/hooks/use-toast';
+import { format, addDays, parse, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, startOfMonth, endOfMonth, isSameMonth } from 'date-fns';
+import { formatKoreanTime, formatKoreanTimeRange } from '@/utils/dateUtils';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -447,9 +451,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   getStudyTimesForDate(selectedDate).map((studyTime) => (
                     <div key={studyTime.id} className="flex items-center justify-between p-2 bg-white rounded border">
                       <span>{studyTime.activity?.name}</span>
-                      <span className="text-sm text-gray-500">
-                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
-                      </span>
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
+                      </div>
                     </div>
                   ))
                 ) : (

@@ -26,6 +26,7 @@ import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
 import { TaskTree } from '@/components/tasks/TaskTree';
 import { toast } from '@/components/ui/use-toast';
 import { Label } from '@/components/ui/label';
+import { formatKoreanTime, formatKoreanTimeRange, formatLocalDateTime } from '@/utils/dateUtils';
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -170,19 +171,12 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           const [startHours, startMinutes] = schedule.startTime.split(':').map(Number);
           const [endHours, endMinutes] = schedule.endTime.split(':').map(Number);
 
-          // Create new Date objects with the current date and parsed time
-          const startTime = new Date(currentDate);
-          startTime.setHours(startHours, startMinutes, 0, 0);
-
-          const endTime = new Date(currentDate);
-          endTime.setHours(endHours, endMinutes, 0, 0);
-
           // Create study time object
           const studyTime: Partial<AssignedStudyTime> = {
             studentId: studentId,
             activityId: schedule.activityId,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
+            startTime: formatLocalDateTime(currentDate, startHours, startMinutes),
+            endTime: formatLocalDateTime(currentDate, endHours, endMinutes),
             assignedBy: 1, // TODO: Replace with actual user ID
             title: schedule.title,
             activityName: schedule.activityName
@@ -291,23 +285,17 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       const [startHours, startMinutes] = data.startTime.split(':').map(Number);
       const [endHours, endMinutes] = data.endTime.split(':').map(Number);
 
-      const startTime = new Date(data.date);
-      startTime.setHours(startHours, startMinutes, 0, 0);
-
-      const endTime = new Date(data.date);
-      endTime.setHours(endHours, endMinutes, 0, 0);
-
       const studyTime: Partial<AssignedStudyTime> = {
         studentId: studentId,
         activityId: Number(data.activityId),
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
+        startTime: formatLocalDateTime(data.date, startHours, startMinutes),
+        endTime: formatLocalDateTime(data.date, endHours, endMinutes),
         assignedBy: 1, // TODO: Replace with actual user ID
         title: data.title,
         activityName: studyTimeActivities.find(a => a.id === Number(data.activityId))?.name
       };
 
-      await onGenerateStudyTimes(startTime, 1, studyTime);
+      await onGenerateStudyTimes(data.date, 1, studyTime);
       setShowManualModal(false);
       form.reset();
     } catch (error: any) {
@@ -470,7 +458,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       <div className="font-medium">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
                       <div className="text-[10px] text-green-600">
-                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                        {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                       </div>
                     </div>
                   ))}
@@ -482,7 +470,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                     >
                       <div className="font-medium">{studyTime.studentName} (실제)</div>
                       <div className="text-[10px] text-blue-600">
-                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                        {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                       </div>
                     </div>
                   ))}
@@ -593,7 +581,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       <div className="font-medium">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
                       <div className="text-[10px] text-green-600">
-                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                        {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                       </div>
                     </div>
                   ))}
@@ -605,7 +593,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                     >
                       <div className="font-medium">{studyTime.studentName} (실제)</div>
                       <div className="text-[10px] text-blue-600">
-                        {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                        {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                       </div>
                     </div>
                   ))}
@@ -771,7 +759,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                           </div>
                           <div className="text-right">
                             <div className="text-sm font-medium text-gray-900">
-                              {format(new Date(studyTime.startTime), 'HH:mm')} - {format(new Date(studyTime.endTime), 'HH:mm')}
+                              {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                             </div>
                             <div className="text-xs text-gray-500">
                               배정: {assignedMinutes}분 | 접속: {totalConnectedMinutes}분 ({Math.min(progressPercent, 100)}%)
@@ -792,8 +780,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                                   <span className="capitalize text-gray-700">{actual.source}</span>
                                 </div>
                                 <div className="text-gray-600">
-                                  {format(new Date(actual.startTime), 'HH:mm')} - {
-                                    actual.endTime ? format(new Date(actual.endTime), 'HH:mm') : '진행중'
+                                  {formatKoreanTime(actual.startTime)} - {
+                                    actual.endTime ? formatKoreanTime(actual.endTime) : '진행중'
                                   }
                                   {actual.endTime && (
                                     <span className="ml-2 text-xs text-gray-500">

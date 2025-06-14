@@ -41,6 +41,7 @@ interface StudyTimeCalendarProps {
   onGenerateStudyTimes: (startDate: Date, days: number, studyTime: Partial<AssignedStudyTime>) => Promise<void>;
   onAddTask: () => void;
   activities: { id: number; name: string }[];
+  onPeriodChange?: (startDate: Date, endDate: Date) => void;
 }
 
 // 임시 mock 데이터 (실제 데이터로 교체 필요)
@@ -90,7 +91,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   onAddTask,
   activities,
   onUpdateStudyTime,
-  onDeleteStudyTime
+  onDeleteStudyTime,
+  onPeriodChange
 }) => {
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [days, setDays] = useState(7);
@@ -133,6 +135,73 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       setIsSidebarOpen(true);
     }
   }, [onAddTask]);
+
+  // Handle view mode change and trigger data fetch
+  const handleViewModeChange = (mode: 'week' | 'month') => {
+    onViewModeChange(mode);
+    // Trigger data fetch for new view mode after a brief delay to ensure mode is updated
+    setTimeout(() => {
+      if (onPeriodChange) {
+        const { start, end } = getPeriodDates(startDate);
+        onPeriodChange(start, end);
+      }
+    }, 0);
+  };
+
+  // Navigation functions
+  const getPeriodDates = (date: Date) => {
+    if (viewMode === 'week') {
+      const start = startOfWeek(date, { weekStartsOn: 0 });
+      const end = endOfWeek(date, { weekStartsOn: 0 });
+      return { start, end };
+    } else {
+      const start = startOfMonth(date);
+      const end = endOfMonth(date);
+      return { start, end };
+    }
+  };
+
+  const updatePeriodAndFetch = (newDate: Date) => {
+    setStartDate(newDate);
+    if (onPeriodChange) {
+      const { start, end } = getPeriodDates(newDate);
+      onPeriodChange(start, end);
+    }
+  };
+
+  const handlePreviousPeriod = () => {
+    if (viewMode === 'week') {
+      const newDate = addDays(startDate, -7);
+      updatePeriodAndFetch(newDate);
+    } else {
+      const newDate = new Date(startDate.getFullYear(), startDate.getMonth() - 1, 1);
+      updatePeriodAndFetch(newDate);
+    }
+  };
+
+  const handleNextPeriod = () => {
+    if (viewMode === 'week') {
+      const newDate = addDays(startDate, 7);
+      updatePeriodAndFetch(newDate);
+    } else {
+      const newDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+      updatePeriodAndFetch(newDate);
+    }
+  };
+
+  const handleToday = () => {
+    const today = new Date();
+    updatePeriodAndFetch(today);
+  };
+
+  const getCurrentPeriodText = () => {
+    if (viewMode === 'week') {
+      const endDate = addDays(startDate, 6);
+      return `${format(startDate, 'M월 d일')} - ${format(endDate, 'M월 d일')}`;
+    } else {
+      return format(startDate, 'yyyy년 M월');
+    }
+  };
 
   const handleCopySchedule = async () => {
     setIsLoading(true);
@@ -648,82 +717,123 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               학습시간 달력
             </CardTitle>
             <div className="flex items-center gap-4">
-              {/* 학습시간 생성 컨트롤 */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <Label className="text-xs">시작일</Label>
-                  <DatePicker
-                    selected={startDate}
-                    onChange={(date: Date | null) => date && setStartDate(date)}
-                    dateFormat="MM/dd"
-                    locale={ko}
-                    className="w-20 h-8 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  />
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  <Label className="text-xs">기간</Label>
-                  <Input
-                    type="number"
-                    value={days}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || 1;
-                      if (value >= 1 && value <= 365) {
-                        setDays(value);
-                      }
-                    }}
-                    min="1"
-                    max="365"
-                    className="w-16 h-8 px-2 py-1 text-xs"
-                  />
-                </div>
-                
-                <Button 
-                  onClick={handleCopySchedule}
-                  disabled={isLoading}
-                  size="sm"
-                  className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      복사중
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-1 h-3 w-3" />
-                      고정 일정 복사
-                    </>
-                  )}
-                </Button>
-
-                {/* 직접 공부시간 추가 버튼 */}
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
-                  onClick={() => setShowManualModal(true)}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  공부시간 직접 추가
-                </Button>
-
-                {/* 할일 추가 버튼 */}
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
-                  onClick={onAddTask}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  할일 추가
-                </Button>
-              </div>
               {/* 뷰 모드 토글 */}
               <StudyTimeCalendarToggle
                 viewMode={viewMode}
-                onViewModeChange={onViewModeChange}
+                onViewModeChange={handleViewModeChange}
               />
+            </div>
+          </div>
+          
+          {/* Navigation and Controls */}
+          <div className="flex items-center justify-between pt-4">
+            {/* Period Navigation */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPeriod}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                
+                <div className="px-4 py-1 text-sm font-medium min-w-[140px] text-center">
+                  {getCurrentPeriodText()}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPeriod}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToday}
+                  className="h-8 px-3 text-xs ml-2"
+                >
+                  오늘
+                </Button>
+              </div>
+            </div>
+
+            {/* Action Controls */}
+            <div className="flex items-center gap-2">
+              {/* 학습시간 생성 컨트롤 */}
+              <div className="flex items-center gap-1">
+                <Label className="text-xs">시작일</Label>
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date: Date | null) => date && setStartDate(date)}
+                  dateFormat="MM/dd"
+                  locale={ko}
+                  className="w-20 h-8 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div className="flex items-center gap-1">
+                <Label className="text-xs">기간</Label>
+                <Input
+                  type="number"
+                  value={days}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1;
+                    if (value >= 1 && value <= 365) {
+                      setDays(value);
+                    }
+                  }}
+                  min="1"
+                  max="365"
+                  className="w-16 h-8 px-2 py-1 text-xs"
+                />
+              </div>
+              
+              <Button 
+                onClick={handleCopySchedule}
+                disabled={isLoading}
+                size="sm"
+                className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    복사중
+                  </>
+                ) : (
+                  <>
+                    <Copy className="mr-1 h-3 w-3" />
+                    고정 일정 복사
+                  </>
+                )}
+              </Button>
+
+              {/* 직접 공부시간 추가 버튼 */}
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
+                onClick={() => setShowManualModal(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                공부시간 직접 추가
+              </Button>
+
+              {/* 할일 추가 버튼 */}
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 px-3 text-xs bg-gray-200 hover:bg-gray-300 text-gray"
+                onClick={onAddTask}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                할일 추가
+              </Button>
             </div>
           </div>
         </CardHeader>

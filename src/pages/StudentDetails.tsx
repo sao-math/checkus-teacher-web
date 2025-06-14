@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -278,6 +278,31 @@ const StudentDetails = () => {
     }
   };
 
+  const handlePeriodChange = useCallback(async (startDate: Date, endDate: Date) => {
+    try {
+      const [assignedTimes, actualTimes] = await Promise.all([
+        studentApi.getAssignedStudyTimes(
+          studentId,
+          startDate.toISOString(),
+          endDate.toISOString()
+        ),
+        studentApi.getActualStudyTimes(
+          studentId,
+          startDate.toISOString(),
+          endDate.toISOString()
+        )
+      ]);
+      setAssignedStudyTimes(assignedTimes);
+      setActualStudyTimes(actualTimes);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch study times for the selected period",
+        variant: "destructive",
+      });
+    }
+  }, [studentId, toast]);
+
   if (loading || !student) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -357,6 +382,7 @@ const StudentDetails = () => {
               onGenerateStudyTimes={handleGenerateStudyTimes}
               onAddTask={handleAddTask}
               activities={activities || []}
+              onPeriodChange={handlePeriodChange}
             />
           </div>
         </div>

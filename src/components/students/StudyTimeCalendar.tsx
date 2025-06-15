@@ -27,6 +27,66 @@ import { TaskTree } from '@/components/tasks/TaskTree';
 import { toast } from '@/components/ui/use-toast';
 import { Label } from '@/components/ui/label';
 import { formatKoreanTime, formatKoreanTimeRange, formatLocalDateTime } from '@/utils/dateUtils';
+import { Progress, TimelineSegment } from '@/components/ui/progress';
+
+// Timeline calculation helper function
+const calculateTimeline = (assigned: AssignedStudyTime, actuals: ActualStudyTime[]): TimelineSegment[] => {
+  const assignedStart = new Date(assigned.startTime).getTime();
+  const assignedEnd = new Date(assigned.endTime).getTime();
+  const totalDuration = assignedEnd - assignedStart;
+  
+  const timeline: TimelineSegment[] = [];
+  
+  actuals.forEach(actual => {
+    // Skip if endTime is null (ongoing session)
+    if (!actual.endTime) return;
+    
+    const actualStart = new Date(actual.startTime).getTime();
+    const actualEnd = new Date(actual.endTime).getTime();
+    
+    const clampedStart = Math.max(actualStart, assignedStart);
+    const clampedEnd = Math.min(actualEnd, assignedEnd);
+    
+    if (clampedStart < clampedEnd) {
+      const startPercent = ((clampedStart - assignedStart) / totalDuration) * 100;
+      const endPercent = ((clampedEnd - assignedStart) / totalDuration) * 100;
+      
+      timeline.push({
+        start: Math.round(startPercent),
+        end: Math.round(endPercent),
+        status: "connected",
+        source: actual.source
+      });
+    }
+  });
+  
+  timeline.sort((a, b) => a.start - b.start);
+  
+  const fullTimeline: TimelineSegment[] = [];
+  let currentPos = 0;
+  
+  timeline.forEach(segment => {
+    if (currentPos < segment.start) {
+      fullTimeline.push({
+        start: currentPos,
+        end: segment.start,
+        status: "not-connected"
+      });
+    }
+    fullTimeline.push(segment);
+    currentPos = segment.end;
+  });
+  
+  if (currentPos < 100) {
+    fullTimeline.push({
+      start: currentPos,
+      end: 100,
+      status: "not-connected"
+    });
+  }
+  
+  return fullTimeline;
+};
 
 interface StudyTimeCalendarProps {
   studentId: number;
@@ -860,6 +920,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                     const assignedMinutes = Math.round(assignedDuration / (1000 * 60));
                     const progressPercent = assignedMinutes > 0 ? Math.round((totalConnectedMinutes / assignedMinutes) * 100) : 0;
                     
+                    // Calculate timeline for progress bar
+                    const timeline = calculateTimeline(studyTime, actuals);
+                    
                     return (
                       <div key={studyTime.id} className="bg-white rounded-lg border p-4">
                         <div className="flex items-center justify-between mb-3">
@@ -877,15 +940,31 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                           </div>
                         </div>
                         
-                        {totalConnectedMinutes > 0 ? (
-                          <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
-                            총 접속시간: {totalConnectedMinutes}분
+                        {/* Progress bar with timeline */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs text-gray-500">
+                            <div className="flex gap-3">
+                              <span className="flex items-center">
+                                <span className="h-2 w-2 bg-emerald-500 inline-block rounded-full mr-1"></span>
+                                접속
+                              </span>
+                              <span className="flex items-center">
+                                <span className="h-2 w-2 bg-gray-200 inline-block rounded-full mr-1"></span>
+                                미접속
+                              </span>
+                            </div>
+                            <span className="text-emerald-600 font-medium">
+                              총 {totalConnectedMinutes}분 접속 ({Math.min(progressPercent, 100)}%)
+                            </span>
                           </div>
-                        ) : (
-                          <div className="text-sm text-gray-500 bg-gray-100 p-2 rounded">
-                            아직 접속 기록이 없습니다.
+                          
+                          <Progress segments={timeline} className="h-3" />
+                          
+                          <div className="flex justify-between text-xs text-gray-400">
+                            <span>{formatKoreanTime(studyTime.startTime)}</span>
+                            <span>{formatKoreanTime(studyTime.endTime)}</span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })

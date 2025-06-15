@@ -97,5 +97,18 @@
 
   body {
     @apply bg-background text-foreground;
+    /* 전체 앱에서 텍스트 선택 비활성화 */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+
+  /* input, textarea 등에서는 텍스트 선택 허용 */
+  input, textarea, [contenteditable] {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
   }
 }

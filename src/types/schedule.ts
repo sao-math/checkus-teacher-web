@@ -44,7 +44,7 @@ export interface ActualStudyTime {
   id: number;
   studentId: number;
   studentName: string;
-  assignedStudyTimeId: number;
+  assignedStudyTimeId: number | null;
   startTime: string;
   endTime: string | null;
   source: string; // "discord"

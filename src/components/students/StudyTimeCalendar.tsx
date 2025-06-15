@@ -531,21 +531,21 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       </div>
                     </div>
                   ))}
-                  {/* 실제 공부시간 */}
-                  {actual.slice(0, 3).map((studyTime) => (
+                  {/* 추가 자습 (assignedStudyTimeId가 null인 경우만) */}
+                  {actual.filter(studyTime => studyTime.assignedStudyTimeId === null).slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className="text-xs p-1 rounded truncate bg-blue-100 text-blue-800"
+                      className="text-xs p-1 rounded truncate bg-purple-100 text-purple-800"
                     >
-                      <div className="font-medium">{studyTime.studentName} (실제)</div>
-                      <div className="text-[10px] text-blue-600">
+                      <div className="font-medium">추가 자습</div>
+                      <div className="text-[10px] text-purple-600">
                         {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                       </div>
                     </div>
                   ))}
-                  {(assigned.length + actual.length) > 3 && (
+                  {(assigned.length + actual.filter(studyTime => studyTime.assignedStudyTimeId === null).length) > 3 && (
                     <div className="text-xs text-gray-500">
-                      +{(assigned.length + actual.length) - 3} more
+                      +{(assigned.length + actual.filter(studyTime => studyTime.assignedStudyTimeId === null).length) - 3} more
                     </div>
                   )}
                 </div>
@@ -654,21 +654,21 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       </div>
                     </div>
                   ))}
-                  {/* 실제 공부시간 */}
-                  {actual.slice(0, 3).map((studyTime) => (
+                  {/* 추가 자습 (assignedStudyTimeId가 null인 경우만) */}
+                  {actual.filter(studyTime => studyTime.assignedStudyTimeId === null).slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className="text-xs p-1 rounded truncate bg-blue-100 text-blue-800"
+                      className="text-xs p-1 rounded truncate bg-purple-100 text-purple-800"
                     >
-                      <div className="font-medium">{studyTime.studentName} (실제)</div>
-                      <div className="text-[10px] text-blue-600">
+                      <div className="font-medium">추가 자습</div>
+                      <div className="text-[10px] text-purple-600">
                         {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
                       </div>
                     </div>
                   ))}
-                  {(assigned.length + actual.length) > 3 && (
+                  {(assigned.length + actual.filter(studyTime => studyTime.assignedStudyTimeId === null).length) > 3 && (
                     <div className="text-xs text-gray-500">
-                      +{(assigned.length + actual.length) - 3} more
+                      +{(assigned.length + actual.filter(studyTime => studyTime.assignedStudyTimeId === null).length) - 3} more
                     </div>
                   )}
                 </div>
@@ -877,30 +877,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                           </div>
                         </div>
                         
-                        {actuals.length > 0 ? (
-                          <div className="space-y-2">
-                            <h6 className="text-sm font-medium text-gray-700 mb-2">실제 접속 기록</h6>
-                            {actuals.map((actual) => (
-                              <div key={actual.id} className="flex items-center justify-between p-2 bg-blue-50 rounded text-sm">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${
-                                    actual.source === 'discord' ? 'bg-indigo-500' : 
-                                    actual.source === 'zoom' ? 'bg-blue-500' : 'bg-gray-500'
-                                  }`}></div>
-                                  <span className="capitalize text-gray-700">{actual.source}</span>
-                                </div>
-                                <div className="text-gray-600">
-                                  {formatKoreanTime(actual.startTime)} - {
-                                    actual.endTime ? formatKoreanTime(actual.endTime) : '진행중'
-                                  }
-                                  {actual.endTime && (
-                                    <span className="ml-2 text-xs text-gray-500">
-                                      ({Math.round((new Date(actual.endTime).getTime() - new Date(actual.startTime).getTime()) / (1000 * 60))}분)
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                        {totalConnectedMinutes > 0 ? (
+                          <div className="text-sm text-gray-600 bg-blue-50 p-2 rounded">
+                            총 접속시간: {totalConnectedMinutes}분
                           </div>
                         ) : (
                           <div className="text-sm text-gray-500 bg-gray-100 p-2 rounded">
@@ -912,6 +891,36 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   })
                 ) : (
                   <p className="text-gray-500 text-sm">할당된 학습시간이 없습니다.</p>
+                )}
+                
+                {/* 추가 자습 섹션 */}
+                {getStudyTimesForDate(selectedDate).actual.filter(studyTime => studyTime.assignedStudyTimeId === null).length > 0 && (
+                  <div className="bg-white rounded-lg border p-4">
+                    <h5 className="font-medium text-gray-900 mb-3">추가 자습</h5>
+                    <div className="space-y-2">
+                      {getStudyTimesForDate(selectedDate).actual.filter(studyTime => studyTime.assignedStudyTimeId === null).map((actual) => (
+                        <div key={actual.id} className="flex items-center justify-between p-2 bg-purple-50 rounded text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                              actual.source === 'discord' ? 'bg-indigo-500' : 
+                              actual.source === 'zoom' ? 'bg-blue-500' : 'bg-gray-500'
+                            }`}></div>
+                            <span className="capitalize text-gray-700">{actual.source}</span>
+                          </div>
+                          <div className="text-gray-600">
+                            {formatKoreanTime(actual.startTime)} - {
+                              actual.endTime ? formatKoreanTime(actual.endTime) : '진행중'
+                            }
+                            {actual.endTime && (
+                              <span className="ml-2 text-xs text-gray-500">
+                                ({Math.round((new Date(actual.endTime).getTime() - new Date(actual.startTime).getTime()) / (1000 * 60))}분)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

@@ -14,6 +14,7 @@ import ClassDetails from '@/pages/ClassDetails';
 import Layout from '@/components/Layout';
 import TaskManagement from './pages/TaskManagement';
 import StudentDetails from './pages/StudentDetails';
+import StudyMonitoring from './pages/StudyMonitoring';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Register from '@/pages/Register';
@@ -69,6 +70,9 @@ const App = () => {
 
             {/* Task Management route */}
             <Route path="tasks" element={<TaskManagement />} />
+            
+            {/* Study Monitoring route */}
+            <Route path="study-monitoring" element={<StudyMonitoring />} />
           </Route>
         </Routes>
         <Toaster />

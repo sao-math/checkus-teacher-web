@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -11,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Users, BookOpen, CheckSquare, Settings } from 'lucide-react';
+import { Users, BookOpen, CheckSquare, Settings, Monitor } from 'lucide-react';
 
 const menuItems = [
   {
@@ -36,6 +35,11 @@ const adminMenuItems = [
     title: '선생님 관리',
     url: '/teachers',
     icon: Settings,
+  },
+  {
+    title: '스터디 모니터링',
+    url: '/study-monitoring',
+    icon: Monitor,
   },
 ];
 

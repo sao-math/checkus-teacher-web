@@ -305,10 +305,21 @@ const StudentDetails = () => {
       ]);
       setAssignedStudyTimes(assignedTimes);
       setActualStudyTimes(actualTimes);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Period change error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = "선택한 기간의 학습시간을 불러오는데 실패했습니다.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to fetch study times for the selected period",
+        title: "기간 조회 실패",
+        description: errorMessage,
         variant: "destructive",
       });
     }

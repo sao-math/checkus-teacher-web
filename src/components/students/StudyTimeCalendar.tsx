@@ -168,6 +168,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [selectedDateActuals, setSelectedDateActuals] = useState<{[assignedId: number]: ActualStudyTime[]}>({});
   const [studyTimeActivities, setStudyTimeActivities] = useState<Activity[]>([]);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<Array<{ date: string; schedule: string; error: string }>>([]);
 
   const form = useForm({
     defaultValues: {
@@ -199,13 +201,42 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   // Handle view mode change and trigger data fetch
   const handleViewModeChange = (mode: 'week' | 'month') => {
     onViewModeChange(mode);
-    // Trigger data fetch for new view mode after a brief delay to ensure mode is updated
-    setTimeout(() => {
-      if (onPeriodChange) {
-        const { start, end } = getPeriodDates(startDate);
-        onPeriodChange(start, end);
+    
+    // Calculate date range based on the NEW mode, not the current viewMode
+    if (onPeriodChange) {
+      let start: Date, end: Date;
+      
+      if (mode === 'week') {
+        start = startOfWeek(startDate, { weekStartsOn: 1 });
+        end = endOfWeek(startDate, { weekStartsOn: 1 });
+      } else {
+        // 월간 뷰에서는 달력에 실제로 표시되는 전체 범위를 반환
+        const monthStart = startOfMonth(startDate);
+        const monthEnd = endOfMonth(startDate);
+        
+        // 캘린더 그리드 시작점: 월의 첫 주의 월요일
+        let calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+        
+        // 월의 시작일이 월요일인 경우 강제로 이전 주 추가
+        if (monthStart.getDay() === 1) { // 월요일 = 1
+          calendarStart = new Date(calendarStart.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7일 전으로 이동
+        }
+        
+        // 캘린더 그리드 끝점: 월의 마지막 주의 일요일
+        let calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+        
+        // 월의 마지막일이 일요일인 경우 강제로 이후 주 추가
+        if (monthEnd.getDay() === 0) { // 일요일 = 0
+          calendarEnd = new Date(calendarEnd.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7일 후로 이동
+        }
+        
+        start = calendarStart;
+        end = calendarEnd;
       }
-    }, 0);
+      
+      console.log(`View mode changed to ${mode}:`, { start, end });
+      onPeriodChange(start, end);
+    }
   };
 
   // Navigation functions
@@ -365,30 +396,40 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           description: `${format(start, 'M월 d일')}부터 ${format(end, 'M월 d일')}까지의 일정이 복사되었습니다.`,
         });
       } else if (successCount > 0) {
-        // Show detailed failure information
-        const failureDetails = failedItems.slice(0, 3).map(item => 
-          `• ${item.date} ${item.schedule}: ${item.error}`
-        ).join('\n');
-        
-        const moreFailures = failedItems.length > 3 ? `\n... 외 ${failedItems.length - 3}개 항목` : '';
-        
+        // Show summary for partial success
         toast({
           title: "일정 복사가 부분적으로 완료되었습니다.",
-          description: `성공: ${successCount}개, 실패: ${errorCount}개\n\n실패 항목:\n${failureDetails}${moreFailures}`,
+          description: `성공: ${successCount}개, 실패: ${errorCount}개`,
           variant: "destructive",
+          action: (
+            <button
+              onClick={() => {
+                setErrorDetails(failedItems);
+                setShowErrorDialog(true);
+              }}
+              className="text-xs underline hover:no-underline"
+            >
+              상세 보기
+            </button>
+          ),
         });
       } else {
-        // Show detailed failure information for complete failure
-        const failureDetails = failedItems.slice(0, 5).map(item => 
-          `• ${item.date} ${item.schedule}: ${item.error}`
-        ).join('\n');
-        
-        const moreFailures = failedItems.length > 5 ? `\n... 외 ${failedItems.length - 5}개 항목` : '';
-        
+        // Show summary for complete failure
         toast({
           title: "일정 복사에 실패했습니다.",
-          description: `실패한 항목:\n${failureDetails}${moreFailures}`,
+          description: `총 ${errorCount}개 항목이 실패했습니다.`,
           variant: "destructive",
+          action: (
+            <button
+              onClick={() => {
+                setErrorDetails(failedItems);
+                setShowErrorDialog(true);
+              }}
+              className="text-xs underline hover:no-underline"
+            >
+              상세 보기
+            </button>
+          ),
         });
       }
     } catch (error: any) {
@@ -1352,6 +1393,43 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           <Trash2 className="w-10 h-10 text-red-500" />
         </div>
       )}
+
+      {/* Error Dialog */}
+      <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>일정 복사 실패 상세</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <div className="space-y-4">
+              {errorDetails.map((item, index) => (
+                <div key={index} className="p-4 border rounded-lg bg-red-50 border-red-200">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="font-semibold text-gray-900">{item.date}</div>
+                      <div className="text-sm text-gray-700 bg-white p-2 rounded border">
+                        {item.schedule}
+                      </div>
+                      <div className="text-sm text-red-700 bg-red-100 p-2 rounded border border-red-200">
+                        <span className="font-medium">오류: </span>
+                        {item.error}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={() => setShowErrorDialog(false)}>
+              닫기
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

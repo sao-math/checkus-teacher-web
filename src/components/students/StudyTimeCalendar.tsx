@@ -662,13 +662,18 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     // 캘린더 그리드 시작점: 월의 첫 주의 월요일
     let calendarStart = startOfWeek(start, { weekStartsOn: 1 });
     
-    // 만약 월의 시작일이 월요일이면 (즉, 이전 주가 표시되지 않으면) 강제로 이전 주를 포함
-    if (isSameDay(calendarStart, start)) {
+    // 월의 시작일이 월요일인 경우 강제로 이전 주 추가
+    if (start.getDay() === 1) { // 월요일 = 1
       calendarStart = new Date(calendarStart.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7일 전으로 이동
     }
     
-    // 캘린더 그리드 끝점: 월의 마지막 주의 일요일 (표준 로직)
-    const calendarEnd = endOfWeek(end, { weekStartsOn: 1 });
+    // 캘린더 그리드 끝점: 월의 마지막 주의 일요일
+    let calendarEnd = endOfWeek(end, { weekStartsOn: 1 });
+    
+    // 월의 마지막일이 일요일인 경우 강제로 이후 주 추가
+    if (end.getDay() === 0) { // 일요일 = 0
+      calendarEnd = new Date(calendarEnd.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7일 후로 이동
+    }
     
     // 모든 날짜 생성
     const allDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
@@ -676,8 +681,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     // 디버깅용 로그
     console.log('Month View Debug:');
     console.log('startDate:', startDate);
-    console.log('start of month:', start);
-    console.log('end of month:', end);
+    console.log('start of month:', start, '(day of week:', start.getDay(), ')');
+    console.log('end of month:', end, '(day of week:', end.getDay(), ')');
     console.log('calendarStart:', calendarStart);
     console.log('calendarEnd:', calendarEnd);
     console.log('allDays length:', allDays.length);

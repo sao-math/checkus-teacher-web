@@ -128,10 +128,21 @@ const StudentDetails = () => {
         title: "일정이 수정되었습니다.",
         description: `${updatedSchedule.activityName} 일정이 수정되었습니다.`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Weekly schedule update error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = "일정 수정 중 오류가 발생했습니다.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to update schedule",
+        title: "일정 수정 실패",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -145,10 +156,21 @@ const StudentDetails = () => {
         title: "일정이 삭제되었습니다.",
         description: "선택한 일정이 삭제되었습니다.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Weekly schedule deletion error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = "일정 삭제 중 오류가 발생했습니다.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to delete schedule",
+        title: "일정 삭제 실패",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -175,10 +197,21 @@ const StudentDetails = () => {
         description: `${newSchedule.activityName} 일정이 추가되었습니다.`,
       });
       setShowScheduleDialog(false);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Weekly schedule creation error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = "일정 추가 중 오류가 발생했습니다.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to add schedule",
+        title: "일정 추가 실패",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -267,10 +300,21 @@ const StudentDetails = () => {
         title: "학습시간이 삭제되었습니다.",
         description: "선택한 학습시간이 삭제되었습니다.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Study time deletion error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = "학습시간 삭제 중 오류가 발생했습니다.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to delete study time",
+        title: "학습시간 삭제 실패",
+        description: errorMessage,
         variant: "destructive",
       });
     }

@@ -32,6 +32,26 @@ const StudentEdit = () => {
   const [loading, setLoading] = useState(false);
   const [loadingSchools, setLoadingSchools] = useState(true);
 
+  // Phone number formatting function
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digit characters
+    const numbers = value.replace(/\D/g, '');
+    
+    // Return empty string if no numbers
+    if (numbers.length === 0) {
+      return '';
+    }
+    
+    // Format the number with hyphens
+    if (numbers.length <= 3) {
+      return numbers;
+    } else if (numbers.length <= 7) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    } else {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+    }
+  };
+
   const getGradeText = (grade: number) => {
     if (grade >= 1 && grade <= 6) {
       return `초등학교 ${grade}학년`;
@@ -202,7 +222,7 @@ const StudentEdit = () => {
                 <Input
                   id="phoneNumber"
                   value={formData.phoneNumber || ''}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                  onChange={(e) => handleInputChange('phoneNumber', formatPhoneNumber(e.target.value))}
                   placeholder="전화번호를 입력하세요"
                   required
                 />

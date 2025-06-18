@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { StudyTimeBar } from './Timeline';
+import { FixedRow } from './FixedLayout';
 import { MonitoringStudent, StudentStatus } from '@/types/monitoring';
 import { cn } from '@/lib/utils';
 
@@ -75,44 +76,47 @@ const StudentRow: React.FC<StudentRowProps> = ({ student, isSelected, onSelectio
     </div>
   );
 
-  return (
-    <div className="flex items-center border-b border-gray-200 hover:bg-gray-50">
-      {/* Checkbox and Student Info */}
-      <div className="flex items-center space-x-3 w-48 p-3">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={handleCheckboxChange}
-          className="h-4 w-4"
-        />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={handleStudentClick}
-                className={cn(
-                  "px-3 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                  getStatusColor(student.status)
-                )}
-              >
-                {student.studentName}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="max-w-xs">
-              {tooltipContent}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      {/* Timeline Bar */}
-      <div className="flex-1 p-3">
-        <StudyTimeBar
-          assignedTimes={student.assignedStudyTimes}
-          actualTimes={allConnectedActualTimes}
-          unassignedTimes={student.unassignedActualStudyTimes}
-        />
-      </div>
+  const leftContent = (
+    <div className="flex items-center space-x-3">
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={handleCheckboxChange}
+        className="h-4 w-4"
+      />
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={handleStudentClick}
+              className={cn(
+                "px-3 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                getStatusColor(student.status)
+              )}
+            >
+              {student.studentName}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" className="max-w-xs">
+            {tooltipContent}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
+  );
+
+  const rightContent = (
+    <StudyTimeBar
+      assignedTimes={student.assignedStudyTimes}
+      actualTimes={allConnectedActualTimes}
+      unassignedTimes={student.unassignedActualStudyTimes}
+    />
+  );
+
+  return (
+    <FixedRow 
+      leftContent={leftContent}
+      rightContent={rightContent}
+    />
   );
 };
 

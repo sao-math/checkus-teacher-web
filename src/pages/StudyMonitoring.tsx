@@ -7,7 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Timeline, TimelineHeader } from '@/components/monitoring/Timeline';
+import { FixedLayout } from '@/components/monitoring/FixedLayout';
+import { FixedTimelineHeader } from '@/components/monitoring/Timeline';
 import StudentRow from '@/components/monitoring/StudentRow';
 import monitoringApi from '@/services/monitoringApi';
 import { MonitoringStudent } from '@/types/monitoring';
@@ -226,18 +227,7 @@ const StudyMonitoring: React.FC = () => {
               <p>데이터를 불러오는 중...</p>
             </div>
           ) : (
-            <Timeline>
-              {/* Timeline Header */}
-              <div className="flex">
-                <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3">
-                  <span className="text-sm font-medium text-gray-600">학생</span>
-                </div>
-                <div className="flex-1">
-                  <TimelineHeader />
-                </div>
-              </div>
-              
-              {/* Student Rows */}
+            <FixedLayout header={<FixedTimelineHeader />}>
               <div>
                 {students.map((student) => (
                   <StudentRow
@@ -247,14 +237,14 @@ const StudyMonitoring: React.FC = () => {
                     onSelectionChange={handleStudentSelection}
                   />
                 ))}
+                
+                {students.length === 0 && (
+                  <div className="p-8 text-center text-gray-500">
+                    해당 날짜에 대한 데이터가 없습니다.
+                  </div>
+                )}
               </div>
-              
-              {students.length === 0 && (
-                <div className="p-8 text-center text-gray-500">
-                  해당 날짜에 대한 데이터가 없습니다.
-                </div>
-              )}
-            </Timeline>
+            </FixedLayout>
           )}
         </CardContent>
       </Card>

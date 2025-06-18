@@ -1,0 +1,101 @@
+import React, { useRef, useEffect } from 'react';
+import { cn } from '@/lib/utils';
+import { useAutoScroll } from './Timeline';
+
+interface FixedLayoutProps {
+  header: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}
+
+const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }) => {
+  const headerScrollRef = useRef<HTMLDivElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+
+  // Use auto-scroll hook for current time positioning
+  useAutoScroll({ headerScrollRef, contentScrollRef });
+
+  // Synchronize scroll between header and content
+  const handleHeaderScroll = () => {
+    if (headerScrollRef.current && contentScrollRef.current) {
+      contentScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleContentScroll = () => {
+    if (headerScrollRef.current && contentScrollRef.current) {
+      headerScrollRef.current.scrollLeft = contentScrollRef.current.scrollLeft;
+    }
+  };
+
+  useEffect(() => {
+    const headerElement = headerScrollRef.current;
+    const contentElement = contentScrollRef.current;
+
+    if (headerElement && contentElement) {
+      headerElement.addEventListener('scroll', handleHeaderScroll);
+      contentElement.addEventListener('scroll', handleContentScroll);
+
+      return () => {
+        headerElement.removeEventListener('scroll', handleHeaderScroll);
+        contentElement.removeEventListener('scroll', handleContentScroll);
+      };
+    }
+  }, []);
+
+  return (
+    <div className={cn("relative", className)}>
+      {/* Header Row */}
+      <div className="flex">
+        {/* Fixed Student Name Header */}
+        <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3 sticky left-0 z-20">
+          <span className="text-sm font-medium text-gray-600">학생</span>
+        </div>
+        
+        {/* Scrollable Timeline Header */}
+        <div 
+          ref={headerScrollRef}
+          className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+        >
+          {header}
+        </div>
+      </div>
+      
+      {/* Content Rows */}
+      <div 
+        ref={contentScrollRef}
+        className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+      >
+        <div className="relative">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface FixedRowProps {
+  leftContent: React.ReactNode;
+  rightContent: React.ReactNode;
+  className?: string;
+}
+
+const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, className }) => {
+  return (
+    <div className={cn("flex border-b border-gray-200 hover:bg-gray-50", className)}>
+      {/* Fixed Student Info */}
+      <div className="w-48 p-3 bg-white sticky left-0 z-10 border-r border-gray-200">
+        {leftContent}
+      </div>
+      
+      {/* Timeline Content - No scroll, controlled by parent */}
+      <div className="flex-1">
+        <div className="p-3" style={{ width: '1200px' }}>
+          {rightContent}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export { FixedLayout, FixedRow }; 

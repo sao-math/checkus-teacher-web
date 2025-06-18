@@ -194,12 +194,10 @@ const StudentDetails = () => {
         endTime: studyTime.endTime!
       });
       if (!result.success) {
-        toast({
-          title: 'Study Time Assignment Failed',
-          description: result.message || 'Failed to assign study time.',
-          variant: 'destructive',
-        });
-        return;
+        // Create an error object that includes the server message
+        const error = new Error(result.message || 'Failed to assign study time.');
+        (error as any).response = { data: { message: result.message } };
+        throw error;
       }
 
       // Refresh study times data to ensure UI reflects all changes
@@ -227,20 +225,9 @@ const StudentDetails = () => {
     } catch (error: any) {
       console.error('Study time assignment error:', error);
       
-      // Extract error message from server response
-      let errorMessage = 'Failed to assign study time.';
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: 'Study Time Assignment Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
+      // Re-throw the error so that the calling function (like handleCopySchedule) can handle it
+      // This prevents duplicate toast messages
+      throw error;
     }
   };
 

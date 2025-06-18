@@ -215,9 +215,27 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       const end = endOfWeek(date, { weekStartsOn: 1 });
       return { start, end };
     } else {
-      const start = startOfMonth(date);
-      const end = endOfMonth(date);
-      return { start, end };
+      // 월간 뷰에서는 달력에 실제로 표시되는 전체 범위를 반환
+      const monthStart = startOfMonth(date);
+      const monthEnd = endOfMonth(date);
+      
+      // 캘린더 그리드 시작점: 월의 첫 주의 월요일
+      let calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+      
+      // 월의 시작일이 월요일인 경우 강제로 이전 주 추가
+      if (monthStart.getDay() === 1) { // 월요일 = 1
+        calendarStart = new Date(calendarStart.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7일 전으로 이동
+      }
+      
+      // 캘린더 그리드 끝점: 월의 마지막 주의 일요일
+      let calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+      
+      // 월의 마지막일이 일요일인 경우 강제로 이후 주 추가
+      if (monthEnd.getDay() === 0) { // 일요일 = 0
+        calendarEnd = new Date(calendarEnd.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7일 후로 이동
+      }
+      
+      return { start: calendarStart, end: calendarEnd };
     }
   };
 
@@ -284,6 +302,10 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       const start = startDate;
       const end = addDays(startDate, days - 1);
       
+      let successCount = 0;
+      let errorCount = 0;
+      const failedItems: Array<{ date: string; schedule: string; error: string }> = [];
+      
       // Generate study times for each day in the range
       for (let i = 0; i < days; i++) {
         const currentDate = addDays(startDate, i);
@@ -296,35 +318,92 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
         // Create study times for each schedule
         for (const schedule of daySchedules) {
-          // Parse the time strings (HH:mm:ss format)
-          const [startHours, startMinutes] = schedule.startTime.split(':').map(Number);
-          const [endHours, endMinutes] = schedule.endTime.split(':').map(Number);
+          try {
+            // Parse the time strings (HH:mm:ss format)
+            const [startHours, startMinutes] = schedule.startTime.split(':').map(Number);
+            const [endHours, endMinutes] = schedule.endTime.split(':').map(Number);
 
-          // Create study time object
-          const studyTime: Partial<AssignedStudyTime> = {
-            studentId: studentId,
-            activityId: schedule.activityId,
-            startTime: formatLocalDateTime(currentDate, startHours, startMinutes),
-            endTime: formatLocalDateTime(currentDate, endHours, endMinutes),
-            assignedBy: 1, // TODO: Replace with actual user ID
-            title: schedule.title,
-            activityName: schedule.activityName
-          };
+            // Create study time object
+            const studyTime: Partial<AssignedStudyTime> = {
+              studentId: studentId,
+              activityId: schedule.activityId,
+              startTime: formatLocalDateTime(currentDate, startHours, startMinutes),
+              endTime: formatLocalDateTime(currentDate, endHours, endMinutes),
+              assignedBy: 1, // TODO: Replace with actual user ID
+              title: schedule.title,
+              activityName: schedule.activityName
+            };
 
-          // Generate study time with the created study time information
-          await onGenerateStudyTimes(currentDate, 1, studyTime);
+            // Generate study time with the created study time information
+            await onGenerateStudyTimes(currentDate, 1, studyTime);
+            successCount++;
+          } catch (error: any) {
+            console.error('Failed to create study time:', error);
+            errorCount++;
+            
+            // Extract error message from server response
+            let errorMessage = '알 수 없는 오류가 발생했습니다.';
+            if (error?.response?.data?.message) {
+              errorMessage = error.response.data.message;
+            } else if (error?.message) {
+              errorMessage = error.message;
+            }
+            
+            // Add detailed failure information
+            failedItems.push({
+              date: format(currentDate, 'M월 d일 (E)', { locale: ko }),
+              schedule: `${schedule.title} (${schedule.activityName}) ${schedule.startTime}-${schedule.endTime}`,
+              error: errorMessage
+            });
+          }
         }
       }
 
-      toast({
-        title: "일정이 복사되었습니다.",
-        description: `${format(start, 'M월 d일')}부터 ${format(end, 'M월 d일')}까지의 일정이 복사되었습니다.`,
-      });
-    } catch (error) {
+      if (errorCount === 0) {
+        toast({
+          title: "일정이 복사되었습니다.",
+          description: `${format(start, 'M월 d일')}부터 ${format(end, 'M월 d일')}까지의 일정이 복사되었습니다.`,
+        });
+      } else if (successCount > 0) {
+        // Show detailed failure information
+        const failureDetails = failedItems.slice(0, 3).map(item => 
+          `• ${item.date} ${item.schedule}: ${item.error}`
+        ).join('\n');
+        
+        const moreFailures = failedItems.length > 3 ? `\n... 외 ${failedItems.length - 3}개 항목` : '';
+        
+        toast({
+          title: "일정 복사가 부분적으로 완료되었습니다.",
+          description: `성공: ${successCount}개, 실패: ${errorCount}개\n\n실패 항목:\n${failureDetails}${moreFailures}`,
+          variant: "destructive",
+        });
+      } else {
+        // Show detailed failure information for complete failure
+        const failureDetails = failedItems.slice(0, 5).map(item => 
+          `• ${item.date} ${item.schedule}: ${item.error}`
+        ).join('\n');
+        
+        const moreFailures = failedItems.length > 5 ? `\n... 외 ${failedItems.length - 5}개 항목` : '';
+        
+        toast({
+          title: "일정 복사에 실패했습니다.",
+          description: `실패한 항목:\n${failureDetails}${moreFailures}`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
       console.error('Failed to copy schedule:', error);
+      
+      let errorMessage = "일정 복사 중 오류가 발생했습니다.";
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: "일정 복사 중 오류가 발생했습니다.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -401,6 +480,28 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       setManualActivityId(null);
       setManualStartTime(null);
       setManualEndTime(null);
+      
+      toast({
+        title: "공부시간이 추가되었습니다.",
+        description: "새로운 공부시간이 성공적으로 추가되었습니다.",
+      });
+    } catch (error: any) {
+      console.error('Manual study time assignment error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = '공부시간 추가 중 오류가 발생했습니다.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast({
+        title: '공부시간 추가 실패',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -432,11 +533,16 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       await onGenerateStudyTimes(data.date, 1, studyTime);
       setShowManualModal(false);
       form.reset();
+      
+      toast({
+        title: "공부시간이 추가되었습니다.",
+        description: "새로운 공부시간이 성공적으로 추가되었습니다.",
+      });
     } catch (error: any) {
       console.error('Study time assignment error:', error);
       
       // Extract error message from server response
-      let errorMessage = 'An error occurred while adding study time.';
+      let errorMessage = '공부시간 추가 중 오류가 발생했습니다.';
       
       if (error?.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -445,7 +551,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       }
       
       toast({
-        title: 'Study Time Assignment Failed',
+        title: '공부시간 추가 실패',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -1120,17 +1226,17 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                 <FormLabel className="text-sm font-medium">Quick Templates</FormLabel>
                 <div className="flex gap-2 flex-wrap">
                   {[
-                    { label: '30min Study', startTime: '14:00', endTime: '14:30' },
-                    { label: '1hr Study', startTime: '14:00', endTime: '15:00' },
-                    { label: 'Evening 2hr', startTime: '19:00', endTime: '21:00' },
-                    { label: 'Morning 1hr', startTime: '09:00', endTime: '10:00' }
+                    { label: '30min Study', startTime: '14:00', duration: 30 },
+                    { label: '1hr Study', startTime: '14:00', duration: 60 },
+                    { label: 'Evening 2hr', startTime: '19:00', duration: 120 },
+                    { label: 'Morning 1hr', startTime: '09:00', duration: 60 }
                   ].map(template => (
                     <button
                       key={template.label}
                       type="button"
                       onClick={() => {
                         form.setValue('startTime', template.startTime);
-                        form.setValue('endTime', template.endTime);
+                        form.setValue('duration', template.duration);
                       }}
                       className="px-3 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
                     >

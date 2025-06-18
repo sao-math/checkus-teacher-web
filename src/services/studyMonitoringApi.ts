@@ -10,8 +10,8 @@ import {
 import { generateMockStudyMonitoringData, delay } from '@/data/mockStudyMonitoring';
 import { format } from 'date-fns';
 
-// Use mock data in development
-const USE_MOCK_DATA = import.meta.env.DEV || import.meta.env.VITE_USE_MOCK_STUDY_MONITORING === 'true';
+// Use mock data for deployment (can be switched to real API later)
+const USE_MOCK_DATA = true;
 
 export const studyMonitoringApi = {
   // Get current study monitoring data

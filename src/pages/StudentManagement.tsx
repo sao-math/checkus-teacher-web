@@ -17,7 +17,7 @@ const StudentManagement = () => {
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ENROLLED' | 'GRADUATED' | 'WITHDRAWN' | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED' | 'all'>('all');
 
   useEffect(() => {
     fetchStudents();
@@ -44,18 +44,24 @@ const StudentManagement = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'INQUIRY': return 'bg-yellow-100 text-yellow-800';
+      case 'CONSULTATION': return 'bg-orange-100 text-orange-800';
       case 'ENROLLED': return 'bg-green-100 text-green-800';
-      case 'GRADUATED': return 'bg-blue-100 text-blue-800';
+      case 'WAITING': return 'bg-purple-100 text-purple-800';
       case 'WITHDRAWN': return 'bg-red-100 text-red-800';
+      case 'UNREGISTERED': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
+      case 'INQUIRY': return '문의';
+      case 'CONSULTATION': return '상담';
       case 'ENROLLED': return '재원';
-      case 'GRADUATED': return '졸업';
+      case 'WAITING': return '대기';
       case 'WITHDRAWN': return '퇴원';
+      case 'UNREGISTERED': return '미등록';
       default: return '알 수 없음';
     }
   };
@@ -226,13 +232,16 @@ const StudentManagement = () => {
             <div className="flex gap-2">
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as 'ENROLLED' | 'GRADUATED' | 'WITHDRAWN' | 'all')}
+                onChange={(e) => setFilterStatus(e.target.value as 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED' | 'all')}
                 className="h-8 px-3 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">전체</option>
+                <option value="INQUIRY">문의</option>
+                <option value="CONSULTATION">상담</option>
                 <option value="ENROLLED">재원</option>
-                <option value="GRADUATED">졸업</option>
+                <option value="WAITING">대기</option>
                 <option value="WITHDRAWN">퇴원</option>
+                <option value="UNREGISTERED">미등록</option>
               </select>
             </div>
           </div>

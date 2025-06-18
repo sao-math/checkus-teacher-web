@@ -1,6 +1,6 @@
 import api from '@/lib/axios';
 import { isAxiosError } from 'axios';
-import { Student } from '@/types/student';
+import { Student, StudentUpdateRequest } from '@/types/student';
 import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
 import { Activity } from '@/types/activity';
 import authService from './auth';
@@ -63,7 +63,7 @@ export const studentApi = {
     }
   },
 
-  updateStudent: async (studentId: number, data: Partial<Student>) => {
+  updateStudent: async (studentId: number, data: StudentUpdateRequest) => {
     try {
       const response = await api.put(`/students/${studentId}`, data);
       return response.data.data;

@@ -81,10 +81,10 @@ export interface StudentUpdateRequest {
   phoneNumber?: string;
   discordId?: string;
   profile?: {
-    status?: string;
+    status?: 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
     schoolId?: number;
     grade?: number;
-    gender?: string;
+    gender?: 'MALE' | 'FEMALE';
   };
   classIds?: number[];
   guardians?: Guardian[];

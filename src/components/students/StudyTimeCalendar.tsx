@@ -4,6 +4,8 @@ import { ko } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays, CalendarIcon, Copy, Loader2, Trash2 } from 'lucide-react';
 import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
 import { Activity } from '@/types/activity';
@@ -13,10 +15,6 @@ import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
 import { StudyTimeDayModal } from '@/components/students/StudyTimeDayModal';
 import { StudyTimeEventModal } from '@/components/students/StudyTimeEventModal';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { isAxiosError } from 'axios';
 import { studentApi } from '@/services/studentApi';
@@ -25,9 +23,9 @@ import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
 import { TaskTree } from '@/components/tasks/TaskTree';
 import { toast } from '@/components/ui/use-toast';
-import { Label } from '@/components/ui/label';
 import { formatKoreanTime, formatKoreanTimeRange, formatLocalDateTime } from '@/utils/dateUtils';
 import { Progress, TimelineSegment } from '@/components/ui/progress';
+import { StudyTimeForm } from '@/components/students/StudyTimeForm';
 
 // Timeline calculation helper function
 const calculateTimeline = (assigned: AssignedStudyTime, actuals: ActualStudyTime[]): TimelineSegment[] => {
@@ -170,16 +168,6 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [studyTimeActivities, setStudyTimeActivities] = useState<Activity[]>([]);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorDetails, setErrorDetails] = useState<Array<{ date: string; schedule: string; error: string }>>([]);
-
-  const form = useForm({
-    defaultValues: {
-      title: '',
-      activityId: '',
-      date: new Date(),
-      startTime: '09:00',
-      duration: 60, // duration in minutes instead of end time
-    },
-  });
 
   // Fetch study-assignable activities for study time assignment
   const fetchStudyTimeActivities = async () => {
@@ -528,59 +516,6 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       });
     } catch (error: any) {
       console.error('Manual study time assignment error:', error);
-      
-      // Extract error message from server response
-      let errorMessage = '공부시간 추가 중 오류가 발생했습니다.';
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: '공부시간 추가 실패',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const onSubmit = async (data: any) => {
-    if (!data.date || !data.startTime || !data.duration || !data.activityId) return;
-
-    try {
-      setIsLoading(true);
-      const [startHours, startMinutes] = data.startTime.split(':').map(Number);
-      
-      // Calculate end time from start time + duration
-      const startTimeMinutes = startHours * 60 + startMinutes;
-      const endTimeMinutes = startTimeMinutes + data.duration;
-      const endHours = Math.floor(endTimeMinutes / 60);
-      const endMins = endTimeMinutes % 60;
-
-      const studyTime: Partial<AssignedStudyTime> = {
-        studentId: studentId,
-        activityId: Number(data.activityId),
-        startTime: formatLocalDateTime(data.date, startHours, startMinutes),
-        endTime: formatLocalDateTime(data.date, endHours, endMins),
-        assignedBy: 1, // TODO: Replace with actual user ID
-        title: data.title,
-        activityName: studyTimeActivities.find(a => a.id === Number(data.activityId))?.name
-      };
-
-      await onGenerateStudyTimes(data.date, 1, studyTime);
-      setShowManualModal(false);
-      form.reset();
-      
-      toast({
-        title: "공부시간이 추가되었습니다.",
-        description: "새로운 공부시간이 성공적으로 추가되었습니다.",
-      });
-    } catch (error: any) {
-      console.error('Study time assignment error:', error);
       
       // Extract error message from server response
       let errorMessage = '공부시간 추가 중 오류가 발생했습니다.';
@@ -1192,194 +1127,59 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           <DialogHeader>
             <DialogTitle>직접 공부시간 추가</DialogTitle>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>일정 이름</FormLabel>
-                    <FormControl>
-                      <Input placeholder="일정 이름을 입력하세요" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="activityId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>활동</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      onOpenChange={(open) => { 
-                        if (open) fetchStudyTimeActivities(); 
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="활동을 선택하세요" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {studyTimeActivities.map((activity) => (
-                          <SelectItem key={activity.id} value={activity.id.toString()}>
-                            {activity.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>날짜</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <DatePicker
-                          selected={field.value}
-                          onChange={(date: Date | null) => field.onChange(date)}
-                          dateFormat="yyyy-MM-dd"
-                          locale={ko}
-                          placeholderText="날짜를 선택하세요"
-                          customInput={<Input className="pr-10" />}
-                          className="w-full"
-                        />
-                        <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Quick Templates */}
-              <div className="space-y-2">
-                <FormLabel className="text-sm font-medium">Quick Templates</FormLabel>
-                <div className="flex gap-2 flex-wrap">
-                  {[
-                    { label: '30min Study', startTime: '14:00', duration: 30 },
-                    { label: '1hr Study', startTime: '14:00', duration: 60 },
-                    { label: 'Evening 2hr', startTime: '19:00', duration: 120 },
-                    { label: 'Morning 1hr', startTime: '09:00', duration: 60 }
-                  ].map(template => (
-                    <button
-                      key={template.label}
-                      type="button"
-                      onClick={() => {
-                        form.setValue('startTime', template.startTime);
-                        form.setValue('duration', template.duration);
-                      }}
-                      className="px-3 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
-                    >
-                      {template.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          <StudyTimeForm
+            defaultValues={{
+              title: '',
+              activityId: '',
+              date: new Date(),
+              startTime: '09:00',
+              endTime: '10:00',
+            }}
+            activities={studyTimeActivities}
+            onSubmit={async (data) => {
+              try {
+                const selectedActivity = studyTimeActivities.find(a => a.id.toString() === data.activityId);
+                if (!selectedActivity) return;
 
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Start Time</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="time" 
-                        {...field} 
-                        placeholder="09:00"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration (minutes)</FormLabel>
-                    <FormControl>
-                      <div className="space-y-2">
-                        <Input 
-                          type="number" 
-                          {...field}
-                          min="15"
-                          max="480"
-                          step="15"
-                          placeholder="60"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 60)}
-                        />
-                        {/* Duration presets */}
-                        <div className="flex gap-2 flex-wrap">
-                          {[
-                            { label: '30min', value: 30 },
-                            { label: '1hr', value: 60 },
-                            { label: '1.5hr', value: 90 },
-                            { label: '2hr', value: 120 },
-                            { label: '3hr', value: 180 }
-                          ].map(preset => (
-                            <button
-                              key={preset.value}
-                              type="button"
-                              onClick={() => form.setValue('duration', preset.value)}
-                              className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded"
-                            >
-                              {preset.label}
-                            </button>
-                          ))}
-                        </div>
-                        {/* Show calculated end time */}
-                        {(() => {
-                          const startTime = form.watch('startTime');
-                          const duration = form.watch('duration');
-                          if (startTime && duration) {
-                            const [startHours, startMinutes] = startTime.split(':').map(Number);
-                            const startTotalMinutes = startHours * 60 + startMinutes;
-                            const endTotalMinutes = startTotalMinutes + duration;
-                            const endHours = Math.floor(endTotalMinutes / 60);
-                            const endMins = endTotalMinutes % 60;
-                            const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-                            
-                            return (
-                              <div className="text-xs text-green-600 flex items-center">
-                                ✓ End time: {endTimeString} ({duration} minutes)
-                              </div>
-                            );
-                          }
-                          return (
-                            <div className="text-xs text-gray-500">
-                              💡 Select start time and duration
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setShowManualModal(false)}>
-                  취소
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  추가
-                </Button>
-              </div>
-            </form>
-          </Form>
+                // Parse the time strings to create start and end DateTime objects
+                const [startHours, startMinutes] = data.startTime.split(':').map(Number);
+                const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+
+                // Create date objects with the selected date and times
+                const startDateTime = new Date(data.date!);
+                startDateTime.setHours(startHours, startMinutes, 0, 0);
+                
+                const endDateTime = new Date(data.date!);
+                endDateTime.setHours(endHours, endMinutes, 0, 0);
+
+                const studyTime: Partial<AssignedStudyTime> = {
+                  studentId: studentId,
+                  activityId: selectedActivity.id,
+                  startTime: startDateTime.toISOString(),
+                  endTime: endDateTime.toISOString(),
+                  assignedBy: 1, // TODO: Replace with actual user ID
+                  title: data.title,
+                  activityName: selectedActivity.name
+                };
+
+                await onGenerateStudyTimes(data.date!, 1, studyTime);
+                setShowManualModal(false);
+                
+                toast({
+                  title: "성공",
+                  description: "공부시간이 추가되었습니다.",
+                });
+              } catch (error) {
+                // The error has been rethrown from onGenerateStudyTimes, no need to show toast here
+              }
+            }}
+            onCancel={() => setShowManualModal(false)}
+            isLoading={isLoading}
+            showDatePicker={true}
+            showDayOfWeek={false}
+            submitButtonText="추가"
+            fetchActivities={fetchStudyTimeActivities}
+          />
         </DialogContent>
       </Dialog>
 

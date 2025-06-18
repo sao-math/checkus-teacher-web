@@ -195,8 +195,8 @@ const StudentDetails = () => {
       });
       if (!result.success) {
         toast({
-          title: 'Error',
-          description: result.message || '공부시간 배정에 실패했습니다.',
+          title: 'Study Time Assignment Failed',
+          description: result.message || 'Failed to assign study time.',
           variant: 'destructive',
         });
         return;
@@ -224,10 +224,21 @@ const StudentDetails = () => {
       ]);
       setAssignedStudyTimes(assignedTimes);
       setActualStudyTimes(actualTimes);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Study time assignment error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = 'Failed to assign study time.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: 'Error',
-        description: 'Failed to generate study times',
+        title: 'Study Time Assignment Failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     }

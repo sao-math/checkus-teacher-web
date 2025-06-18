@@ -85,6 +85,15 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
     const selectedActivity = activities.find(a => a.id.toString() === data.activityId);
     if (!selectedActivity) return;
 
+    // Client-side validation for time range
+    if (data.startTime >= data.endTime) {
+      form.setError('endTime', {
+        type: 'manual',
+        message: 'End time must be after start time'
+      });
+      return;
+    }
+
     onSave({
       ...scheduleItem,
       dayOfWeek: parseInt(data.dayOfWeek),
@@ -189,9 +198,53 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
               name="startTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>시작 시간</FormLabel>
+                  <FormLabel>Start Time</FormLabel>
                   <FormControl>
-                    <Input type="time" {...field} />
+                    <div className="space-y-2">
+                      <Input 
+                        type="time" 
+                        {...field} 
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Auto-calculate end time if not set
+                          const endTimeValue = form.getValues('endTime');
+                          if (!endTimeValue && e.target.value) {
+                            const [hours, minutes] = e.target.value.split(':').map(Number);
+                            const endTime = new Date();
+                            endTime.setHours(hours + 1, minutes); // Default to 1 hour duration
+                            const endTimeString = endTime.toTimeString().slice(0, 5);
+                            form.setValue('endTime', endTimeString);
+                          }
+                        }}
+                      />
+                      {/* Preset time buttons */}
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { label: '9:00', value: '09:00' },
+                          { label: '13:00', value: '13:00' },
+                          { label: '14:00', value: '14:00' },
+                          { label: '19:00', value: '19:00' },
+                          { label: '20:00', value: '20:00' }
+                        ].map(preset => (
+                          <button
+                            key={preset.value}
+                            type="button"
+                            onClick={() => {
+                              form.setValue('startTime', preset.value);
+                              // Auto-set end time to 1 hour later
+                              const [hours, minutes] = preset.value.split(':').map(Number);
+                              const endTime = new Date();
+                              endTime.setHours(hours + 1, minutes);
+                              const endTimeString = endTime.toTimeString().slice(0, 5);
+                              form.setValue('endTime', endTimeString);
+                            }}
+                            className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded"
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -202,9 +255,85 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
               name="endTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>종료 시간</FormLabel>
+                  <FormLabel>End Time</FormLabel>
                   <FormControl>
-                    <Input type="time" {...field} />
+                    <div className="space-y-2">
+                      <Input 
+                        type="time" 
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          // Validate that end time is after start time
+                          const startTimeValue = form.getValues('startTime');
+                          if (startTimeValue && e.target.value && startTimeValue >= e.target.value) {
+                            form.setError('endTime', {
+                              type: 'manual',
+                              message: 'End time must be after start time'
+                            });
+                          } else {
+                            form.clearErrors('endTime');
+                          }
+                        }}
+                      />
+                      {/* Duration presets */}
+                      <div className="flex gap-2 flex-wrap">
+                        {[
+                          { label: '+30min', minutes: 30 },
+                          { label: '+1hr', minutes: 60 },
+                          { label: '+1.5hr', minutes: 90 },
+                          { label: '+2hr', minutes: 120 }
+                        ].map(duration => (
+                          <button
+                            key={duration.minutes}
+                            type="button"
+                            onClick={() => {
+                              const startTimeValue = form.getValues('startTime');
+                              if (startTimeValue) {
+                                const [hours, minutes] = startTimeValue.split(':').map(Number);
+                                const endTime = new Date();
+                                endTime.setHours(hours, minutes + duration.minutes);
+                                const endTimeString = endTime.toTimeString().slice(0, 5);
+                                form.setValue('endTime', endTimeString);
+                                form.clearErrors('endTime');
+                              }
+                            }}
+                            className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded"
+                            disabled={!form.getValues('startTime')}
+                          >
+                            {duration.label}
+                          </button>
+                        ))}
+                      </div>
+                      {/* Show calculated duration */}
+                      {(() => {
+                        const startTime = form.watch('startTime');
+                        const endTime = form.watch('endTime');
+                        if (startTime && endTime) {
+                          const [startHours, startMinutes] = startTime.split(':').map(Number);
+                          const [endHours, endMinutes] = endTime.split(':').map(Number);
+                          const startTotalMinutes = startHours * 60 + startMinutes;
+                          const endTotalMinutes = endHours * 60 + endMinutes;
+                          const durationMinutes = endTotalMinutes - startTotalMinutes;
+                          
+                          if (durationMinutes > 0) {
+                            const hours = Math.floor(durationMinutes / 60);
+                            const minutes = durationMinutes % 60;
+                            return (
+                              <div className="text-xs text-gray-600">
+                                Duration: {hours > 0 ? `${hours}h ` : ''}{minutes > 0 ? `${minutes}min` : ''}
+                              </div>
+                            );
+                          } else if (durationMinutes <= 0) {
+                            return (
+                              <div className="text-xs text-red-600">
+                                ⚠️ End time must be after start time
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -175,7 +175,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       activityId: '',
       date: new Date(),
       startTime: '09:00',
-      endTime: '10:00',
+      duration: 60, // duration in minutes instead of end time
     },
   });
 
@@ -407,18 +407,23 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   };
 
   const onSubmit = async (data: any) => {
-    if (!data.date || !data.startTime || !data.endTime || !data.activityId) return;
+    if (!data.date || !data.startTime || !data.duration || !data.activityId) return;
 
     try {
       setIsLoading(true);
       const [startHours, startMinutes] = data.startTime.split(':').map(Number);
-      const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+      
+      // Calculate end time from start time + duration
+      const startTimeMinutes = startHours * 60 + startMinutes;
+      const endTimeMinutes = startTimeMinutes + data.duration;
+      const endHours = Math.floor(endTimeMinutes / 60);
+      const endMins = endTimeMinutes % 60;
 
       const studyTime: Partial<AssignedStudyTime> = {
         studentId: studentId,
         activityId: Number(data.activityId),
         startTime: formatLocalDateTime(data.date, startHours, startMinutes),
-        endTime: formatLocalDateTime(data.date, endHours, endMinutes),
+        endTime: formatLocalDateTime(data.date, endHours, endMins),
         assignedBy: 1, // TODO: Replace with actual user ID
         title: data.title,
         activityName: studyTimeActivities.find(a => a.id === Number(data.activityId))?.name
@@ -428,13 +433,20 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       setShowManualModal(false);
       form.reset();
     } catch (error: any) {
-      let msg = '공부시간 추가 중 오류가 발생했습니다.';
-      if (isAxiosError?.(error) && error.response?.data?.message) {
-        msg = error.response.data.message;
+      console.error('Study time assignment error:', error);
+      
+      // Extract error message from server response
+      let errorMessage = 'An error occurred while adding study time.';
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
       }
+      
       toast({
-        title: 'Error',
-        description: msg,
+        title: 'Study Time Assignment Failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -485,13 +497,20 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
             )
           );
         } catch (error: any) {
-          let msg = '공부시간 이동 중 오류가 발생했습니다.';
-          if (isAxiosError?.(error) && error.response?.data?.message) {
-            msg = error.response.data.message;
+          console.error('Study time update error:', error);
+          
+          // Extract error message from server response
+          let errorMessage = 'An error occurred while moving study time.';
+          
+          if (error?.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
           }
+          
           toast({
-            title: 'Error',
-            description: msg,
+            title: 'Study Time Update Failed',
+            description: errorMessage,
             variant: 'destructive',
           });
         }
@@ -1082,14 +1101,44 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   </FormItem>
                 )}
               />
+              
+              {/* Quick Templates */}
+              <div className="space-y-2">
+                <FormLabel className="text-sm font-medium">Quick Templates</FormLabel>
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { label: '30min Study', startTime: '14:00', endTime: '14:30' },
+                    { label: '1hr Study', startTime: '14:00', endTime: '15:00' },
+                    { label: 'Evening 2hr', startTime: '19:00', endTime: '21:00' },
+                    { label: 'Morning 1hr', startTime: '09:00', endTime: '10:00' }
+                  ].map(template => (
+                    <button
+                      key={template.label}
+                      type="button"
+                      onClick={() => {
+                        form.setValue('startTime', template.startTime);
+                        form.setValue('endTime', template.endTime);
+                      }}
+                      className="px-3 py-1.5 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded transition-colors"
+                    >
+                      {template.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <FormField
                 control={form.control}
                 name="startTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>시작 시간</FormLabel>
+                    <FormLabel>Start Time</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <Input 
+                        type="time" 
+                        {...field} 
+                        placeholder="09:00"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1097,12 +1146,65 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               />
               <FormField
                 control={form.control}
-                name="endTime"
+                name="duration"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>종료 시간</FormLabel>
+                    <FormLabel>Duration (minutes)</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} />
+                      <div className="space-y-2">
+                        <Input 
+                          type="number" 
+                          {...field}
+                          min="15"
+                          max="480"
+                          step="15"
+                          placeholder="60"
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 60)}
+                        />
+                        {/* Duration presets */}
+                        <div className="flex gap-2 flex-wrap">
+                          {[
+                            { label: '30min', value: 30 },
+                            { label: '1hr', value: 60 },
+                            { label: '1.5hr', value: 90 },
+                            { label: '2hr', value: 120 },
+                            { label: '3hr', value: 180 }
+                          ].map(preset => (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              onClick={() => form.setValue('duration', preset.value)}
+                              className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 rounded"
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                        {/* Show calculated end time */}
+                        {(() => {
+                          const startTime = form.watch('startTime');
+                          const duration = form.watch('duration');
+                          if (startTime && duration) {
+                            const [startHours, startMinutes] = startTime.split(':').map(Number);
+                            const startTotalMinutes = startHours * 60 + startMinutes;
+                            const endTotalMinutes = startTotalMinutes + duration;
+                            const endHours = Math.floor(endTotalMinutes / 60);
+                            const endMins = endTotalMinutes % 60;
+                            const endTimeString = `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+                            
+                            return (
+                              <div className="text-xs text-green-600 flex items-center">
+                                ✓ End time: {endTimeString} ({duration} minutes)
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="text-xs text-gray-500">
+                              💡 Select start time and duration
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

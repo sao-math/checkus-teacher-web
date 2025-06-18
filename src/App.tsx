@@ -17,6 +17,7 @@ import StudentDetails from './pages/StudentDetails';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import Register from '@/pages/Register';
+import StudyMonitoring from './pages/StudyMonitoring';
 
 const App = () => {
   return (
@@ -69,6 +70,9 @@ const App = () => {
 
             {/* Task Management route */}
             <Route path="tasks" element={<TaskManagement />} />
+            
+            {/* Study Monitoring route */}
+            <Route path="monitoring" element={<StudyMonitoring />} />
           </Route>
         </Routes>
         <Toaster />

@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export function Header() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const userName = user?.name || '';
+  const userName = user?.data?.name || '';
 
   const handleLogout = () => {
     logout();
@@ -29,7 +29,7 @@ export function Header() {
         <SidebarTrigger className="text-gray-600 hover:text-blue-600" />
         <h1 
           className="text-xl font-bold text-blue-900 cursor-pointer hover:text-blue-700 transition-colors"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
         >
           CHECK US
         </h1>

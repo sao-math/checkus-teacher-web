@@ -211,8 +211,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   // Navigation functions
   const getPeriodDates = (date: Date) => {
     if (viewMode === 'week') {
-      const start = startOfWeek(date, { weekStartsOn: 0 });
-      const end = endOfWeek(date, { weekStartsOn: 0 });
+      const start = startOfWeek(date, { weekStartsOn: 1 });
+      const end = endOfWeek(date, { weekStartsOn: 1 });
       return { start, end };
     } else {
       const start = startOfMonth(date);
@@ -554,14 +554,14 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   };
 
   const renderWeekView = () => {
-    const start = startOfWeek(startDate, { weekStartsOn: 0 });
-    const end = endOfWeek(startDate, { weekStartsOn: 0 });
+    const start = startOfWeek(startDate, { weekStartsOn: 1 });
+    const end = endOfWeek(startDate, { weekStartsOn: 1 });
     const days = eachDayOfInterval({ start, end });
 
     return (
       <div className="grid grid-cols-7 gap-4">
         {/* 요일 헤더 */}
-        {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+        {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => (
           <div key={index} className="text-center py-2 font-medium text-gray-700 border-b">
             {day}
           </div>
@@ -659,27 +659,35 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     const start = startOfMonth(startDate);
     const end = endOfMonth(startDate);
     
-    // Get the first day of the month and calculate padding days
-    const firstDayOfMonth = start.getDay();
-    const paddingDays = Array(firstDayOfMonth).fill(null).map((_, index) => {
-      const dayOffset = index - firstDayOfMonth;
-      return addDays(start, dayOffset);
-    });
+    // 캘린더 그리드 시작점: 월의 첫 주의 월요일
+    let calendarStart = startOfWeek(start, { weekStartsOn: 1 });
     
-    // Get the last day of the month and calculate remaining days
-    const lastDayOfMonth = end.getDate();
-    const remainingDays = Array(6 - end.getDay()).fill(null).map((_, index) => {
-      const dayOffset = lastDayOfMonth + index;
-      return addDays(start, dayOffset);
-    });
+    // 만약 월의 시작일이 월요일이면 (즉, 이전 주가 표시되지 않으면) 강제로 이전 주를 포함
+    if (isSameDay(calendarStart, start)) {
+      calendarStart = new Date(calendarStart.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7일 전으로 이동
+    }
+    
+    // 캘린더 그리드 끝점: 월의 마지막 주의 일요일 (표준 로직)
+    const calendarEnd = endOfWeek(end, { weekStartsOn: 1 });
+    
+    // 모든 날짜 생성
+    const allDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
 
-    // Combine all days
-    const allDays = [...paddingDays, ...eachDayOfInterval({ start, end }), ...remainingDays];
+    // 디버깅용 로그
+    console.log('Month View Debug:');
+    console.log('startDate:', startDate);
+    console.log('start of month:', start);
+    console.log('end of month:', end);
+    console.log('calendarStart:', calendarStart);
+    console.log('calendarEnd:', calendarEnd);
+    console.log('allDays length:', allDays.length);
+    console.log('first few days:', allDays.slice(0, 7).map(d => format(d, 'yyyy-MM-dd')));
+    console.log('last few days:', allDays.slice(-7).map(d => format(d, 'yyyy-MM-dd')));
 
     return (
       <div className="grid grid-cols-7 gap-4">
         {/* 요일 헤더 */}
-        {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
+        {['월', '화', '수', '목', '금', '토', '일'].map((day, index) => (
           <div key={index} className="text-center py-2 font-medium text-gray-700 border-b">
             {day}
           </div>

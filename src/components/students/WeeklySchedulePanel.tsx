@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,14 +6,13 @@ import { WeeklySchedule } from '@/types/schedule';
 
 interface WeeklySchedulePanelProps {
   weeklySchedule: WeeklySchedule[];
-  studentId: number;
 }
 
 export const WeeklySchedulePanel: React.FC<WeeklySchedulePanelProps> = ({
   weeklySchedule
 }) => {
   const getDayName = (dayOfWeek: number) => {
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const days = ['', '월', '화', '수', '목', '금', '토', '일']; // 1=월, 2=화, ..., 7=일
     return days[dayOfWeek];
   };
 
@@ -35,22 +33,23 @@ export const WeeklySchedulePanel: React.FC<WeeklySchedulePanelProps> = ({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-          {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
+          {[1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
             const daySchedule = getDaySchedule(dayOfWeek);
+            
             return (
-              <div key={dayOfWeek} className="space-y-2">
+              <div key={dayOfWeek} className="space-y-3">
                 <div className="text-center">
-                  <h3 className="font-medium text-gray-900 mb-3">
+                  <h3 className="font-medium text-gray-900 py-2 border-b border-gray-200">
                     {getDayName(dayOfWeek)}
                   </h3>
                 </div>
-                <div className="space-y-2 min-h-[200px]">
+                <div className="space-y-2">
                   {daySchedule.map((item) => (
                     <div
                       key={item.id}
-                      className={`p-3 border rounded-lg transition-all ${
-                        item.activity?.isStudyAssignable
-                          ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
+                      className={`p-3 rounded-lg border ${
+                        item.isStudyAssignable 
+                          ? 'bg-blue-50 border-blue-200' 
                           : 'bg-gray-50 border-gray-200'
                       }`}
                     >

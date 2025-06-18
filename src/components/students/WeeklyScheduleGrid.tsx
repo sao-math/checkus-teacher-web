@@ -14,7 +14,7 @@ interface WeeklyScheduleGridProps {
   onDeleteSchedule?: (scheduleId: number) => void;
   onAddSchedule?: () => void;
   activities: Activity[];
-  fetchActivities: () => void;
+  fetchActivities: () => Promise<void>;
 }
 
 export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
@@ -30,7 +30,7 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
   const [editingSchedule, setEditingSchedule] = React.useState<WeeklySchedule | null>(null);
 
   const getDayName = (dayOfWeek: number) => {
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const days = ['', '월', '화', '수', '목', '금', '토', '일']; // 1=월, 2=화, ..., 7=일
     return days[dayOfWeek];
   };
 
@@ -79,7 +79,7 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-4">
-            {[0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => {
+            {[1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
               const daySchedule = getDaySchedule(dayOfWeek);
               return (
                 <div key={dayOfWeek} className="space-y-3">
@@ -88,39 +88,43 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
                       {getDayName(dayOfWeek)}
                     </h3>
                   </div>
-                  <div className="space-y-2 min-h-[300px]">
+                  <div className="space-y-2 min-h-[200px]">
                     {daySchedule.map((item) => (
                       <div
                         key={item.id}
-                        className={`p-3 border rounded-lg transition-all duration-200 group ${
+                        className={`p-2 border rounded-lg group relative ${
                           item.isStudyAssignable
                             ? 'bg-blue-50 border-blue-200 hover:bg-blue-100'
-                            : 'bg-white hover:bg-gray-50'
-                        }`}
+                            : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                        } transition-all`}
                       >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-900">
+                        {/* 수정/삭제 버튼 */}
+                        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 hover:bg-white/80"
+                            onClick={() => handleEditSchedule(item)}
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                            onClick={() => handleDeleteSchedule(item.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-start justify-between pr-14">
+                            <p className={`text-sm font-medium truncate ${
+                              item.isStudyAssignable ? 'text-blue-900' : 'text-gray-700'
+                            }`}>
                               {item.title}
                             </p>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={() => handleEditSchedule(item)}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
-                                onClick={() => handleDeleteSchedule(item.id)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
                           </div>
                           <Badge 
                             variant="outline" 

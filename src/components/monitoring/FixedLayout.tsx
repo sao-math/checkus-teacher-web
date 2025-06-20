@@ -64,10 +64,10 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       </div>
       
       {/* Content Rows */}
-      <div className="w-full overflow-y-auto">
+      <div className="w-full">
         <div 
           ref={contentScrollRef}
-          className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide"
+          className="w-full overflow-x-auto overflow-y-visible scrollbar-hide"
         >
           <div className="flex flex-col" style={{ width: 'calc(192px + 1800px)' }}>
             {children}

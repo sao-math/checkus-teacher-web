@@ -96,7 +96,7 @@ const StudentRow: React.FC<StudentRowProps> = ({ student, isSelected, onSelectio
               {student.studentName}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="right" className="max-w-xs">
+          <TooltipContent side="bottom" className="max-w-xs z-[9999]" sideOffset={8}>
             {tooltipContent}
           </TooltipContent>
         </Tooltip>

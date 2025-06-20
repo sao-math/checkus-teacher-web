@@ -19,6 +19,7 @@ const Login = () => {
     password: '',
   });
   const [error, setError] = useState(location.state?.error || '');
+  const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,6 +30,7 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       if (!formData.username || !formData.password) {
@@ -78,6 +80,11 @@ const Login = () => {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {successMessage && (
+                <div className="bg-green-50 text-green-600 text-sm p-3 rounded">
+                  {successMessage}
+                </div>
+              )}
               {error && (
                 <div className="bg-red-50 text-red-500 text-sm p-3 rounded">
                   {error}

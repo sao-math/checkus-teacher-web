@@ -142,10 +142,12 @@ const Register = () => {
       });
 
       if (response.data.success) {
-        setSuccess('회원가입이 완료되었습니다. 로그인해주세요.');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
+        navigate('/login', { 
+          state: { 
+            message: '회원가입이 완료되었습니다. 로그인해주세요.',
+            from: 'registration'
+          } 
+        });
       } else {
         throw new Error(response.data.message || '회원가입에 실패했습니다.');
       }

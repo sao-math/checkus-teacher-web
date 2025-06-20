@@ -181,7 +181,7 @@ const FixedTimelineHeader: React.FC = () => {
               zIndex: 10
             }}
           >
-            <span className="text-sm font-medium text-gray-700 bg-gray-50 px-2 py-1 rounded shadow-sm border">
+            <span className="text-xs font-medium text-gray-600 bg-gray-50 px-1">
               {hour}:00
             </span>
           </div>

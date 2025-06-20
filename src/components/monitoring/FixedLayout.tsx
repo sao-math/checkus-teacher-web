@@ -133,14 +133,13 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
               >
                 {/* Current Time Box - Positioned at the top of the timeline */}
                 <div 
-                  className="absolute bg-red-600 text-white text-sm px-3 py-2 rounded-lg shadow-xl font-bold border-2 border-white"
+                  className="absolute bg-red-600 text-white text-xs px-2 py-1 rounded shadow-lg font-medium"
                   style={{
                     left: '50%',
                     transform: 'translateX(-50%)', // Center horizontally
                     top: '1px', // Position just inside the timeline header
                     zIndex: 60,
                     whiteSpace: 'nowrap',
-                    minWidth: '80px',
                     textAlign: 'center'
                   }}
                 >

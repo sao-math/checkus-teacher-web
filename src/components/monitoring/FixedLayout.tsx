@@ -57,7 +57,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
           ref={headerScrollRef}
           className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 border-b border-gray-200"
         >
-          <div style={{ width: '1200px' }}>
+          <div style={{ width: '1800px' }}>
             {header}
           </div>
         </div>
@@ -68,7 +68,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
         ref={contentScrollRef}
         className="w-full overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
       >
-        <div className="flex flex-col" style={{ width: 'calc(192px + 1200px)' }}>
+        <div className="flex flex-col" style={{ width: 'calc(192px + 1800px)' }}>
           {children}
         </div>
       </div>
@@ -91,7 +91,7 @@ const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, classNam
       </div>
       
       {/* Timeline Content */}
-      <div className="flex-shrink-0" style={{ width: '1200px' }}>
+      <div className="flex-shrink-0" style={{ width: '1800px' }}>
         <div className="p-3">
           {rightContent}
         </div>

@@ -99,7 +99,7 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
 
 // Timeline header showing hours (original version for legacy compatibility)
 const TimelineHeader: React.FC = () => {
-  const hours = Array.from({ length: 9 }, (_, i) => 13 + i); // 13:00 to 21:00
+  const hours = Array.from({ length: 18 }, (_, i) => 6 + i); // 6:00 to 23:00
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -112,10 +112,10 @@ const TimelineHeader: React.FC = () => {
 
   const getCurrentTimePosition = () => {
     const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
-    const startHour = 13;
-    const endHour = 22;
+    const startHour = 6;
+    const endHour = 24;
     
-    if (currentHour < startHour || currentHour > endHour) return null;
+    if (currentHour < startHour || currentHour >= endHour) return null;
     
     const progress = (currentHour - startHour) / (endHour - startHour);
     return progress * 100;
@@ -125,7 +125,7 @@ const TimelineHeader: React.FC = () => {
 
   return (
     <div className="relative h-12 border-b border-gray-200 bg-gray-50">
-      <div className="flex h-full" style={{ width: '1200px' }}>
+      <div className="flex h-full" style={{ width: '1800px' }}>
         {hours.map((hour, index) => (
           <div 
             key={hour} 
@@ -135,7 +135,7 @@ const TimelineHeader: React.FC = () => {
           </div>
         ))}
         <div className="flex-1 flex items-center justify-center text-sm font-medium text-gray-600">
-          22:00
+          24:00
         </div>
       </div>
       
@@ -167,14 +167,14 @@ const FixedTimelineHeader: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const hours = Array.from({ length: 9 }, (_, i) => 13 + i); // 13:00 to 21:00
+  const hours = Array.from({ length: 18 }, (_, i) => 6 + i); // 6:00 to 23:00
 
   const getCurrentTimePosition = () => {
     const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
-    const startHour = 13;
-    const endHour = 22;
+    const startHour = 6;
+    const endHour = 24;
     
-    if (currentHour < startHour || currentHour > endHour) return null;
+    if (currentHour < startHour || currentHour >= endHour) return null;
     
     const progress = (currentHour - startHour) / (endHour - startHour);
     return progress * 100;
@@ -183,7 +183,7 @@ const FixedTimelineHeader: React.FC = () => {
   const currentTimePosition = getCurrentTimePosition();
 
   return (
-    <div className="relative h-12 bg-gray-50" style={{ width: '1200px' }}>
+    <div className="relative h-12 bg-gray-50" style={{ width: '1800px' }}>
       <div className="flex h-full">
         {hours.map((hour, index) => (
           <div 
@@ -194,7 +194,7 @@ const FixedTimelineHeader: React.FC = () => {
           </div>
         ))}
         <div className="flex-1 flex items-center justify-center text-sm font-medium text-gray-600">
-          22:00
+          24:00
         </div>
       </div>
       
@@ -241,11 +241,11 @@ const useAutoScroll = ({ headerScrollRef, contentScrollRef }: UseAutoScrollOptio
       // Wait for container to be fully rendered
       if (containerWidth === 0) return;
       
-      const timelineWidth = 1200; // Fixed width from TimelineHeader
+      const timelineWidth = 1800; // Updated width for 6:00-24:00 timeline
       
-      // Calculate current time position (13:00 to 22:00 = 9 hours)
-      const startHour = 13; // 1 PM
-      const endHour = 22; // 10 PM
+      // Calculate current time position (6:00 to 24:00 = 18 hours)
+      const startHour = 6; // 6 AM
+      const endHour = 24; // 12 AM (midnight)
       const totalHours = endHour - startHour;
       const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
       
@@ -253,13 +253,13 @@ const useAutoScroll = ({ headerScrollRef, contentScrollRef }: UseAutoScrollOptio
       let currentTimePixelPosition;
       
       if (currentHour < startHour) {
-        // Before 1 PM - show beginning of timeline
+        // Before 6 AM - show beginning of timeline
         currentTimePixelPosition = 0;
-      } else if (currentHour > endHour) {
-        // After 10 PM - show end of timeline
+      } else if (currentHour >= endHour) {
+        // After midnight - show end of timeline
         currentTimePixelPosition = timelineWidth;
       } else {
-        // Between 1 PM and 10 PM - calculate exact position
+        // Between 6 AM and midnight - calculate exact position
         const timeProgress = (currentHour - startHour) / totalHours;
         currentTimePixelPosition = timeProgress * timelineWidth;
       }
@@ -314,11 +314,11 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
   const getTimePosition = (timeStr: string) => {
     const time = new Date(timeStr);
     const hour = time.getHours() + time.getMinutes() / 60;
-    const startHour = 13;
-    const endHour = 22;
+    const startHour = 6;
+    const endHour = 24;
     
     if (hour < startHour) return 0;
-    if (hour > endHour) return 100;
+    if (hour >= endHour) return 100;
     
     return ((hour - startHour) / (endHour - startHour)) * 100;
   };
@@ -328,7 +328,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
     const end = new Date(endStr);
     const startHour = start.getHours() + start.getMinutes() / 60;
     const endHour = end.getHours() + end.getMinutes() / 60;
-    const totalHours = 22 - 13; // 9 hours total
+    const totalHours = 24 - 6; // 18 hours total
     
     return ((endHour - startHour) / totalHours) * 100;
   };

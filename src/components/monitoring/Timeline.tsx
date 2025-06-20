@@ -142,10 +142,10 @@ const TimelineHeader: React.FC = () => {
       {/* Current time indicator */}
       {currentTimePosition !== null && (
         <div 
-          className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
+          className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50"
           style={{ left: `${currentTimePosition}%` }}
         >
-          <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded">
+          <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded z-50">
             {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
           </div>
         </div>
@@ -156,59 +156,34 @@ const TimelineHeader: React.FC = () => {
 
 // Timeline header showing hours (for fixed layout - without scroll control)
 const FixedTimelineHeader: React.FC = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Update current time every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const hours = Array.from({ length: 18 }, (_, i) => 6 + i); // 6:00 to 23:00
-
-  const getCurrentTimePosition = () => {
-    const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
-    const startHour = 6;
-    const endHour = 24;
-    
-    if (currentHour < startHour || currentHour >= endHour) return null;
-    
-    const progress = (currentHour - startHour) / (endHour - startHour);
-    return progress * 100;
-  };
-
-  const currentTimePosition = getCurrentTimePosition();
+  const hours = Array.from({ length: 19 }, (_, i) => 6 + i); // 6:00 to 24:00
 
   return (
     <div className="relative h-12 bg-gray-50" style={{ width: '1800px' }}>
       <div className="flex h-full">
-        {hours.map((hour, index) => (
+        {Array.from({ length: 18 }, (_, i) => (
           <div 
-            key={hour} 
-            className="flex-1 flex items-center justify-center border-r border-gray-200 text-sm font-medium text-gray-600"
-          >
-            {hour}:00
-          </div>
+            key={i} 
+            className="flex-1 border-r border-gray-200"
+          />
         ))}
-        <div className="flex-1 flex items-center justify-center text-sm font-medium text-gray-600">
-          24:00
-        </div>
       </div>
       
-      {/* Current time indicator */}
-      {currentTimePosition !== null && (
+      {/* Time labels positioned at tick marks */}
+      {hours.map((hour, index) => (
         <div 
-          className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10"
-          style={{ left: `${currentTimePosition}%` }}
+          key={hour}
+          className="absolute top-0 h-full flex items-center"
+          style={{ 
+            left: `${(index / 18) * 100}%`,
+            transform: 'translateX(-50%)'
+          }}
         >
-          <div className="absolute -top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded">
-            {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
-          </div>
+          <span className="text-sm font-medium text-gray-600 bg-gray-50 px-1">
+            {hour}:00
+          </span>
         </div>
-      )}
+      ))}
     </div>
   );
 };

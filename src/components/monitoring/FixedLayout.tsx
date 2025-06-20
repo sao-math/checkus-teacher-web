@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAutoScroll } from './Timeline';
 
@@ -11,9 +11,19 @@ interface FixedLayoutProps {
 const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }) => {
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Use auto-scroll hook for current time positioning
   useAutoScroll({ headerScrollRef, contentScrollRef });
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Synchronize scroll between header and content
   const handleHeaderScroll = () => {
@@ -42,6 +52,20 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       };
     }
   }, []);
+
+  // Calculate current time position
+  const getCurrentTimePosition = () => {
+    const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
+    const startHour = 6;
+    const endHour = 24;
+    
+    if (currentHour < startHour || currentHour >= endHour) return null;
+    
+    const progress = (currentHour - startHour) / (endHour - startHour);
+    return progress * 100;
+  };
+
+  const currentTimePosition = getCurrentTimePosition();
 
   return (
     <div className={cn("relative", className)}>
@@ -74,6 +98,29 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
           </div>
         </div>
       </div>
+
+      {/* Current Time Indicator - At the top level */}
+      {currentTimePosition !== null && (
+        <div 
+          className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
+          style={{ 
+            left: `calc(192px + ${(currentTimePosition / 100) * 1800}px)`,
+            zIndex: 99999 // 최상위 z-index
+          }}
+        >
+          <div 
+            className="absolute bg-red-500 text-white text-xs px-2 py-1 rounded"
+            style={{
+              left: '50%',
+              transform: 'translateX(-50%)', // 막대 중앙에 정렬
+              top: '-28px', // 헤더 영역으로 올리기
+              zIndex: 99999
+            }}
+          >
+            {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

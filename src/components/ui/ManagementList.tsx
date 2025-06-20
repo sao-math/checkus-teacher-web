@@ -51,6 +51,7 @@ interface ManagementListProps {
     title: string;
     description: string;
   };
+  hideActions?: boolean;
   emptyMessage?: string;
 }
 
@@ -61,6 +62,7 @@ const ManagementList: React.FC<ManagementListProps> = ({
   onEdit,
   onDelete,
   getDeleteConfirmation,
+  hideActions = false,
   emptyMessage = "데이터가 없습니다."
 }) => {
   const [deleteItem, setDeleteItem] = React.useState<ManagementListItem | null>(null);
@@ -97,7 +99,7 @@ const ManagementList: React.FC<ManagementListProps> = ({
                   {column.label}
                 </TableHead>
               ))}
-              <TableHead className="w-12">액션</TableHead>
+              {!hideActions && <TableHead className="w-12">액션</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -112,46 +114,48 @@ const ManagementList: React.FC<ManagementListProps> = ({
                     {column.render ? column.render(item[column.key], item) : item[column.key]}
                   </TableCell>
                 ))}
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      {onEdit && (
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(item);
-                        }}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          수정
-                        </DropdownMenuItem>
-                      )}
-                      {onDelete && (
-                        <>
-                          {onEdit && <DropdownMenuSeparator />}
-                          <DropdownMenuItem 
-                            className="text-red-600 focus:text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteItem(item);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            삭제
+                {!hideActions && (
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        {onEdit && (
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(item);
+                          }}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            수정
                           </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+                        )}
+                        {onDelete && (
+                          <>
+                            {onEdit && <DropdownMenuSeparator />}
+                            <DropdownMenuItem 
+                              className="text-red-600 focus:text-red-600"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteItem(item);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              삭제
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

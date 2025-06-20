@@ -4,16 +4,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
+import { UserRoleResponse } from '@/types/admin';
 import { studentApi } from '@/services/studentApi';
+import { adminApi } from '@/services/adminApi';
 import ManagementList from '@/components/ui/ManagementList';
 
 const StudentManagement = () => {
   const navigate = useNavigate();
   const [students, setStudents] = useState<Student[]>([]);
+  const [pendingStudents, setPendingStudents] = useState<UserRoleResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingLoading, setPendingLoading] = useState(false);
   const { toast } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,6 +26,7 @@ const StudentManagement = () => {
 
   useEffect(() => {
     fetchStudents();
+    fetchPendingStudents();
   }, []);
 
   const fetchStudents = async () => {
@@ -39,6 +45,61 @@ const StudentManagement = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingStudents = async () => {
+    try {
+      setPendingLoading(true);
+      const data = await adminApi.getRoleRequests('STUDENT');
+      setPendingStudents(data);
+    } catch (error) {
+      console.error('Error fetching pending students:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch pending students: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleApproveStudent = async (userId: number, name: string) => {
+    try {
+      await adminApi.approveRole(userId, 'STUDENT');
+      setPendingStudents(prev => prev.filter(student => student.userId !== userId));
+      toast({
+        title: "학생 승인 완료",
+        description: `${name} 학생의 계정이 승인되었습니다.`,
+      });
+      // 승인 후 학생 목록 새로고침
+      fetchStudents();
+    } catch (error) {
+      console.error('Error approving student:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve student: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectStudent = async (userId: number, name: string) => {
+    try {
+      await adminApi.suspendRole(userId, 'STUDENT');
+      setPendingStudents(prev => prev.filter(student => student.userId !== userId));
+      toast({
+        title: "학생 계정 거절",
+        description: `${name} 학생의 계정이 거절되었습니다.`,
+      });
+    } catch (error) {
+      console.error('Error rejecting student:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reject student: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
     }
   };
 
@@ -119,6 +180,11 @@ const StudentManagement = () => {
     (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.school.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (student.studentPhoneNumber && student.studentPhoneNumber.includes(searchTerm)))
+  );
+
+  const filteredPendingStudents = pendingStudents.filter(student =>
+    student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const columns = [
@@ -216,6 +282,68 @@ const StudentManagement = () => {
         </div>
       </div>
 
+      {/* 계정 승인 대기 섹션 - 미승인 계정이 있을 때만 표시 */}
+      {pendingStudents.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50/50">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              <h2 className="text-lg font-semibold text-gray-900">계정 승인 대기</h2>
+              <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                {filteredPendingStudents.length}명
+              </Badge>
+            </div>
+            {pendingLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredPendingStudents.map((student) => (
+                  <div key={student.userId} className="flex items-center justify-between p-4 bg-white rounded-lg border border-orange-200">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src="/placeholder.svg" />
+                        <AvatarFallback className="bg-orange-100 text-orange-700 text-sm">
+                          {student.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-gray-900">{student.name}</div>
+                        <div className="text-sm text-gray-500">@{student.username}</div>
+                      </div>
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        {student.statusDescription}
+                      </Badge>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-300"
+                        onClick={() => handleApproveStudent(student.userId, student.name)}
+                      >
+                        <UserCheck className="h-4 w-4 mr-1" />
+                        승인
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                        onClick={() => handleRejectStudent(student.userId, student.name)}
+                      >
+                        <UserX className="h-4 w-4 mr-1" />
+                        거절
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* 검색 및 필터 */}
       <Card>
         <CardContent className="p-6">
@@ -256,8 +384,8 @@ const StudentManagement = () => {
         onEdit={handleEdit}
         onDelete={handleDeleteStudent}
         getDeleteConfirmation={(student: Student) => ({
-          title: '학생 삭제',
-          description: `${student.name} 학생을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`
+          title: '정말 삭제하시겠습니까?',
+          description: `${student.name} 학생의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
         })}
         emptyMessage="검색 결과가 없습니다. 다른 검색어를 시도해보세요."
       />

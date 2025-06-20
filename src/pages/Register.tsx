@@ -30,7 +30,8 @@ const Register = () => {
   const [schoolOpen, setSchoolOpen] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
-    hasLetter: false,
+    hasUppercase: false,
+    hasLowercase: false,
     hasNumber: false,
     hasSpecial: false,
   });
@@ -40,7 +41,8 @@ const Register = () => {
     const password = formData.password;
     setPasswordStrength({
       hasMinLength: password.length >= 8,
-      hasLetter: /[a-zA-Z]/.test(password),
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
       hasNumber: /[0-9]/.test(password),
       hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
     });
@@ -98,8 +100,8 @@ const Register = () => {
     if (!formData.username.trim()) return '아이디를 입력해주세요.';
     if (!formData.password) return '비밀번호를 입력해주세요.';
     if (formData.password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
-    if (!passwordStrength.hasLetter || !passwordStrength.hasNumber || !passwordStrength.hasSpecial) {
-      return '비밀번호는 문자, 숫자, 특수문자를 모두 포함해야 합니다.';
+    if (!passwordStrength.hasUppercase || !passwordStrength.hasLowercase || !passwordStrength.hasNumber || !passwordStrength.hasSpecial) {
+      return '비밀번호는 대소문자, 숫자, 특수문자를 모두 포함해야 합니다.';
     }
     if (!formData.name.trim()) return '이름을 입력해주세요.';
     if (!formData.phoneNumber.trim()) return '전화번호를 입력해주세요.';
@@ -179,12 +181,6 @@ const Register = () => {
               <CardTitle className="text-blue-700">회원가입</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {error && (
-                <div className="bg-red-50 text-red-500 text-sm p-3 rounded">{error}</div>
-              )}
-              {success && (
-                <div className="bg-green-50 text-green-600 text-sm p-3 rounded">{success}</div>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="username">아이디</Label>
                 <Input
@@ -227,15 +223,15 @@ const Register = () => {
                     <div className="grid grid-cols-2 gap-1">
                       <div className={cn(
                         "text-xs flex items-center gap-1",
-                        passwordStrength.hasMinLength ? "text-green-600" : "text-gray-500"
+                        passwordStrength.hasUppercase ? "text-green-600" : "text-gray-500"
                       )}>
-                        {passwordStrength.hasMinLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 8자 이상
+                        {passwordStrength.hasUppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 대문자 포함
                       </div>
                       <div className={cn(
                         "text-xs flex items-center gap-1",
-                        passwordStrength.hasLetter ? "text-green-600" : "text-gray-500"
+                        passwordStrength.hasLowercase ? "text-green-600" : "text-gray-500"
                       )}>
-                        {passwordStrength.hasLetter ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 영문자 포함
+                        {passwordStrength.hasLowercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 소문자 포함
                       </div>
                       <div className={cn(
                         "text-xs flex items-center gap-1",
@@ -248,6 +244,12 @@ const Register = () => {
                         passwordStrength.hasSpecial ? "text-green-600" : "text-gray-500"
                       )}>
                         {passwordStrength.hasSpecial ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 특수문자 포함
+                      </div>
+                      <div className={cn(
+                        "text-xs flex items-center gap-1",
+                        passwordStrength.hasMinLength ? "text-green-600" : "text-gray-500"
+                      )}>
+                        {passwordStrength.hasMinLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 8자 이상
                       </div>
                     </div>
                   </div>
@@ -324,6 +326,12 @@ const Register = () => {
               </div>
             </CardContent>
             <CardFooter className="flex-col gap-3">
+              {error && (
+                <div className="bg-red-50 text-red-500 text-sm p-3 rounded w-full">{error}</div>
+              )}
+              {success && (
+                <div className="bg-green-50 text-green-600 text-sm p-3 rounded w-full">{success}</div>
+              )}
               <Button
                 type="submit"
                 className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800"

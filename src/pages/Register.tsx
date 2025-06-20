@@ -168,6 +168,11 @@ const Register = () => {
 
   const passwordsMatch = formData.password === confirmPassword;
 
+  const isPhoneNumberValid = () => {
+    const phoneRegex = /^010-\d{4}-\d{4}$/;
+    return phoneRegex.test(formData.phoneNumber);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-blue-50">
       <div className="w-full max-w-md">
@@ -335,7 +340,7 @@ const Register = () => {
               <Button
                 type="submit"
                 className="w-full bg-blue-100 text-blue-700 hover:bg-blue-200 hover:text-blue-800"
-                disabled={loading}
+                disabled={loading || !Object.values(passwordStrength).every(Boolean) || !passwordsMatch || !formData.name.trim() || !isPhoneNumberValid()}
               >
                 {loading ? '가입 중...' : '회원가입'}
               </Button>

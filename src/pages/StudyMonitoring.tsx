@@ -209,15 +209,15 @@ const StudyMonitoring: React.FC = () => {
               {/* Legend - Compact version */}
               <div className="flex items-center space-x-3 ml-8">
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-blue-200 border border-blue-300 rounded-sm"></div>
+                  <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded-sm"></div>
                   <span className="text-xs text-gray-600">할당</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                  <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
                   <span className="text-xs text-gray-600">접속</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-gray-300 rounded-sm"></div>
+                  <div className="w-3 h-3 bg-green-200 rounded-sm"></div>
                   <span className="text-xs text-gray-600">추가접속 (미할당 시간)</span>
                 </div>
               </div>

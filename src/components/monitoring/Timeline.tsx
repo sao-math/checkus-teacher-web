@@ -339,7 +339,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
       {assignedTimes.map((assigned) => (
         <div
           key={assigned.assignedStudyTimeId}
-          className="absolute h-full bg-blue-200 border border-blue-300 rounded"
+          className="absolute h-full bg-gray-200 border border-gray-300 rounded"
           style={{
             left: `${getTimePosition(assigned.startTime)}%`,
             width: `${getTimeDuration(assigned.startTime, assigned.endTime)}%`,
@@ -352,7 +352,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
       {actualTimes.map((actual) => (
         <div
           key={actual.actualStudyTimeId}
-          className="absolute h-full bg-indigo-500 rounded z-10"
+          className="absolute h-full bg-green-500 rounded z-10"
           style={{
             left: `${getTimePosition(actual.startTime)}%`,
             width: `${getTimeDuration(actual.startTime, actual.endTime)}%`,
@@ -365,7 +365,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
       {unassignedTimes.map((unassigned) => (
         <div
           key={unassigned.actualStudyTimeId}
-          className="absolute h-full bg-gray-300 rounded z-10"
+          className="absolute h-full bg-green-200 rounded z-10"
           style={{
             left: `${getTimePosition(unassigned.startTime)}%`,
             width: `${getTimeDuration(unassigned.startTime, unassigned.endTime)}%`,

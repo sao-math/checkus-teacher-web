@@ -352,7 +352,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
       {actualTimes.map((actual) => (
         <div
           key={actual.actualStudyTimeId}
-          className="absolute h-full bg-blue-600 rounded z-10"
+          className="absolute h-full bg-indigo-500 rounded z-10"
           style={{
             left: `${getTimePosition(actual.startTime)}%`,
             width: `${getTimeDuration(actual.startTime, actual.endTime)}%`,
@@ -365,12 +365,12 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
       {unassignedTimes.map((unassigned) => (
         <div
           key={unassigned.actualStudyTimeId}
-          className="absolute h-full bg-orange-500 rounded z-10"
+          className="absolute h-full bg-gray-300 rounded z-10"
           style={{
             left: `${getTimePosition(unassigned.startTime)}%`,
             width: `${getTimeDuration(unassigned.startTime, unassigned.endTime)}%`,
           }}
-          title={`할당되지 않은 접속: ${new Date(unassigned.startTime).toLocaleTimeString()} - ${new Date(unassigned.endTime).toLocaleTimeString()}`}
+          title={`미할당 시간 추가 접속: ${new Date(unassigned.startTime).toLocaleTimeString()} - ${new Date(unassigned.endTime).toLocaleTimeString()}`}
         />
       ))}
     </div>

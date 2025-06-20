@@ -217,8 +217,8 @@ const StudyMonitoring: React.FC = () => {
                   <span className="text-xs text-gray-600">접속</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-orange-500 rounded-sm"></div>
-                  <span className="text-xs text-gray-600">미할당</span>
+                  <div className="w-3 h-3 bg-gray-300 rounded-sm"></div>
+                  <span className="text-xs text-gray-600">추가접속 (미할당 시간)</span>
                 </div>
               </div>
             </div>

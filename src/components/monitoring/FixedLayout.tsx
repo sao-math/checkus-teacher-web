@@ -16,13 +16,41 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   // Use auto-scroll hook for current time positioning
   useAutoScroll({ headerScrollRef, contentScrollRef });
 
-  // Update current time every minute
+  // Update current time every second
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 1000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  // Handle resize events (for sidebar toggle responsiveness)
+  useEffect(() => {
+    const handleResize = () => {
+      // Force recalculation by updating current time
+      setCurrentTime(new Date());
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    
+    if (contentScrollRef.current) {
+      resizeObserver.observe(contentScrollRef.current);
+    }
+
+    // Also listen for sidebar state changes via CSS transition end
+    const handleTransitionEnd = () => {
+      setTimeout(() => {
+        setCurrentTime(new Date());
+      }, 50); // Small delay to ensure layout is complete
+    };
+
+    document.addEventListener('transitionend', handleTransitionEnd);
+
+    return () => {
+      resizeObserver.disconnect();
+      document.removeEventListener('transitionend', handleTransitionEnd);
+    };
   }, []);
 
   // Synchronize scroll between header and content
@@ -55,14 +83,24 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
 
   // Calculate current time position
   const getCurrentTimePosition = () => {
-    const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
     const startHour = 6;
     const endHour = 24;
     
-    if (currentHour < startHour || currentHour >= endHour) return null;
+    console.log('Current time:', now.toLocaleTimeString(), 'Hour:', currentHour, 'Range:', startHour, '-', endHour);
+    
+    if (currentHour < startHour || currentHour >= endHour) {
+      console.log('Outside range, returning null');
+      return null;
+    }
     
     const progress = (currentHour - startHour) / (endHour - startHour);
-    return progress * 100;
+    const position = progress * 100;
+    
+    console.log('Position calculated:', position + '%');
+    
+    return position;
   };
 
   const currentTimePosition = getCurrentTimePosition();
@@ -79,10 +117,37 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
         {/* Scrollable Timeline Header - Show scrollbar here */}
         <div 
           ref={headerScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          className="flex-1 overflow-x-auto overflow-y-visible border-b border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
         >
-          <div style={{ width: '1800px' }}>
+          <div className="relative" style={{ width: '1800px' }}>
             {header}
+            
+            {/* Current Time Indicator in Header - Higher z-index */}
+            {currentTimePosition !== null && (
+              <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
+                style={{ 
+                  left: `${(currentTimePosition / 100) * 1800}px`,
+                  zIndex: 50 // Higher than time labels (z-index 10)
+                }}
+              >
+                {/* Current Time Box - Positioned at the top of the timeline */}
+                <div 
+                  className="absolute bg-red-600 text-white text-sm px-3 py-2 rounded-lg shadow-xl font-bold border-2 border-white"
+                  style={{
+                    left: '50%',
+                    transform: 'translateX(-50%)', // Center horizontally
+                    top: '1px', // Position just inside the timeline header
+                    zIndex: 60,
+                    whiteSpace: 'nowrap',
+                    minWidth: '80px',
+                    textAlign: 'center'
+                  }}
+                >
+                  {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}:{currentTime.getSeconds().toString().padStart(2, '0')}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -93,34 +158,22 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
           ref={contentScrollRef}
           className="w-full overflow-x-auto overflow-y-visible scrollbar-hide"
         >
-          <div className="flex flex-col" style={{ width: 'calc(192px + 1800px)' }}>
+          <div className="flex flex-col relative" style={{ width: 'calc(192px + 1800px)' }}>
             {children}
+            
+            {/* Current Time Indicator - Inside scrollable content - Extends through all rows */}
+            {currentTimePosition !== null && (
+              <div 
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
+                style={{ 
+                  left: `calc(192px + ${(currentTimePosition / 100) * 1800}px)`,
+                  zIndex: 100 // Highest z-index to appear above all content
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
-
-      {/* Current Time Indicator - At the top level */}
-      {currentTimePosition !== null && (
-        <div 
-          className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
-          style={{ 
-            left: `calc(192px + ${(currentTimePosition / 100) * 1800}px)`,
-            zIndex: 99999 // 최상위 z-index
-          }}
-        >
-          <div 
-            className="absolute bg-red-500 text-white text-xs px-2 py-1 rounded"
-            style={{
-              left: '50%',
-              transform: 'translateX(-50%)', // 막대 중앙에 정렬
-              top: '-28px', // 헤더 영역으로 올리기
-              zIndex: 99999
-            }}
-          >
-            {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

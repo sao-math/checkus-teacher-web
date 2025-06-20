@@ -16,7 +16,7 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 1000); // Update every second instead of every minute
 
     return () => clearInterval(interval);
   }, []);
@@ -105,7 +105,7 @@ const TimelineHeader: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 1000); // Update every second instead of every minute
 
     return () => clearInterval(interval);
   }, []);
@@ -156,34 +156,37 @@ const TimelineHeader: React.FC = () => {
 
 // Timeline header showing hours (for fixed layout - without scroll control)
 const FixedTimelineHeader: React.FC = () => {
-  const hours = Array.from({ length: 19 }, (_, i) => 6 + i); // 6:00 to 24:00
-
   return (
     <div className="relative h-12 bg-gray-50" style={{ width: '1800px' }}>
+      {/* Grid lines for each hour */}
       <div className="flex h-full">
         {Array.from({ length: 18 }, (_, i) => (
           <div 
             key={i} 
-            className="flex-1 border-r border-gray-200"
+            className="flex-1 border-r border-gray-300"
           />
         ))}
       </div>
       
-      {/* Time labels positioned at tick marks */}
-      {hours.map((hour, index) => (
-        <div 
-          key={hour}
-          className="absolute top-0 h-full flex items-center"
-          style={{ 
-            left: `${(index / 18) * 100}%`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          <span className="text-sm font-medium text-gray-600 bg-gray-50 px-1">
-            {hour}:00
-          </span>
-        </div>
-      ))}
+      {/* Time labels positioned exactly on tick marks */}
+      {Array.from({ length: 19 }, (_, i) => {
+        const hour = 6 + i; // 6:00 to 24:00
+        return (
+          <div 
+            key={hour}
+            className="absolute top-0 h-full flex items-center justify-center"
+            style={{ 
+              left: `${(i / 18) * 100}%`,
+              transform: 'translateX(-50%)', // Center on the tick mark
+              zIndex: 10
+            }}
+          >
+            <span className="text-sm font-medium text-gray-700 bg-gray-50 px-2 py-1 rounded shadow-sm border">
+              {hour}:00
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -202,7 +205,7 @@ const useAutoScroll = ({ headerScrollRef, contentScrollRef }: UseAutoScrollOptio
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 1000); // Update every second instead of every minute
 
     return () => clearInterval(interval);
   }, []);
@@ -222,7 +225,7 @@ const useAutoScroll = ({ headerScrollRef, contentScrollRef }: UseAutoScrollOptio
       const startHour = 6; // 6 AM
       const endHour = 24; // 12 AM (midnight)
       const totalHours = endHour - startHour;
-      const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
+      const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60 + currentTime.getSeconds() / 3600;
       
       // Calculate the pixel position of current time on the timeline
       let currentTimePixelPosition;

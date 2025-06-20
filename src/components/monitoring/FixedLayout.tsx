@@ -48,18 +48,14 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       {/* Header Row */}
       <div className="flex w-full">
         {/* Fixed Student Name Header */}
-        <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 sticky left-0 z-30 border-r border-gray-200">
+        <div className="w-48 h-12 border-b border-r border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 z-30">
           <span className="text-sm font-medium text-gray-600">학생</span>
         </div>
         
-        {/* Scrollable Timeline Header - Hide scrollbar */}
+        {/* Scrollable Timeline Header - Show scrollbar here */}
         <div 
           ref={headerScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 scrollbar-hide"
-          style={{ 
-            scrollbarWidth: 'none', 
-            msOverflowStyle: 'none'
-          }}
+          className="flex-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
         >
           <div style={{ width: '1800px' }}>
             {header}
@@ -68,12 +64,14 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       </div>
       
       {/* Content Rows */}
-      <div 
-        ref={contentScrollRef}
-        className="w-full overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-      >
-        <div className="flex flex-col" style={{ width: 'calc(192px + 1800px)' }}>
-          {children}
+      <div className="w-full overflow-y-auto">
+        <div 
+          ref={contentScrollRef}
+          className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide"
+        >
+          <div className="flex flex-col" style={{ width: 'calc(192px + 1800px)' }}>
+            {children}
+          </div>
         </div>
       </div>
     </div>

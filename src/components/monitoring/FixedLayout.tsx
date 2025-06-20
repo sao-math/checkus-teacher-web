@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { useAutoScroll } from './Timeline';
 
 interface FixedLayoutProps {
   header: React.ReactNode;
@@ -12,15 +11,15 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isScrollSyncingRef = useRef(false);
 
-  // Use auto-scroll hook for current time positioning
-  useAutoScroll({ headerScrollRef, contentScrollRef });
-
-  // Update current time every second
+  // Update current time every 10 seconds (reduced frequency for performance)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000);
+    }, 10000); // Update every 10 seconds instead of every second
 
     return () => clearInterval(interval);
   }, []);
@@ -28,8 +27,10 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   // Handle resize events (for sidebar toggle responsiveness)
   useEffect(() => {
     const handleResize = () => {
-      // Force recalculation by updating current time
-      setCurrentTime(new Date());
+      // Only update if not currently scrolling
+      if (!isUserScrolling) {
+        setCurrentTime(new Date());
+      }
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
@@ -40,9 +41,11 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
 
     // Also listen for sidebar state changes via CSS transition end
     const handleTransitionEnd = () => {
-      setTimeout(() => {
-        setCurrentTime(new Date());
-      }, 50); // Small delay to ensure layout is complete
+      if (!isUserScrolling) {
+        setTimeout(() => {
+          setCurrentTime(new Date());
+        }, 50);
+      }
     };
 
     document.addEventListener('transitionend', handleTransitionEnd);
@@ -51,57 +54,107 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       resizeObserver.disconnect();
       document.removeEventListener('transitionend', handleTransitionEnd);
     };
+  }, [isUserScrolling]);
+
+  // Throttled scroll synchronization
+  const handleScroll = useCallback((sourceRef: React.RefObject<HTMLDivElement>, targetRef: React.RefObject<HTMLDivElement>) => {
+    if (isScrollSyncingRef.current) return;
+    
+    isScrollSyncingRef.current = true;
+    
+    if (sourceRef.current && targetRef.current) {
+      targetRef.current.scrollLeft = sourceRef.current.scrollLeft;
+    }
+    
+    // Reset flag after a frame
+    requestAnimationFrame(() => {
+      isScrollSyncingRef.current = false;
+    });
   }, []);
 
-  // Synchronize scroll between header and content
-  const handleHeaderScroll = () => {
-    if (headerScrollRef.current && contentScrollRef.current) {
-      contentScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+  // Optimized scroll handlers
+  const handleHeaderScroll = useCallback(() => {
+    setIsUserScrolling(true);
+    if (userScrollTimeoutRef.current) {
+      clearTimeout(userScrollTimeoutRef.current);
     }
-  };
+    userScrollTimeoutRef.current = setTimeout(() => {
+      setIsUserScrolling(false);
+    }, 500);
+    
+    handleScroll(headerScrollRef, contentScrollRef);
+  }, [handleScroll]);
 
-  const handleContentScroll = () => {
-    if (headerScrollRef.current && contentScrollRef.current) {
-      headerScrollRef.current.scrollLeft = contentScrollRef.current.scrollLeft;
+  const handleContentScroll = useCallback(() => {
+    setIsUserScrolling(true);
+    if (userScrollTimeoutRef.current) {
+      clearTimeout(userScrollTimeoutRef.current);
     }
-  };
+    userScrollTimeoutRef.current = setTimeout(() => {
+      setIsUserScrolling(false);
+    }, 500);
+    
+    handleScroll(contentScrollRef, headerScrollRef);
+  }, [handleScroll]);
 
   useEffect(() => {
     const headerElement = headerScrollRef.current;
     const contentElement = contentScrollRef.current;
 
     if (headerElement && contentElement) {
-      headerElement.addEventListener('scroll', handleHeaderScroll);
-      contentElement.addEventListener('scroll', handleContentScroll);
+      headerElement.addEventListener('scroll', handleHeaderScroll, { passive: true });
+      contentElement.addEventListener('scroll', handleContentScroll, { passive: true });
 
       return () => {
         headerElement.removeEventListener('scroll', handleHeaderScroll);
         contentElement.removeEventListener('scroll', handleContentScroll);
       };
     }
-  }, []);
+  }, [handleHeaderScroll, handleContentScroll]);
 
-  // Calculate current time position
-  const getCurrentTimePosition = () => {
-    const now = new Date();
+  // Calculate current time position (memoized)
+  const getCurrentTimePosition = useCallback(() => {
+    const now = currentTime;
     const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
     const startHour = 6;
     const endHour = 24;
     
-    console.log('Current time:', now.toLocaleTimeString(), 'Hour:', currentHour, 'Range:', startHour, '-', endHour);
-    
     if (currentHour < startHour || currentHour >= endHour) {
-      console.log('Outside range, returning null');
       return null;
     }
     
     const progress = (currentHour - startHour) / (endHour - startHour);
-    const position = progress * 100;
+    return progress * 100;
+  }, [currentTime]);
+
+  // Auto-scroll logic (only when not user scrolling)
+  useEffect(() => {
+    if (isUserScrolling) return; // Don't auto-scroll while user is scrolling
     
-    console.log('Position calculated:', position + '%');
-    
-    return position;
-  };
+    const container = contentScrollRef.current;
+    if (container) {
+      const containerWidth = container.clientWidth;
+      
+      if (containerWidth === 0) return;
+      
+      const timelineWidth = 1800;
+      const currentTimePosition = getCurrentTimePosition();
+      
+      if (currentTimePosition === null) return;
+      
+      const currentTimePixelPosition = (currentTimePosition / 100) * timelineWidth;
+      const targetLeftPosition = containerWidth * 0.3;
+      const targetScrollLeft = currentTimePixelPosition - targetLeftPosition;
+      const maxScrollLeft = timelineWidth - containerWidth;
+      const finalScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
+      
+      // Smooth scroll to new position
+      container.scrollTo({
+        left: finalScrollLeft,
+        behavior: 'smooth'
+      });
+    }
+  }, [currentTime, isUserScrolling, getCurrentTimePosition]);
 
   const currentTimePosition = getCurrentTimePosition();
 
@@ -128,7 +181,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
                 style={{ 
                   left: `${(currentTimePosition / 100) * 1800}px`,
-                  zIndex: 50 // Higher than time labels (z-index 10)
+                  zIndex: 50
                 }}
               >
                 {/* Current Time Box - Positioned at the top of the timeline */}
@@ -136,14 +189,14 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
                   className="absolute bg-red-600 text-white text-xs px-2 py-1 rounded shadow-lg font-medium"
                   style={{
                     left: '50%',
-                    transform: 'translateX(-50%)', // Center horizontally
-                    top: '1px', // Position just inside the timeline header
+                    transform: 'translateX(-50%)',
+                    top: '1px',
                     zIndex: 60,
                     whiteSpace: 'nowrap',
                     textAlign: 'center'
                   }}
                 >
-                  {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}:{currentTime.getSeconds().toString().padStart(2, '0')}
+                  {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
                 </div>
               </div>
             )}
@@ -166,7 +219,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
                 style={{ 
                   left: `calc(192px + ${(currentTimePosition / 100) * 1800}px)`,
-                  zIndex: 100 // Highest z-index to appear above all content
+                  zIndex: 100
                 }}
               />
             )}

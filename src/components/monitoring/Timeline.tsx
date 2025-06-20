@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { AssignedStudyTime, ConnectedActualStudyTime, UnassignedActualStudyTime } from '@/types/monitoring';
 
@@ -11,18 +11,46 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update current time every minute
+  // Update current time every 30 seconds (reduced frequency)
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000); // Update every second instead of every minute
+    }, 30000); // Update every 30 seconds instead of every second
 
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-scroll to show current time at 30% from left
+  // Detect user scrolling
   useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setIsUserScrolling(true);
+      if (userScrollTimeoutRef.current) {
+        clearTimeout(userScrollTimeoutRef.current);
+      }
+      userScrollTimeoutRef.current = setTimeout(() => {
+        setIsUserScrolling(false);
+      }, 1000);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (userScrollTimeoutRef.current) {
+        clearTimeout(userScrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Auto-scroll to show current time at 30% from left (only when not user scrolling)
+  useEffect(() => {
+    if (isUserScrolling) return; // Don't auto-scroll while user is scrolling
+    
     if (scrollRef.current) {
       const container = scrollRef.current;
       const containerWidth = container.clientWidth;
@@ -72,7 +100,7 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
         container.scrollLeft = finalScrollLeft;
       }
     }
-  }, [currentTime, isInitialized]);
+  }, [currentTime, isInitialized, isUserScrolling]);
 
   // Initial scroll when component mounts
   useEffect(() => {
@@ -105,12 +133,12 @@ const TimelineHeader: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 1000); // Update every second instead of every minute
+    }, 60000); // Update every minute instead of every second
 
     return () => clearInterval(interval);
   }, []);
 
-  const getCurrentTimePosition = () => {
+  const getCurrentTimePosition = useCallback(() => {
     const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
     const startHour = 6;
     const endHour = 24;
@@ -119,7 +147,7 @@ const TimelineHeader: React.FC = () => {
     
     const progress = (currentHour - startHour) / (endHour - startHour);
     return progress * 100;
-  };
+  }, [currentTime]);
 
   const currentTimePosition = getCurrentTimePosition();
 
@@ -191,88 +219,15 @@ const FixedTimelineHeader: React.FC = () => {
   );
 };
 
-// Hook for auto-scroll functionality
+// Simplified hook for auto-scroll functionality (removed to prevent conflicts)
 interface UseAutoScrollOptions {
   headerScrollRef: React.RefObject<HTMLDivElement>;
   contentScrollRef: React.RefObject<HTMLDivElement>;
 }
 
 const useAutoScroll = ({ headerScrollRef, contentScrollRef }: UseAutoScrollOptions) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Update current time every minute
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000); // Update every second instead of every minute
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Auto-scroll to show current time at 30% from left
-  useEffect(() => {
-    const container = contentScrollRef.current;
-    if (container) {
-      const containerWidth = container.clientWidth;
-      
-      // Wait for container to be fully rendered
-      if (containerWidth === 0) return;
-      
-      const timelineWidth = 1800; // Updated width for 6:00-24:00 timeline
-      
-      // Calculate current time position (6:00 to 24:00 = 18 hours)
-      const startHour = 6; // 6 AM
-      const endHour = 24; // 12 AM (midnight)
-      const totalHours = endHour - startHour;
-      const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60 + currentTime.getSeconds() / 3600;
-      
-      // Calculate the pixel position of current time on the timeline
-      let currentTimePixelPosition;
-      
-      if (currentHour < startHour) {
-        // Before 6 AM - show beginning of timeline
-        currentTimePixelPosition = 0;
-      } else if (currentHour >= endHour) {
-        // After midnight - show end of timeline
-        currentTimePixelPosition = timelineWidth;
-      } else {
-        // Between 6 AM and midnight - calculate exact position
-        const timeProgress = (currentHour - startHour) / totalHours;
-        currentTimePixelPosition = timeProgress * timelineWidth;
-      }
-      
-      // Calculate scroll position to put current time at 30% from left
-      const targetLeftPosition = containerWidth * 0.3;
-      const targetScrollLeft = currentTimePixelPosition - targetLeftPosition;
-      
-      // Ensure scroll position is within bounds
-      const maxScrollLeft = timelineWidth - containerWidth;
-      const finalScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
-      
-      // Smooth scroll on first load, instant updates afterward
-      if (!isInitialized) {
-        container.scrollTo({
-          left: finalScrollLeft,
-          behavior: 'smooth'
-        });
-        setIsInitialized(true);
-      } else {
-        container.scrollLeft = finalScrollLeft;
-      }
-    }
-  }, [currentTime, isInitialized, contentScrollRef]);
-
-  // Initial scroll when component mounts
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (contentScrollRef.current && !isInitialized) {
-        setCurrentTime(new Date()); // Trigger scroll calculation
-      }
-    }, 100); // Small delay to ensure DOM is ready
-
-    return () => clearTimeout(timer);
-  }, [isInitialized, contentScrollRef]);
+  // Simplified - no longer implements auto-scroll to prevent conflicts
+  // Auto-scroll is now handled directly in FixedLayout component
 };
 
 // Study time bar component
@@ -283,13 +238,13 @@ interface StudyTimeBarProps {
   className?: string;
 }
 
-const StudyTimeBar: React.FC<StudyTimeBarProps> = ({ 
+const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({ 
   assignedTimes, 
   actualTimes, 
   unassignedTimes, 
   className 
 }) => {
-  const getTimePosition = (timeStr: string) => {
+  const getTimePosition = useCallback((timeStr: string) => {
     const time = new Date(timeStr);
     const hour = time.getHours() + time.getMinutes() / 60;
     const startHour = 6;
@@ -299,9 +254,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
     if (hour >= endHour) return 100;
     
     return ((hour - startHour) / (endHour - startHour)) * 100;
-  };
+  }, []);
 
-  const getTimeDuration = (startStr: string, endStr: string) => {
+  const getTimeDuration = useCallback((startStr: string, endStr: string) => {
     const start = new Date(startStr);
     const end = new Date(endStr);
     const startHour = start.getHours() + start.getMinutes() / 60;
@@ -309,7 +264,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
     const totalHours = 24 - 6; // 18 hours total
     
     return ((endHour - startHour) / totalHours) * 100;
-  };
+  }, []);
 
   return (
     <div className={cn("relative h-8", className)}>
@@ -353,6 +308,8 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = ({
       ))}
     </div>
   );
-};
+});
+
+StudyTimeBar.displayName = 'StudyTimeBar';
 
 export { Timeline, TimelineHeader, StudyTimeBar, FixedTimelineHeader, useAutoScroll }; 

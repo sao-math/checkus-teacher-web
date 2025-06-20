@@ -205,6 +205,22 @@ const StudyMonitoring: React.FC = () => {
                 학생 목록 ({students.length}명)
                 {selectedStudents.size > 0 && ` • ${selectedStudents.size}명 선택됨`}
               </span>
+              
+              {/* Legend - Compact version */}
+              <div className="flex items-center space-x-3 ml-8">
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-blue-200 border border-blue-300 rounded-sm"></div>
+                  <span className="text-xs text-gray-600">할당</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                  <span className="text-xs text-gray-600">접속</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-orange-500 rounded-sm"></div>
+                  <span className="text-xs text-gray-600">미할당</span>
+                </div>
+              </div>
             </div>
             
             {/* Bulk actions */}
@@ -246,29 +262,6 @@ const StudyMonitoring: React.FC = () => {
               </div>
             </FixedLayout>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Legend */}
-      <Card>
-        <CardHeader>
-          <CardTitle>범례</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-200 border border-blue-300 rounded"></div>
-              <span className="text-sm">할당된 공부시간</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-blue-600 rounded"></div>
-              <span className="text-sm">실제 접속시간</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-orange-500 rounded"></div>
-              <span className="text-sm">할당되지 않은 접속</span>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

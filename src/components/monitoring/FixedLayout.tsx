@@ -44,29 +44,31 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   }, []);
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative w-full", className)}>
       {/* Header Row */}
-      <div className="flex">
+      <div className="flex w-full">
         {/* Fixed Student Name Header */}
-        <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3 sticky left-0 z-20">
+        <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 sticky left-0 z-20 border-r border-gray-200">
           <span className="text-sm font-medium text-gray-600">학생</span>
         </div>
         
         {/* Scrollable Timeline Header */}
         <div 
           ref={headerScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 border-b border-gray-200"
         >
-          {header}
+          <div style={{ width: '1200px' }}>
+            {header}
+          </div>
         </div>
       </div>
       
       {/* Content Rows */}
       <div 
         ref={contentScrollRef}
-        className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+        className="w-full overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
       >
-        <div className="relative">
+        <div className="flex flex-col" style={{ width: 'calc(192px + 1200px)' }}>
           {children}
         </div>
       </div>
@@ -82,15 +84,15 @@ interface FixedRowProps {
 
 const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, className }) => {
   return (
-    <div className={cn("flex border-b border-gray-200 hover:bg-gray-50", className)}>
+    <div className={cn("flex w-full border-b border-gray-200 hover:bg-gray-50", className)}>
       {/* Fixed Student Info */}
-      <div className="w-48 p-3 bg-white sticky left-0 z-10 border-r border-gray-200">
+      <div className="w-48 p-3 bg-white flex-shrink-0 sticky left-0 z-10 border-r border-gray-200">
         {leftContent}
       </div>
       
-      {/* Timeline Content - No scroll, controlled by parent */}
-      <div className="flex-1">
-        <div className="p-3" style={{ width: '1200px' }}>
+      {/* Timeline Content */}
+      <div className="flex-shrink-0" style={{ width: '1200px' }}>
+        <div className="p-3">
           {rightContent}
         </div>
       </div>

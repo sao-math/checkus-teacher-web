@@ -183,7 +183,7 @@ const FixedTimelineHeader: React.FC = () => {
   const currentTimePosition = getCurrentTimePosition();
 
   return (
-    <div className="relative h-12 border-b border-gray-200 bg-gray-50" style={{ width: '1200px' }}>
+    <div className="relative h-12 bg-gray-50" style={{ width: '1200px' }}>
       <div className="flex h-full">
         {hours.map((hour, index) => (
           <div 

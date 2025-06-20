@@ -44,18 +44,22 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   }, []);
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn("relative", className)}>
       {/* Header Row */}
       <div className="flex w-full">
         {/* Fixed Student Name Header */}
-        <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 sticky left-0 z-20 border-r border-gray-200">
+        <div className="w-48 h-12 border-b border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 sticky left-0 z-30 border-r border-gray-200">
           <span className="text-sm font-medium text-gray-600">학생</span>
         </div>
         
-        {/* Scrollable Timeline Header */}
+        {/* Scrollable Timeline Header - Hide scrollbar */}
         <div 
           ref={headerScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 border-b border-gray-200"
+          className="flex-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 scrollbar-hide"
+          style={{ 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none'
+          }}
         >
           <div style={{ width: '1800px' }}>
             {header}
@@ -84,14 +88,14 @@ interface FixedRowProps {
 
 const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, className }) => {
   return (
-    <div className={cn("flex w-full border-b border-gray-200 hover:bg-gray-50", className)}>
-      {/* Fixed Student Info */}
-      <div className="w-48 p-3 bg-white flex-shrink-0 sticky left-0 z-10 border-r border-gray-200">
+    <div className={cn("flex w-full border-b border-gray-200 hover:bg-gray-50 relative", className)}>
+      {/* Fixed Student Info - Higher z-index to stay on top */}
+      <div className="w-48 p-3 bg-white flex-shrink-0 sticky left-0 z-20 border-r border-gray-200 relative">
         {leftContent}
       </div>
       
-      {/* Timeline Content */}
-      <div className="flex-shrink-0" style={{ width: '1800px' }}>
+      {/* Timeline Content - Lower z-index */}
+      <div className="flex-shrink-0 relative z-10" style={{ width: '1800px' }}>
         <div className="p-3">
           {rightContent}
         </div>

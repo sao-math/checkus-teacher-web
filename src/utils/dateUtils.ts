@@ -23,11 +23,27 @@ export const formatLocalDateTime = (date: Date, hours: number, minutes: number):
  */
 export const createUtcDateTime = (date: Date, timeString: string): string => {
   const [hours, minutes] = timeString.split(':').map(Number);
-  const localDateTime = new Date(date);
-  localDateTime.setHours(hours, minutes, 0, 0);
   
-  // Convert Korean local time to UTC
-  const utcDate = fromZonedTime(localDateTime, KOREAN_TIMEZONE);
+  // Create date string in YYYY-MM-DD format
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  
+  // Create local datetime string (interpreted as Korean timezone)
+  const localDateTimeString = `${year}-${month}-${day}T${timeStr}`;
+  
+  // Parse as Korean local time and convert to UTC
+  const localDate = new Date(localDateTimeString);
+  const utcDate = fromZonedTime(localDate, KOREAN_TIMEZONE);
+  
+  console.log('createUtcDateTime debug:', {
+    input: { date, timeString },
+    localDateTimeString,
+    localDate: localDate.toISOString(),
+    utcResult: utcDate.toISOString()
+  });
+  
   return utcDate.toISOString();
 };
 
@@ -79,14 +95,20 @@ export const formatKoreanTime = (utcTimeString: string, formatPattern: string = 
       return '';
     }
     
-    // If the time appears to already be in Korean timezone, use it directly
-    if (isAlreadyKoreanTime(utcTimeString)) {
-      return format(date, formatPattern);
-    }
-    
-    // Otherwise, convert UTC to Korean time
+    // Always treat the input as UTC and convert to Korean time
+    // Remove the Korean timezone check as server always sends UTC
     const koreanDate = toZonedTime(date, KOREAN_TIMEZONE);
-    return format(koreanDate, formatPattern);
+    const result = format(koreanDate, formatPattern);
+    
+    console.log('formatKoreanTime debug:', {
+      input: utcTimeString,
+      parsedUTC: date.toISOString(),
+      koreanConverted: koreanDate.toISOString(),
+      formatPattern,
+      result
+    });
+    
+    return result;
   } catch (error) {
     console.error('Error formatting Korean time:', error, 'Input:', utcTimeString);
     // Fallback to basic formatting

@@ -62,6 +62,12 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
     setEditingSchedule(null);
   };
 
+  // 시간 포맷 함수 (HH:mm:ss 형태를 HH:mm으로 변환)
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    return timeString.substring(0, 5); // "HH:mm:ss"에서 "HH:mm"만 추출
+  };
+
   return (
     <>
       <Card>
@@ -135,7 +141,7 @@ export const WeeklyScheduleGrid: React.FC<WeeklyScheduleGridProps> = ({
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3 text-gray-500" />
                             <p className="text-xs text-gray-500">
-                              {item.startTime} - {item.endTime}
+                              {formatTime(item.startTime)} - {formatTime(item.endTime)}
                             </p>
                           </div>
                         </div>

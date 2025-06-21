@@ -1141,18 +1141,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                 const selectedActivity = studyTimeActivities.find(a => a.id.toString() === data.activityId);
                 if (!selectedActivity) return;
 
-                // Format the date and time properly without timezone conversion
-                const selectedDate = data.date!;
-                
-                // Get local date components without timezone conversion
-                const year = selectedDate.getFullYear();
-                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                const day = String(selectedDate.getDate()).padStart(2, '0');
-                const dateStr = `${year}-${month}-${day}`;
-                
-                // Combine date and time in the format the server expects
-                const startDateTime = `${dateStr}T${data.startTime}:00`; // YYYY-MM-DDTHH:mm:ss
-                const endDateTime = `${dateStr}T${data.endTime}:00`;     // YYYY-MM-DDTHH:mm:ss
+                // Use createUtcDateTime for proper timezone conversion
+                const startDateTime = createUtcDateTime(data.date!, data.startTime);
+                const endDateTime = createUtcDateTime(data.date!, data.endTime);
 
                 const studyTime: Partial<AssignedStudyTime> = {
                   studentId: studentId,
@@ -1164,11 +1155,11 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   activityName: selectedActivity.name
                 };
 
-                console.log('Sending study time with formatted datetime:', {
+                console.log('Sending study time with proper UTC conversion:', {
                   selectedTime: `${data.startTime} - ${data.endTime}`,
                   selectedDate: data.date,
-                  formattedStartTime: startDateTime,
-                  formattedEndTime: endDateTime,
+                  utcStartTime: startDateTime,
+                  utcEndTime: endDateTime,
                   studyTime
                 });
 

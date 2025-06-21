@@ -888,7 +888,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-3">
               <CalendarIcon className="h-5 w-5" />
-              학습시간 달력
+            학습시간 달력
             </CardTitle>
             <div className="flex items-center gap-4">
               {/* 뷰 모드 토글 */}
@@ -1137,9 +1137,26 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
             }}
             activities={studyTimeActivities}
             onSubmit={async (data) => {
+              setIsLoading(true);
               try {
                 const selectedActivity = studyTimeActivities.find(a => a.id.toString() === data.activityId);
-                if (!selectedActivity) return;
+                if (!selectedActivity) {
+                  toast({
+                    title: '활동 선택 필요',
+                    description: '활동을 선택해주세요.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
+
+                if (!data.title.trim()) {
+                  toast({
+                    title: '제목 입력 필요',
+                    description: '공부시간 제목을 입력해주세요.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
 
                 // Use createUtcDateTime for proper timezone conversion
                 const startDateTime = createUtcDateTime(data.date!, data.startTime);
@@ -1170,8 +1187,25 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   title: "성공",
                   description: "공부시간이 추가되었습니다.",
                 });
-              } catch (error) {
-                // The error has been rethrown from onGenerateStudyTimes, no need to show toast here
+              } catch (error: any) {
+                console.error('Manual study time assignment error:', error);
+                
+                // Extract error message from server response
+                let errorMessage = '공부시간 추가 중 오류가 발생했습니다.';
+                
+                if (error?.response?.data?.message) {
+                  errorMessage = error.response.data.message;
+                } else if (error?.message) {
+                  errorMessage = error.message;
+                }
+                
+                toast({
+                  title: '공부시간 추가 실패',
+                  description: errorMessage,
+                  variant: 'destructive',
+                });
+              } finally {
+                setIsLoading(false);
               }
             }}
             onCancel={() => setShowManualModal(false)}

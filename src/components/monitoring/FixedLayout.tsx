@@ -1,6 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
+// Timeline layout constants
+const TIMELINE_CONSTANTS = {
+  STUDENT_NAME_WIDTH: 192, // w-48 = 192px
+  TIMELINE_WIDTH: 1800,
+  START_HOUR: 6,
+  END_HOUR: 24,
+  TOTAL_HOURS: 18
+} as const;
+
 interface FixedLayoutProps {
   header: React.ReactNode;
   children: React.ReactNode;
@@ -82,6 +91,16 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       setIsUserScrolling(false);
     }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     
+    // Limit scroll to not exceed 24:00 (end of timeline) with some buffer
+    const headerElement = headerScrollRef.current;
+    if (headerElement) {
+      const maxScrollLeft = Math.max(0, TIMELINE_CONSTANTS.TIMELINE_WIDTH - headerElement.clientWidth);
+      if (headerElement.scrollLeft > maxScrollLeft) {
+        headerElement.scrollLeft = maxScrollLeft;
+        return;
+      }
+    }
+    
     handleScroll(headerScrollRef, contentScrollRef);
   }, [handleScroll]);
 
@@ -93,6 +112,17 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     userScrollTimeoutRef.current = setTimeout(() => {
       setIsUserScrolling(false);
     }, 10000); // Increased from 500ms to 10000ms (10 seconds)
+    
+    // Limit scroll to not exceed 24:00 (end of timeline) with some buffer
+    const contentElement = contentScrollRef.current;
+    if (contentElement) {
+      const totalContentWidth = TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + TIMELINE_CONSTANTS.TIMELINE_WIDTH;
+      const maxScrollLeft = Math.max(0, totalContentWidth - contentElement.clientWidth);
+      if (contentElement.scrollLeft > maxScrollLeft) {
+        contentElement.scrollLeft = maxScrollLeft;
+        return;
+      }
+    }
     
     handleScroll(contentScrollRef, headerScrollRef);
   }, [handleScroll]);
@@ -116,16 +146,15 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   const getCurrentTimePosition = useCallback(() => {
     const now = currentTime;
     const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
-    const startHour = 6;
-    const endHour = 24;
+    const { START_HOUR, END_HOUR } = TIMELINE_CONSTANTS;
     
-    if (currentHour < startHour || currentHour >= endHour) {
+    if (currentHour < START_HOUR || currentHour >= END_HOUR) {
       return null;
     }
     
-    const progress = (currentHour - startHour) / (endHour - startHour);
+    const progress = (currentHour - START_HOUR) / (END_HOUR - START_HOUR);
     const percentage = progress * 100;
-    const pixelPosition = (percentage / 100) * 1800;
+    const pixelPosition = (percentage / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
     
     // Debug log for alignment verification
     console.log('🏁 FixedLayout current time:', {
@@ -185,7 +214,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
           ref={headerScrollRef}
           className="flex-1 overflow-x-auto overflow-y-visible border-b border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
         >
-          <div className="relative" style={{ width: '1800px' }}>
+          <div className="relative" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
             {header}
             
             {/* Current Time Indicator in Header - Higher z-index */}
@@ -193,7 +222,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
               <div 
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
                 style={{ 
-                  left: `${(currentTimePosition / 100) * 1800}px`,
+                  left: `${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
                   zIndex: 50
                 }}
               >
@@ -223,7 +252,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
           ref={contentScrollRef}
           className="w-full overflow-x-auto overflow-y-visible scrollbar-hide"
         >
-          <div className="flex flex-col relative" style={{ width: 'calc(192px + 1800px)' }}>
+          <div className="flex flex-col relative" style={{ width: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)` }}>
             {children}
             
             {/* Current Time Indicator - Inside scrollable content - Extends through all rows */}
@@ -231,7 +260,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
               <div 
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
                 style={{ 
-                  left: `calc(192px + ${(currentTimePosition / 100) * 1800}px)`,
+                  left: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)`,
                   zIndex: 100
                 }}
               />
@@ -258,7 +287,7 @@ const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, classNam
       </div>
       
       {/* Timeline Content - Lower z-index */}
-      <div className="flex-shrink-0 relative z-10" style={{ width: '1800px' }}>
+      <div className="flex-shrink-0 relative z-10" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
         <div className="h-full">
           {rightContent}
         </div>

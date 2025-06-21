@@ -3,6 +3,15 @@ import { cn } from '@/lib/utils';
 import { AssignedStudyTime, ConnectedActualStudyTime, UnassignedActualStudyTime } from '@/types/monitoring';
 import { formatKoreanTime, formatKoreanTimeRange } from '@/utils/dateUtils';
 
+// Timeline layout constants (shared with FixedLayout)
+const TIMELINE_CONSTANTS = {
+  STUDENT_NAME_WIDTH: 192, // w-48 = 192px
+  TIMELINE_WIDTH: 1800,
+  START_HOUR: 6,
+  END_HOUR: 24,
+  TOTAL_HOURS: 18
+} as const;
+
 interface TimelineProps {
   children: React.ReactNode;
   className?: string;
@@ -59,12 +68,12 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       // Wait for container to be fully rendered
       if (containerWidth === 0) return;
       
-      const timelineWidth = 1800; // Fixed width matching FixedLayout
+      const timelineWidth = TIMELINE_CONSTANTS.TIMELINE_WIDTH;
       
       // Calculate current time position (6:00 to 24:00 = 18 hours)
-      const startHour = 6; // 6 AM
-      const endHour = 24; // 12 AM (midnight)
-      const totalHours = endHour - startHour;
+      const startHour = TIMELINE_CONSTANTS.START_HOUR;
+      const endHour = TIMELINE_CONSTANTS.END_HOUR;
+      const totalHours = TIMELINE_CONSTANTS.TOTAL_HOURS;
       const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
       
       // Calculate the pixel position of current time on the timeline
@@ -286,14 +295,14 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     const time = new Date(timeStr);
     const hour = time.getHours() + time.getMinutes() / 60 + time.getSeconds() / 3600;
     // Fixed to match header timeline: 6:00-24:00 (18 hours)
-    const startHour = 6;
-    const endHour = 24;
+    const startHour = TIMELINE_CONSTANTS.START_HOUR;
+    const endHour = TIMELINE_CONSTANTS.END_HOUR;
     
     if (hour < startHour) return 0;
     if (hour >= endHour) return 100;
     
     const percentage = ((hour - startHour) / (endHour - startHour)) * 100;
-    const pixelPosition = (percentage / 100) * 1800;
+    const pixelPosition = (percentage / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
     
     // Debug log for alignment verification
     console.log('🎯 Position calculation:', {
@@ -315,9 +324,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     const startHour = start.getHours() + start.getMinutes() / 60 + start.getSeconds() / 3600;
     const endHour = end.getHours() + end.getMinutes() / 60 + end.getSeconds() / 3600;
     // Fixed to match header timeline: 6:00-24:00 (18 hours)
-    const timelineStartHour = 6;
-    const timelineEndHour = 24;
-    const totalHours = timelineEndHour - timelineStartHour; // 18 hours total
+    const timelineStartHour = TIMELINE_CONSTANTS.START_HOUR;
+    const timelineEndHour = TIMELINE_CONSTANTS.END_HOUR;
+    const totalHours = TIMELINE_CONSTANTS.TOTAL_HOURS;
     
     let duration = Math.max(0, (endHour - startHour) / totalHours) * 100;
     

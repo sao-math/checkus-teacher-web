@@ -12,13 +12,15 @@ import { FixedTimelineHeader } from '@/components/monitoring/Timeline';
 import StudentRow from '@/components/monitoring/StudentRow';
 import monitoringApi from '@/services/monitoringApi';
 import { MonitoringStudent } from '@/types/monitoring';
+import { formatKoreanTime } from '@/utils/dateUtils';
 
 const StudyMonitoring: React.FC = () => {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Default to today's date in YYYY-MM-DD format
+    // Use Korean local date for the date selector
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const koreanDate = new Date(today.getTime() + (9 * 60 * 60 * 1000)); // UTC + 9 hours
+    return koreanDate.toISOString().split('T')[0];
   });
   const [selectedStudents, setSelectedStudents] = useState<Set<number>>(new Set());
   const [autoRefresh, setAutoRefresh] = useState(true);

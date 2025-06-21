@@ -6,14 +6,48 @@ export const KOREAN_TIMEZONE = 'Asia/Seoul';
 
 /**
  * Format local date and time for server requests (YYYY-MM-DDTHH:mm:ss)
- * This function does NOT convert timezones - it uses the local time as-is
+ * This function converts local time to UTC before formatting
  */
 export const formatLocalDateTime = (date: Date, hours: number, minutes: number): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  // Create local datetime in Korean timezone
+  const localDateTime = new Date(date);
+  localDateTime.setHours(hours, minutes, 0, 0);
   
-  return `${year}-${month}-${day}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
+  // Convert to UTC for server
+  return convertKoreanToUtc(localDateTime.toISOString());
+};
+
+/**
+ * Create UTC ISO string from local date and time components
+ * Use this when sending datetime to server
+ */
+export const createUtcDateTime = (date: Date, timeString: string): string => {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const localDateTime = new Date(date);
+  localDateTime.setHours(hours, minutes, 0, 0);
+  
+  // Convert Korean local time to UTC
+  const utcDate = fromZonedTime(localDateTime, KOREAN_TIMEZONE);
+  return utcDate.toISOString();
+};
+
+/**
+ * Convert Date object to UTC ISO string for server requests
+ * Use this for date range queries
+ */
+export const toUtcIsoString = (date: Date): string => {
+  // If it's already a date boundary (start/end of day), convert from Korean timezone
+  const utcDate = fromZonedTime(date, KOREAN_TIMEZONE);
+  return utcDate.toISOString();
+};
+
+/**
+ * Convert Date objects that are already in local time to UTC for server
+ * Use this when the Date object represents local time that needs to be sent to server
+ */
+export const convertLocalDateToUtc = (localDate: Date): string => {
+  const utcDate = fromZonedTime(localDate, KOREAN_TIMEZONE);
+  return utcDate.toISOString();
 };
 
 /**

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { AssignedStudyTime, ConnectedActualStudyTime, UnassignedActualStudyTime } from '@/types/monitoring';
+import { formatKoreanTime, formatKoreanTimeRange } from '@/utils/dateUtils';
 
 interface TimelineProps {
   children: React.ReactNode;
@@ -277,7 +278,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
             left: `${getTimePosition(assigned.startTime)}%`,
             width: `${getTimeDuration(assigned.startTime, assigned.endTime)}%`,
           }}
-          title={`${assigned.title}: ${new Date(assigned.startTime).toLocaleTimeString()} - ${new Date(assigned.endTime).toLocaleTimeString()}`}
+          title={`${assigned.title}: ${formatKoreanTime(assigned.startTime, 'HH:mm')} - ${formatKoreanTime(assigned.endTime, 'HH:mm')}`}
         />
       ))}
       
@@ -290,7 +291,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
             left: `${getTimePosition(actual.startTime)}%`,
             width: `${getTimeDuration(actual.startTime, actual.endTime)}%`,
           }}
-          title={`실제 접속: ${new Date(actual.startTime).toLocaleTimeString()} - ${new Date(actual.endTime).toLocaleTimeString()}`}
+          title={`실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`}
         />
       ))}
       
@@ -303,7 +304,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
             left: `${getTimePosition(unassigned.startTime)}%`,
             width: `${getTimeDuration(unassigned.startTime, unassigned.endTime)}%`,
           }}
-          title={`미할당 시간 추가 접속: ${new Date(unassigned.startTime).toLocaleTimeString()} - ${new Date(unassigned.endTime).toLocaleTimeString()}`}
+          title={`미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`}
         />
       ))}
     </div>

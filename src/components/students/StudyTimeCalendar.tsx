@@ -23,7 +23,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
 import { TaskTree } from '@/components/tasks/TaskTree';
 import { toast } from '@/components/ui/use-toast';
-import { formatKoreanTime, formatKoreanTimeRange, formatLocalDateTime } from '@/utils/dateUtils';
+import { formatKoreanTime, formatKoreanTimeRange, createUtcDateTime, convertLocalDateToUtc } from '@/utils/dateUtils';
 import { Progress, TimelineSegment } from '@/components/ui/progress';
 import { StudyTimeForm } from '@/components/students/StudyTimeForm';
 
@@ -346,8 +346,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
             const studyTime: Partial<AssignedStudyTime> = {
               studentId: studentId,
               activityId: schedule.activityId,
-              startTime: formatLocalDateTime(currentDate, startHours, startMinutes),
-              endTime: formatLocalDateTime(currentDate, endHours, endMinutes),
+              startTime: createUtcDateTime(currentDate, `${startHours.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`),
+              endTime: createUtcDateTime(currentDate, `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`),
               assignedBy: 1, // TODO: Replace with actual user ID
               title: schedule.title,
               activityName: schedule.activityName
@@ -501,8 +501,8 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         studentId,
         title: manualTitle,
         activityId: manualActivityId,
-        startTime: manualStartTime.toISOString(),
-        endTime: manualEndTime.toISOString(),
+        startTime: convertLocalDateToUtc(manualStartTime),
+        endTime: convertLocalDateToUtc(manualEndTime),
       });
       setShowManualModal(false);
       setManualTitle('');
@@ -567,14 +567,14 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
         
         try {
           await onUpdateStudyTime(studyTime.id, {
-            startTime: start.toISOString(),
-            endTime: end.toISOString(),
+            startTime: convertLocalDateToUtc(start),
+            endTime: convertLocalDateToUtc(end),
           });
           // Update local state for immediate UI reflection
           setAssignedStudyTimes(prev => 
             prev.map(item => 
               item.id === studyTime.id 
-                ? { ...item, startTime: start.toISOString(), endTime: end.toISOString() }
+                ? { ...item, startTime: convertLocalDateToUtc(start), endTime: convertLocalDateToUtc(end) }
                 : item
             )
           );
@@ -1141,26 +1141,36 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                 const selectedActivity = studyTimeActivities.find(a => a.id.toString() === data.activityId);
                 if (!selectedActivity) return;
 
-                // Parse the time strings to create start and end DateTime objects
-                const [startHours, startMinutes] = data.startTime.split(':').map(Number);
-                const [endHours, endMinutes] = data.endTime.split(':').map(Number);
-
-                // Create date objects with the selected date and times
-                const startDateTime = new Date(data.date!);
-                startDateTime.setHours(startHours, startMinutes, 0, 0);
+                // Format the date and time properly without timezone conversion
+                const selectedDate = data.date!;
                 
-                const endDateTime = new Date(data.date!);
-                endDateTime.setHours(endHours, endMinutes, 0, 0);
+                // Get local date components without timezone conversion
+                const year = selectedDate.getFullYear();
+                const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedDate.getDate()).padStart(2, '0');
+                const dateStr = `${year}-${month}-${day}`;
+                
+                // Combine date and time in the format the server expects
+                const startDateTime = `${dateStr}T${data.startTime}:00`; // YYYY-MM-DDTHH:mm:ss
+                const endDateTime = `${dateStr}T${data.endTime}:00`;     // YYYY-MM-DDTHH:mm:ss
 
                 const studyTime: Partial<AssignedStudyTime> = {
                   studentId: studentId,
                   activityId: selectedActivity.id,
-                  startTime: startDateTime.toISOString(),
-                  endTime: endDateTime.toISOString(),
+                  startTime: startDateTime,
+                  endTime: endDateTime,
                   assignedBy: 1, // TODO: Replace with actual user ID
                   title: data.title,
                   activityName: selectedActivity.name
                 };
+
+                console.log('Sending study time with formatted datetime:', {
+                  selectedTime: `${data.startTime} - ${data.endTime}`,
+                  selectedDate: data.date,
+                  formattedStartTime: startDateTime,
+                  formattedEndTime: endDateTime,
+                  studyTime
+                });
 
                 await onGenerateStudyTimes(data.date!, 1, studyTime);
                 setShowManualModal(false);

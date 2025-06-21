@@ -1,5 +1,5 @@
 import axios from 'axios';
-import authService from '../services/auth';
+import { handleError } from './errorHandler';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -21,6 +21,9 @@ const PUBLIC_ENDPOINTS = [
   // Add more public endpoints as needed
 ];
 
+// Flag to prevent multiple redirects
+let isRedirecting = false;
+
 // Request interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
@@ -30,17 +33,20 @@ axiosInstance.interceptors.request.use(
         return config;
       }
 
-      await authService.ensureValidToken();
-      const token = authService.getAccessToken();
+      // Get token from localStorage directly to avoid circular import
+      const token = localStorage.getItem('accessToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     } catch (error) {
+      // Handle token-related errors without circular dependency
+      console.error('Request interceptor error:', error);
       return Promise.reject(error);
     }
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -49,8 +55,17 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Prevent handling if already redirecting
+    if (isRedirecting) {
+      return Promise.reject(error);
+    }
+
     // If there's no config or it's not an axios error, reject immediately
     if (!error.config) {
+      handleError(error, {
+        title: "네트워크 오류",
+        fallbackMessage: "서버와 연결할 수 없습니다."
+      });
       return Promise.reject(error);
     }
 
@@ -61,22 +76,86 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Only retry if it's a 401 error and we haven't retried yet
+    // Handle 401 errors (authentication failed)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+      
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        // No refresh token available, redirect to login
+        handleAuthenticationFailure();
+        return Promise.reject(error);
+      }
+
       try {
-        await authService.refreshToken();
-        const token = authService.getAccessToken();
-        originalRequest.headers.Authorization = `Bearer ${token}`;
+        // Try to refresh token using direct axios call to avoid circular dependency
+        const refreshResponse = await axios.post(`${API_URL}/auth/refresh`, {
+          refreshToken
+        });
+        
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
+        
+        // Update tokens in localStorage
+        localStorage.setItem('accessToken', newAccessToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        
+        // Retry original request with new token
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        authService.removeTokens();
-        window.location.href = '/login';
+        // Refresh failed, redirect to login
+        handleAuthenticationFailure();
         return Promise.reject(refreshError);
       }
     }
+
+    // Handle other HTTP errors
+    if (error.response?.status >= 500) {
+      handleError(error, {
+        title: "서버 오류",
+        fallbackMessage: "서버에서 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+      });
+    } else if (error.response?.status >= 400 && error.response?.status !== 401) {
+      // Log 4xx errors but don't show automatic toast (except 401)
+      console.error('Client error:', error);
+    } else if (error.request) {
+      // Network error
+      handleError(error, {
+        title: "네트워크 오류",
+        fallbackMessage: "인터넷 연결을 확인해주세요."
+      });
+    }
+
     return Promise.reject(error);
   }
 );
+
+// Helper function to handle authentication failure
+function handleAuthenticationFailure() {
+  if (isRedirecting) return;
+  
+  isRedirecting = true;
+  
+  // Clear tokens
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  
+  // Show error message
+  handleError(new Error('Authentication failed'), {
+    title: "세션 만료",
+    fallbackMessage: "다시 로그인해주세요."
+  });
+  
+  // Use setTimeout to prevent immediate redirect conflicts
+  setTimeout(() => {
+    // Use history API instead of window.location.href to avoid full page reload
+    if (window.location.pathname !== '/login') {
+      window.history.pushState(null, '', '/login');
+      // Trigger a popstate event to notify React Router
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+    isRedirecting = false;
+  }, 100);
+}
 
 export default axiosInstance; 

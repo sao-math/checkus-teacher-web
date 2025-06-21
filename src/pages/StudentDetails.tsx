@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,11 +19,14 @@ import { StudyTimeCalendar } from '@/components/students/StudyTimeCalendar';
 import { TaskSidebar } from '@/components/students/TaskSidebar';
 import { WeeklyScheduleDialog } from '@/components/students/WeeklyScheduleDialog';
 import { studentApi } from '@/services/studentApi';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { formatKoreanTime, toUtcIsoString } from '@/utils/dateUtils';
 
 const StudentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { showError } = useErrorHandler();
   const [showTaskSidebar, setShowTaskSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
   
@@ -40,56 +43,74 @@ const StudentDetails = () => {
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<WeeklySchedule | null>(null);
 
+  // Add refs to prevent multiple concurrent fetches
+  const isFetchingRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+
   useEffect(() => {
-    fetchStudentDetails();
-    fetchActivities();
-  }, [studentId]);
-
-  const fetchStudentDetails = async () => {
-    try {
-      setLoading(true);
-      const [studentData, weeklyScheduleData] = await Promise.all([
-        studentApi.getStudentDetail(studentId),
-        studentApi.getWeeklySchedule(studentId)
-      ]);
-      setStudent(studentData);
-      setWeeklySchedule(weeklyScheduleData);
-
-      // Fetch study times for current month
-      const now = new Date();
-      const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+    const fetchData = async () => {
+      // Prevent multiple concurrent fetches
+      if (isFetchingRef.current) {
+        return;
+      }
       
-      const [assignedTimes, actualTimes] = await Promise.all([
-        studentApi.getAssignedStudyTimes(studentId, startDate, endDate),
-        studentApi.getActualStudyTimes(studentId, startDate, endDate)
-      ]);
+      // Debounce rapid successive calls
+      const now = Date.now();
+      if (now - lastFetchTimeRef.current < 1000) {
+        return;
+      }
       
-      setAssignedStudyTimes(assignedTimes);
-      setActualStudyTimes(actualTimes);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch student details",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      isFetchingRef.current = true;
+      lastFetchTimeRef.current = now;
+      
+      try {
+        const [studentData, scheduleData, activitiesData] = await Promise.all([
+          studentApi.getStudentDetail(studentId),
+          studentApi.getWeeklySchedule(studentId),
+          studentApi.getAllActivities()
+        ]);
+        
+        setStudent(studentData);
+        setWeeklySchedule(scheduleData);
+        setActivities(activitiesData);
 
-  const fetchActivities = async () => {
-    try {
-      const data = await studentApi.getAllActivities();
-      setActivities(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch activities",
-        variant: "destructive",
-      });
+        // Get current month's study times
+        const currentDate = new Date();
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+        const [assignedTimes, actualTimes] = await Promise.all([
+          studentApi.getAssignedStudyTimes(
+            studentId,
+            toUtcIsoString(startOfMonth),
+            toUtcIsoString(endOfMonth)
+          ),
+          studentApi.getActualStudyTimes(
+            studentId,
+            toUtcIsoString(startOfMonth),
+            toUtcIsoString(endOfMonth)
+          )
+        ]);
+
+        setAssignedStudyTimes(assignedTimes);
+        setActualStudyTimes(actualTimes);
+      } catch (error) {
+        console.error('Error fetching student data:', error);
+        showError(error, {
+          title: "학생 정보 로드 실패",
+          fallbackMessage: "학생 정보를 불러오는데 실패했습니다."
+        });
+      } finally {
+        setLoading(false);
+        isFetchingRef.current = false;
+      }
+    };
+
+    // Only fetch if we have a valid studentId
+    if (studentId && !isNaN(studentId)) {
+      fetchData();
     }
-  };
+  }, [studentId]); // Remove showError from dependencies to prevent loops
 
   const handleBack = () => {
     navigate('/students');
@@ -128,22 +149,9 @@ const StudentDetails = () => {
         title: "일정이 수정되었습니다.",
         description: `${updatedSchedule.activityName} 일정이 수정되었습니다.`,
       });
-    } catch (error: any) {
-      console.error('Weekly schedule update error:', error);
-      
-      // Extract error message from server response
-      let errorMessage = "일정 수정 중 오류가 발생했습니다.";
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "일정 수정 실패",
-        description: errorMessage,
-        variant: "destructive",
+    } catch (error) {
+      showError(error, {
+        title: "일정 수정 실패"
       });
     }
   };
@@ -156,22 +164,9 @@ const StudentDetails = () => {
         title: "일정이 삭제되었습니다.",
         description: "선택한 일정이 삭제되었습니다.",
       });
-    } catch (error: any) {
-      console.error('Weekly schedule deletion error:', error);
-      
-      // Extract error message from server response
-      let errorMessage = "일정 삭제 중 오류가 발생했습니다.";
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "일정 삭제 실패",
-        description: errorMessage,
-        variant: "destructive",
+    } catch (error) {
+      showError(error, {
+        title: "일정 삭제 실패"
       });
     }
   };
@@ -197,22 +192,9 @@ const StudentDetails = () => {
         description: `${newSchedule.activityName} 일정이 추가되었습니다.`,
       });
       setShowScheduleDialog(false);
-    } catch (error: any) {
-      console.error('Weekly schedule creation error:', error);
-      
-      // Extract error message from server response
-      let errorMessage = "일정 추가 중 오류가 발생했습니다.";
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "일정 추가 실패",
-        description: errorMessage,
-        variant: "destructive",
+    } catch (error) {
+      showError(error, {
+        title: "일정 추가 실패"
       });
     }
   };
@@ -244,20 +226,18 @@ const StudentDetails = () => {
       const [assignedTimes, actualTimes] = await Promise.all([
         studentApi.getAssignedStudyTimes(
           studentId,
-          startOfPeriod.toISOString(),
-          endOfPeriod.toISOString()
+          toUtcIsoString(startOfPeriod),
+          toUtcIsoString(endOfPeriod)
         ),
         studentApi.getActualStudyTimes(
           studentId,
-          startOfPeriod.toISOString(),
-          endOfPeriod.toISOString()
+          toUtcIsoString(startOfPeriod),
+          toUtcIsoString(endOfPeriod)
         )
       ]);
       setAssignedStudyTimes(assignedTimes);
       setActualStudyTimes(actualTimes);
-    } catch (error: any) {
-      console.error('Study time assignment error:', error);
-      
+    } catch (error) {
       // Re-throw the error so that the calling function (like handleCopySchedule) can handle it
       // This prevents duplicate toast messages
       throw error;
@@ -300,61 +280,47 @@ const StudentDetails = () => {
         title: "학습시간이 삭제되었습니다.",
         description: "선택한 학습시간이 삭제되었습니다.",
       });
-    } catch (error: any) {
-      console.error('Study time deletion error:', error);
-      
-      // Extract error message from server response
-      let errorMessage = "학습시간 삭제 중 오류가 발생했습니다.";
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "학습시간 삭제 실패",
-        description: errorMessage,
-        variant: "destructive",
+    } catch (error) {
+      showError(error, {
+        title: "학습시간 삭제 실패"
       });
     }
   };
 
+  // Memoize the period change handler to prevent recreation on every render
   const handlePeriodChange = useCallback(async (startDate: Date, endDate: Date) => {
+    // Prevent multiple concurrent fetches
+    if (isFetchingRef.current) {
+      return;
+    }
+    
+    isFetchingRef.current = true;
+    
     try {
       const [assignedTimes, actualTimes] = await Promise.all([
         studentApi.getAssignedStudyTimes(
           studentId,
-          startDate.toISOString(),
-          endDate.toISOString()
+          toUtcIsoString(startDate),
+          toUtcIsoString(endDate)
         ),
         studentApi.getActualStudyTimes(
           studentId,
-          startDate.toISOString(),
-          endDate.toISOString()
+          toUtcIsoString(startDate),
+          toUtcIsoString(endDate)
         )
       ]);
       setAssignedStudyTimes(assignedTimes);
       setActualStudyTimes(actualTimes);
-    } catch (error: any) {
-      console.error('Period change error:', error);
-      
-      // Extract error message from server response
-      let errorMessage = "선택한 기간의 학습시간을 불러오는데 실패했습니다.";
-      
-      if (error?.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-      
-      toast({
-        title: "기간 조회 실패",
-        description: errorMessage,
-        variant: "destructive",
+    } catch (error) {
+      console.error('Error fetching period data:', error);
+      showError(error, {
+        title: "기간 데이터 로드 실패",
+        fallbackMessage: "선택한 기간의 데이터를 불러오는데 실패했습니다."
       });
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [studentId, toast]);
+  }, [studentId, showError]);
 
   if (loading || !student) {
     return (
@@ -409,7 +375,7 @@ const StudentDetails = () => {
               onDeleteSchedule={handleDeleteSchedule}
               onAddSchedule={handleAddSchedule}
               activities={activities}
-              fetchActivities={fetchActivities}
+              fetchActivities={() => studentApi.getAllActivities()}
             />
 
             <WeeklyScheduleDialog
@@ -418,7 +384,7 @@ const StudentDetails = () => {
               scheduleItem={selectedSchedule}
               onSave={handleSaveNewSchedule}
               activities={activities}
-              fetchActivities={fetchActivities}
+              fetchActivities={() => studentApi.getAllActivities()}
             />
 
             {/* 학습시간 달력 (주간 또는 월간) */}

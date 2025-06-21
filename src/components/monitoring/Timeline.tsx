@@ -36,7 +36,7 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       }
       userScrollTimeoutRef.current = setTimeout(() => {
         setIsUserScrolling(false);
-      }, 1000);
+      }, 10000); // Increased from 1000ms to 10000ms (10 seconds)
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -90,15 +90,13 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       const maxScrollLeft = timelineWidth - containerWidth;
       const finalScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
       
-      // Smooth scroll on first load, instant updates afterward
+      // Only auto-scroll on initial load, not on time updates
       if (!isInitialized) {
         container.scrollTo({
           left: finalScrollLeft,
           behavior: 'smooth'
         });
         setIsInitialized(true);
-      } else {
-        container.scrollLeft = finalScrollLeft;
       }
     }
   }, [currentTime, isInitialized, isUserScrolling]);

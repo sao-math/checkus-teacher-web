@@ -80,7 +80,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     }
     userScrollTimeoutRef.current = setTimeout(() => {
       setIsUserScrolling(false);
-    }, 500);
+    }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     
     handleScroll(headerScrollRef, contentScrollRef);
   }, [handleScroll]);
@@ -92,7 +92,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     }
     userScrollTimeoutRef.current = setTimeout(() => {
       setIsUserScrolling(false);
-    }, 500);
+    }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     
     handleScroll(contentScrollRef, headerScrollRef);
   }, [handleScroll]);
@@ -127,7 +127,8 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     return progress * 100;
   }, [currentTime]);
 
-  // Auto-scroll logic (only when not user scrolling)
+  // Disabled auto-scroll logic to allow free browsing
+  /*
   useEffect(() => {
     if (isUserScrolling) return; // Don't auto-scroll while user is scrolling
     
@@ -155,6 +156,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       });
     }
   }, [currentTime, isUserScrolling, getCurrentTimePosition]);
+  */
 
   const currentTimePosition = getCurrentTimePosition();
 

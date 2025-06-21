@@ -36,7 +36,7 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       }
       userScrollTimeoutRef.current = setTimeout(() => {
         setIsUserScrolling(false);
-      }, 10000); // Increased from 1000ms to 10000ms (10 seconds)
+      }, 1000);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -59,11 +59,11 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       // Wait for container to be fully rendered
       if (containerWidth === 0) return;
       
-      const timelineWidth = 1200; // Fixed width from TimelineHeader
+      const timelineWidth = 1800; // Fixed width matching FixedLayout
       
-      // Calculate current time position (13:00 to 22:00 = 9 hours)
-      const startHour = 13; // 1 PM
-      const endHour = 22; // 10 PM
+      // Calculate current time position (6:00 to 24:00 = 18 hours)
+      const startHour = 6; // 6 AM
+      const endHour = 24; // 12 AM (midnight)
       const totalHours = endHour - startHour;
       const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
       
@@ -71,13 +71,13 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       let currentTimePixelPosition;
       
       if (currentHour < startHour) {
-        // Before 1 PM - show beginning of timeline
+        // Before 6 AM - show beginning of timeline
         currentTimePixelPosition = 0;
-      } else if (currentHour > endHour) {
-        // After 10 PM - show end of timeline
+      } else if (currentHour >= endHour) {
+        // After 12 AM - show end of timeline
         currentTimePixelPosition = timelineWidth;
       } else {
-        // Between 1 PM and 10 PM - calculate exact position
+        // Between 6 AM and 12 AM - calculate exact position
         const timeProgress = (currentHour - startHour) / totalHours;
         currentTimePixelPosition = timeProgress * timelineWidth;
       }
@@ -90,13 +90,15 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
       const maxScrollLeft = timelineWidth - containerWidth;
       const finalScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
       
-      // Only auto-scroll on initial load, not on time updates
+      // Smooth scroll on first load, instant updates afterward
       if (!isInitialized) {
         container.scrollTo({
           left: finalScrollLeft,
           behavior: 'smooth'
         });
         setIsInitialized(true);
+      } else {
+        container.scrollLeft = finalScrollLeft;
       }
     }
   }, [currentTime, isInitialized, isUserScrolling]);
@@ -245,96 +247,144 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
-  // Update current time every 30 seconds for ongoing sessions
+  // Check if there are any ongoing sessions
+  const hasOngoingSessions = actualTimes.some(actual => !actual.endTime) || 
+                            unassignedTimes.some(unassigned => !unassigned.endTime);
+  
+  // Debug logging for ongoing sessions
   useEffect(() => {
+    console.log('📊 StudyTimeBar render data:', {
+      hasOngoingSessions,
+      actualTimes: actualTimes.map(actual => ({
+        id: actual.actualStudyTimeId,
+        startTime: actual.startTime,
+        endTime: actual.endTime,
+        isOngoing: !actual.endTime
+      })),
+      unassignedTimes: unassignedTimes.map(unassigned => ({
+        id: unassigned.actualStudyTimeId,
+        startTime: unassigned.startTime,
+        endTime: unassigned.endTime,
+        isOngoing: !unassigned.endTime
+      }))
+    });
+  }, [hasOngoingSessions, actualTimes, unassignedTimes]);
+  
+  // Update current time - frequent for ongoing sessions, slower otherwise
+  useEffect(() => {
+    const updateInterval = hasOngoingSessions ? 5000 : 30000; // 5s for ongoing for precise tracking, 30s otherwise
+    
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 30000);
+    }, updateInterval);
+    
     return () => clearInterval(interval);
-  }, []);
+  }, [hasOngoingSessions]); // Re-create interval when ongoing session status changes
 
   const getTimePosition = useCallback((timeStr: string) => {
+    // Parse as UTC and convert to local time properly
     const time = new Date(timeStr);
-    const hour = time.getHours() + time.getMinutes() / 60;
+    const hour = time.getHours() + time.getMinutes() / 60 + time.getSeconds() / 3600;
+    // Fixed to match header timeline: 6:00-24:00 (18 hours)
     const startHour = 6;
     const endHour = 24;
     
     if (hour < startHour) return 0;
     if (hour >= endHour) return 100;
     
-    return ((hour - startHour) / (endHour - startHour)) * 100;
-  }, []);
+    const percentage = ((hour - startHour) / (endHour - startHour)) * 100;
+    const pixelPosition = (percentage / 100) * 1800;
+    
+    // Debug log for alignment verification
+    console.log('🎯 Position calculation:', {
+      timeStr,
+      hour: hour.toFixed(3),
+      percentage: percentage.toFixed(2) + '%',
+      pixelPosition: pixelPosition.toFixed(1) + 'px',
+      currentTime: currentTime.toLocaleTimeString()
+    });
+    
+    return percentage;
+  }, [currentTime]);
 
   const getTimeDuration = useCallback((startStr: string, endStr: string | null) => {
+    // Parse times ensuring proper timezone handling
     const start = new Date(startStr);
-    const end = endStr ? new Date(endStr) : currentTime; // Use current time if endTime is null
-    const startHour = start.getHours() + start.getMinutes() / 60;
-    const endHour = end.getHours() + end.getMinutes() / 60;
-    const totalHours = 24 - 6; // 18 hours total
+    const end = endStr ? new Date(endStr) : new Date(); // Use fresh current time for ongoing sessions
     
-    return ((endHour - startHour) / totalHours) * 100;
+    const startHour = start.getHours() + start.getMinutes() / 60 + start.getSeconds() / 3600;
+    const endHour = end.getHours() + end.getMinutes() / 60 + end.getSeconds() / 3600;
+    // Fixed to match header timeline: 6:00-24:00 (18 hours)
+    const timelineStartHour = 6;
+    const timelineEndHour = 24;
+    const totalHours = timelineEndHour - timelineStartHour; // 18 hours total
+    
+    let duration = Math.max(0, (endHour - startHour) / totalHours) * 100;
+    
+    // For ongoing sessions, ensure minimum width and extend to current time
+    if (!endStr) {
+      const now = currentTime; // Use the same currentTime state for consistency
+      const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+      const currentDuration = Math.max(0, (currentHour - startHour) / totalHours) * 100;
+      duration = Math.max(duration, currentDuration, 0.5); // Minimum 0.5% width for visibility
+      
+      // Debug log with more details including timeline range
+      console.log('🕐 Ongoing session calculation:', {
+        startTime: startStr,
+        startDate: start.toLocaleString(),
+        currentDate: now.toLocaleString(),
+        startHour: startHour.toFixed(3),
+        currentHour: currentHour.toFixed(3),
+        timelineRange: `${timelineStartHour}:00-${timelineEndHour}:00`,
+        totalHours,
+        calculatedDuration: duration.toFixed(2) + '%',
+        timeDiff: ((currentHour - startHour) * 60).toFixed(1) + ' minutes'
+      });
+    }
+    
+    return Math.min(duration, 100);
   }, [currentTime]);
 
   return (
-    <div className={cn("relative h-8", className)}>
+    <div className={cn("relative h-8 my-3", className)} style={{ width: '1800px' }}>
       {/* Assigned study times (light blue background) */}
       {assignedTimes.map((assigned) => (
         <div
           key={assigned.assignedStudyTimeId}
           className="absolute h-full bg-gray-200 border border-gray-300 rounded"
           style={{
-            left: `${getTimePosition(assigned.startTime)}%`,
-            width: `${getTimeDuration(assigned.startTime, assigned.endTime)}%`,
+            left: `${(getTimePosition(assigned.startTime) / 100) * 1800}px`,
+            width: `${(getTimeDuration(assigned.startTime, assigned.endTime) / 100) * 1800}px`,
           }}
           title={`${assigned.title}: ${formatKoreanTime(assigned.startTime, 'HH:mm')} - ${formatKoreanTime(assigned.endTime, 'HH:mm')}`}
         />
       ))}
       
-      {/* Connected actual study times (green) */}
-      {actualTimes.map((actual) => {
-        const isOngoing = !actual.endTime;
-        return (
-          <div
-            key={actual.actualStudyTimeId}
-            className={cn(
-              "absolute h-full rounded z-10",
-              isOngoing ? "bg-green-400 animate-pulse" : "bg-green-500"
-            )}
-            style={{
-              left: `${getTimePosition(actual.startTime)}%`,
-              width: `${getTimeDuration(actual.startTime, actual.endTime)}%`,
-            }}
-            title={
-              isOngoing 
-                ? `실제 접속 (진행 중): ${formatKoreanTime(actual.startTime, 'HH:mm')} - 현재`
-                : `실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`
-            }
-          />
-        );
-      })}
+      {/* Connected actual study times (dark blue) */}
+      {actualTimes.map((actual) => (
+        <div
+          key={actual.actualStudyTimeId}
+          className="absolute h-full bg-green-500 rounded z-10"
+          style={{
+            left: `${(getTimePosition(actual.startTime) / 100) * 1800}px`,
+            width: `${(getTimeDuration(actual.startTime, actual.endTime) / 100) * 1800}px`,
+          }}
+          title={`실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`}
+        />
+      ))}
       
-      {/* Unassigned actual study times (light green) */}
-      {unassignedTimes.map((unassigned) => {
-        const isOngoing = !unassigned.endTime;
-        return (
-          <div
-            key={unassigned.actualStudyTimeId}
-            className={cn(
-              "absolute h-full rounded z-10",
-              isOngoing ? "bg-green-300 animate-pulse" : "bg-green-200"
-            )}
-            style={{
-              left: `${getTimePosition(unassigned.startTime)}%`,
-              width: `${getTimeDuration(unassigned.startTime, unassigned.endTime)}%`,
-            }}
-            title={
-              isOngoing
-                ? `미할당 시간 추가 접속 (진행 중): ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - 현재`
-                : `미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`
-            }
-          />
-        );
-      })}
+      {/* Unassigned actual study times (orange) */}
+      {unassignedTimes.map((unassigned) => (
+        <div
+          key={unassigned.actualStudyTimeId}
+          className="absolute h-full bg-green-200 rounded z-10"
+          style={{
+            left: `${(getTimePosition(unassigned.startTime) / 100) * 1800}px`,
+            width: `${(getTimeDuration(unassigned.startTime, unassigned.endTime) / 100) * 1800}px`,
+          }}
+          title={`미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`}
+        />
+      ))}
     </div>
   );
 });

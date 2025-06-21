@@ -15,11 +15,11 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isScrollSyncingRef = useRef(false);
 
-  // Update current time every 10 seconds (reduced frequency for performance)
+  // Update current time every 5 seconds for better synchronization
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 10000); // Update every 10 seconds instead of every second
+    }, 5000); // Update every 5 seconds to match StudyTimeBar ongoing sessions
 
     return () => clearInterval(interval);
   }, []);
@@ -124,7 +124,18 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     }
     
     const progress = (currentHour - startHour) / (endHour - startHour);
-    return progress * 100;
+    const percentage = progress * 100;
+    const pixelPosition = (percentage / 100) * 1800;
+    
+    // Debug log for alignment verification
+    console.log('🏁 FixedLayout current time:', {
+      currentHour: currentHour.toFixed(3),
+      percentage: percentage.toFixed(2) + '%',
+      pixelPosition: pixelPosition.toFixed(1) + 'px',
+      currentTime: currentTime.toLocaleTimeString()
+    });
+    
+    return percentage;
   }, [currentTime]);
 
   // Disabled auto-scroll logic to allow free browsing
@@ -248,7 +259,7 @@ const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, classNam
       
       {/* Timeline Content - Lower z-index */}
       <div className="flex-shrink-0 relative z-10" style={{ width: '1800px' }}>
-        <div className="p-3">
+        <div className="h-full">
           {rightContent}
         </div>
       </div>

@@ -137,7 +137,7 @@ const Timeline: React.FC<TimelineProps> = ({ children, className }) => {
 
 // Timeline header showing hours (original version for legacy compatibility)
 const TimelineHeader: React.FC = () => {
-  const hours = Array.from({ length: 18 }, (_, i) => 6 + i); // 6:00 to 23:00
+  const hours = Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => TIMELINE_CONSTANTS.START_HOUR + i); // 6:00 to 23:00
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -150,12 +150,11 @@ const TimelineHeader: React.FC = () => {
 
   const getCurrentTimePosition = useCallback(() => {
     const currentHour = currentTime.getHours() + currentTime.getMinutes() / 60;
-    const startHour = 6;
-    const endHour = 24;
+    const { START_HOUR, END_HOUR } = TIMELINE_CONSTANTS;
     
-    if (currentHour < startHour || currentHour >= endHour) return null;
+    if (currentHour < START_HOUR || currentHour >= END_HOUR) return null;
     
-    const progress = (currentHour - startHour) / (endHour - startHour);
+    const progress = (currentHour - START_HOUR) / (END_HOUR - START_HOUR);
     return progress * 100;
   }, [currentTime]);
 
@@ -163,7 +162,7 @@ const TimelineHeader: React.FC = () => {
 
   return (
     <div className="relative h-12 border-b border-gray-200 bg-gray-50">
-      <div className="flex h-full" style={{ width: '1800px' }}>
+      <div className="flex h-full" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
         {hours.map((hour, index) => (
           <div 
             key={hour} 
@@ -173,7 +172,7 @@ const TimelineHeader: React.FC = () => {
           </div>
         ))}
         <div className="flex-1 flex items-center justify-center text-sm font-medium text-gray-600">
-          24:00
+          {TIMELINE_CONSTANTS.END_HOUR}:00
         </div>
       </div>
       
@@ -195,10 +194,10 @@ const TimelineHeader: React.FC = () => {
 // Timeline header showing hours (for fixed layout - without scroll control)
 const FixedTimelineHeader: React.FC = () => {
   return (
-    <div className="relative h-12 bg-gray-50" style={{ width: '1800px' }}>
+    <div className="relative h-12 bg-gray-50" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Grid lines for each hour */}
       <div className="flex h-full">
-        {Array.from({ length: 18 }, (_, i) => (
+        {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => (
           <div 
             key={i} 
             className="flex-1 border-r border-gray-300"
@@ -207,14 +206,14 @@ const FixedTimelineHeader: React.FC = () => {
       </div>
       
       {/* Time labels positioned exactly on tick marks */}
-      {Array.from({ length: 19 }, (_, i) => {
-        const hour = 6 + i; // 6:00 to 24:00
+      {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS + 1 }, (_, i) => {
+        const hour = TIMELINE_CONSTANTS.START_HOUR + i; // 6:00 to 24:00
         return (
           <div 
             key={hour}
             className="absolute top-0 h-full flex items-center justify-center"
             style={{ 
-              left: `${(i / 18) * 100}%`,
+              left: `${(i / TIMELINE_CONSTANTS.TOTAL_HOURS) * 100}%`,
               transform: 'translateX(-50%)', // Center on the tick mark
               zIndex: 10
             }}
@@ -302,19 +301,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     if (hour >= endHour) return 100;
     
     const percentage = ((hour - startHour) / (endHour - startHour)) * 100;
-    const pixelPosition = (percentage / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
-    
-    // Debug log for alignment verification
-    console.log('🎯 Position calculation:', {
-      timeStr,
-      hour: hour.toFixed(3),
-      percentage: percentage.toFixed(2) + '%',
-      pixelPosition: pixelPosition.toFixed(1) + 'px',
-      currentTime: currentTime.toLocaleTimeString()
-    });
     
     return percentage;
-  }, [currentTime]);
+  }, []);
 
   const getTimeDuration = useCallback((startStr: string, endStr: string | null) => {
     // Parse times ensuring proper timezone handling
@@ -336,34 +325,21 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
       const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
       const currentDuration = Math.max(0, (currentHour - startHour) / totalHours) * 100;
       duration = Math.max(duration, currentDuration, 0.5); // Minimum 0.5% width for visibility
-      
-      // Debug log with more details including timeline range
-      console.log('🕐 Ongoing session calculation:', {
-        startTime: startStr,
-        startDate: start.toLocaleString(),
-        currentDate: now.toLocaleString(),
-        startHour: startHour.toFixed(3),
-        currentHour: currentHour.toFixed(3),
-        timelineRange: `${timelineStartHour}:00-${timelineEndHour}:00`,
-        totalHours,
-        calculatedDuration: duration.toFixed(2) + '%',
-        timeDiff: ((currentHour - startHour) * 60).toFixed(1) + ' minutes'
-      });
     }
     
     return Math.min(duration, 100);
   }, [currentTime]);
 
   return (
-    <div className={cn("relative h-8 my-3", className)} style={{ width: '1800px' }}>
+    <div className={cn("relative h-8 my-3", className)} style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Assigned study times (light blue background) */}
       {assignedTimes.map((assigned) => (
         <div
           key={assigned.assignedStudyTimeId}
           className="absolute h-full bg-gray-200 border border-gray-300 rounded"
           style={{
-            left: `${(getTimePosition(assigned.startTime) / 100) * 1800}px`,
-            width: `${(getTimeDuration(assigned.startTime, assigned.endTime) / 100) * 1800}px`,
+            left: `${(getTimePosition(assigned.startTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+            width: `${(getTimeDuration(assigned.startTime, assigned.endTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
           }}
           title={`${assigned.title}: ${formatKoreanTime(assigned.startTime, 'HH:mm')} - ${formatKoreanTime(assigned.endTime, 'HH:mm')}`}
         />
@@ -375,8 +351,8 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
           key={actual.actualStudyTimeId}
           className="absolute h-full bg-green-500 rounded z-10"
           style={{
-            left: `${(getTimePosition(actual.startTime) / 100) * 1800}px`,
-            width: `${(getTimeDuration(actual.startTime, actual.endTime) / 100) * 1800}px`,
+            left: `${(getTimePosition(actual.startTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+            width: `${(getTimeDuration(actual.startTime, actual.endTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
           }}
           title={`실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`}
         />
@@ -388,8 +364,8 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
           key={unassigned.actualStudyTimeId}
           className="absolute h-full bg-green-200 rounded z-10"
           style={{
-            left: `${(getTimePosition(unassigned.startTime) / 100) * 1800}px`,
-            width: `${(getTimeDuration(unassigned.startTime, unassigned.endTime) / 100) * 1800}px`,
+            left: `${(getTimePosition(unassigned.startTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+            width: `${(getTimeDuration(unassigned.startTime, unassigned.endTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
           }}
           title={`미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`}
         />

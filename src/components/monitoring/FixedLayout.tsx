@@ -154,15 +154,6 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     
     const progress = (currentHour - START_HOUR) / (END_HOUR - START_HOUR);
     const percentage = progress * 100;
-    const pixelPosition = (percentage / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
-    
-    // Debug log for alignment verification
-    console.log('🏁 FixedLayout current time:', {
-      currentHour: currentHour.toFixed(3),
-      percentage: percentage.toFixed(2) + '%',
-      pixelPosition: pixelPosition.toFixed(1) + 'px',
-      currentTime: currentTime.toLocaleTimeString()
-    });
     
     return percentage;
   }, [currentTime]);

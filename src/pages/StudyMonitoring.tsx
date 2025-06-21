@@ -14,6 +14,45 @@ import monitoringApi from '@/services/monitoringApi';
 import { MonitoringStudent } from '@/types/monitoring';
 import { formatKoreanTime } from '@/utils/dateUtils';
 
+// Separate component for last refresh time to optimize re-rendering
+const LastRefreshTime: React.FC<{ lastRefreshTime: Date | null }> = ({ lastRefreshTime }) => {
+  const [, forceUpdate] = useState({});
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only update if the tab is visible
+      if (!document.hidden) {
+        forceUpdate({}); // Only re-render this component
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatLastRefreshTime = (time: Date | null) => {
+    if (!time) return null;
+    
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - time.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds}초 전`;
+    
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    return `${diffInHours}시간 전`;
+  };
+
+  if (!lastRefreshTime) return null;
+
+  return (
+    <div className="text-sm text-gray-500">
+      마지막 업데이트: {formatLastRefreshTime(lastRefreshTime)}
+    </div>
+  );
+};
+
 const StudyMonitoring: React.FC = () => {
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -24,6 +63,7 @@ const StudyMonitoring: React.FC = () => {
   });
   const [selectedStudents, setSelectedStudents] = useState<Set<number>>(new Set());
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
   // Query for monitoring data
   const { 
@@ -38,6 +78,13 @@ const StudyMonitoring: React.FC = () => {
     refetchInterval: autoRefresh ? 60000 : false, // Refetch every minute if auto refresh is on
     refetchIntervalInBackground: true,
   });
+
+  // Update last refresh time when data is successfully fetched
+  useEffect(() => {
+    if (monitoringData && !isLoading && !isError) {
+      setLastRefreshTime(new Date());
+    }
+  }, [monitoringData, isLoading, isError]);
 
   const students = monitoringData?.data?.students || [];
 
@@ -84,6 +131,7 @@ const StudyMonitoring: React.FC = () => {
   // Manual refresh
   const handleRefresh = () => {
     refetch();
+    setLastRefreshTime(new Date());
     toast({
       title: "데이터 새로고침",
       description: "모니터링 데이터를 업데이트했습니다.",
@@ -138,6 +186,9 @@ const StudyMonitoring: React.FC = () => {
               자동 새로고침 (1분)
             </label>
           </div>
+          
+          {/* Last refresh time */}
+          <LastRefreshTime lastRefreshTime={lastRefreshTime} />
           
           {/* Manual refresh button */}
           <Button 

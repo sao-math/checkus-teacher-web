@@ -7,7 +7,7 @@ export interface Guardian {
 export interface ConnectedActualStudyTime {
   actualStudyTimeId: number;
   startTime: string;
-  endTime: string;
+  endTime: string | null;
 }
 
 export interface AssignedStudyTime {
@@ -21,7 +21,7 @@ export interface AssignedStudyTime {
 export interface UnassignedActualStudyTime {
   actualStudyTimeId: number;
   startTime: string;
-  endTime: string;
+  endTime: string | null;
 }
 
 export type StudentStatus = 'ATTENDING' | 'ABSENT' | 'NO_ASSIGNED_TIME';

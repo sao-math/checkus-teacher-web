@@ -245,6 +245,16 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
   unassignedTimes, 
   className 
 }) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Update current time every 30 seconds for ongoing sessions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const getTimePosition = useCallback((timeStr: string) => {
     const time = new Date(timeStr);
     const hour = time.getHours() + time.getMinutes() / 60;
@@ -257,15 +267,15 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     return ((hour - startHour) / (endHour - startHour)) * 100;
   }, []);
 
-  const getTimeDuration = useCallback((startStr: string, endStr: string) => {
+  const getTimeDuration = useCallback((startStr: string, endStr: string | null) => {
     const start = new Date(startStr);
-    const end = new Date(endStr);
+    const end = endStr ? new Date(endStr) : currentTime; // Use current time if endTime is null
     const startHour = start.getHours() + start.getMinutes() / 60;
     const endHour = end.getHours() + end.getMinutes() / 60;
     const totalHours = 24 - 6; // 18 hours total
     
     return ((endHour - startHour) / totalHours) * 100;
-  }, []);
+  }, [currentTime]);
 
   return (
     <div className={cn("relative h-8", className)}>
@@ -282,31 +292,51 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
         />
       ))}
       
-      {/* Connected actual study times (dark blue) */}
-      {actualTimes.map((actual) => (
-        <div
-          key={actual.actualStudyTimeId}
-          className="absolute h-full bg-green-500 rounded z-10"
-          style={{
-            left: `${getTimePosition(actual.startTime)}%`,
-            width: `${getTimeDuration(actual.startTime, actual.endTime)}%`,
-          }}
-          title={`실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`}
-        />
-      ))}
+      {/* Connected actual study times (green) */}
+      {actualTimes.map((actual) => {
+        const isOngoing = !actual.endTime;
+        return (
+          <div
+            key={actual.actualStudyTimeId}
+            className={cn(
+              "absolute h-full rounded z-10",
+              isOngoing ? "bg-green-400 animate-pulse" : "bg-green-500"
+            )}
+            style={{
+              left: `${getTimePosition(actual.startTime)}%`,
+              width: `${getTimeDuration(actual.startTime, actual.endTime)}%`,
+            }}
+            title={
+              isOngoing 
+                ? `실제 접속 (진행 중): ${formatKoreanTime(actual.startTime, 'HH:mm')} - 현재`
+                : `실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`
+            }
+          />
+        );
+      })}
       
-      {/* Unassigned actual study times (orange) */}
-      {unassignedTimes.map((unassigned) => (
-        <div
-          key={unassigned.actualStudyTimeId}
-          className="absolute h-full bg-green-200 rounded z-10"
-          style={{
-            left: `${getTimePosition(unassigned.startTime)}%`,
-            width: `${getTimeDuration(unassigned.startTime, unassigned.endTime)}%`,
-          }}
-          title={`미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`}
-        />
-      ))}
+      {/* Unassigned actual study times (light green) */}
+      {unassignedTimes.map((unassigned) => {
+        const isOngoing = !unassigned.endTime;
+        return (
+          <div
+            key={unassigned.actualStudyTimeId}
+            className={cn(
+              "absolute h-full rounded z-10",
+              isOngoing ? "bg-green-300 animate-pulse" : "bg-green-200"
+            )}
+            style={{
+              left: `${getTimePosition(unassigned.startTime)}%`,
+              width: `${getTimeDuration(unassigned.startTime, unassigned.endTime)}%`,
+            }}
+            title={
+              isOngoing
+                ? `미할당 시간 추가 접속 (진행 중): ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - 현재`
+                : `미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`
+            }
+          />
+        );
+      })}
     </div>
   );
 });

@@ -5,11 +5,11 @@ import { formatKoreanTime, formatKoreanTimeRange } from '@/utils/dateUtils';
 
 // Timeline layout constants (shared with FixedLayout)
 const TIMELINE_CONSTANTS = {
-  STUDENT_NAME_WIDTH: 192, // w-48 = 192px
-  TIMELINE_WIDTH: 1800,
-  START_HOUR: 6,
-  END_HOUR: 24,
-  TOTAL_HOURS: 18
+  STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
+  TIMELINE_WIDTH: 2400, // 30시간 * 80px = 2400px (기존 1800px에서 확장)
+  START_HOUR: 0, // 0시부터 시작 (기존 6시)
+  END_HOUR: 30, // 30시까지 (다음날 6시)
+  TOTAL_HOURS: 30 // 30시간
 } as const;
 
 interface TimelineProps {
@@ -197,33 +197,26 @@ const FixedTimelineHeader: React.FC = () => {
     <div className="relative h-12 bg-gray-50" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Grid lines for each hour */}
       <div className="flex h-full">
-        {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => (
-          <div 
-            key={i} 
-            className="flex-1 border-r border-gray-300"
-          />
-        ))}
+        {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => {
+          const hour = TIMELINE_CONSTANTS.START_HOUR + i;
+          const displayHour = hour >= 24 ? hour - 24 : hour; // 24시 이후는 다음날로 표시
+          const isNextDay = hour >= 24;
+          
+          return (
+            <div 
+              key={hour} 
+              className="flex-1 flex flex-col items-center justify-center border-r border-gray-200 text-sm font-medium text-gray-600 min-w-[80px]"
+            >
+              <span className={isNextDay ? 'text-blue-600' : ''}>
+                {displayHour.toString().padStart(2, '0')}:00
+              </span>
+              {isNextDay && (
+                <span className="text-xs text-blue-500">+1일</span>
+              )}
+            </div>
+          );
+        })}
       </div>
-      
-      {/* Time labels positioned exactly on tick marks */}
-      {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS + 1 }, (_, i) => {
-        const hour = TIMELINE_CONSTANTS.START_HOUR + i; // 6:00 to 24:00
-        return (
-          <div 
-            key={hour}
-            className="absolute top-0 h-full flex items-center justify-center"
-            style={{ 
-              left: `${(i / TIMELINE_CONSTANTS.TOTAL_HOURS) * 100}%`,
-              transform: 'translateX(-50%)', // Center on the tick mark
-              zIndex: 10
-            }}
-          >
-            <span className="text-xs font-medium text-gray-600 bg-gray-50 px-1">
-              {hour}:00
-            </span>
-          </div>
-        );
-      })}
     </div>
   );
 };

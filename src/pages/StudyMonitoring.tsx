@@ -153,9 +153,8 @@ const StudyMonitoring: React.FC = () => {
 
   // 현재 시간이 타임라인 범위 내에 있는지 확인
   const isCurrentTimeInRange = () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    return currentHour >= 6 && currentHour < 24;
+    // 0-30시 범위이므로 항상 현재 시간이 범위 내에 있음
+    return true;
   };
 
   // Get selected students data

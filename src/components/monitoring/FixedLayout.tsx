@@ -4,10 +4,10 @@ import { cn } from '@/lib/utils';
 // Timeline layout constants
 const TIMELINE_CONSTANTS = {
   STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
-  TIMELINE_WIDTH: 1800,
-  START_HOUR: 6,
-  END_HOUR: 24,
-  TOTAL_HOURS: 18
+  TIMELINE_WIDTH: 2400, // 30시간 * 80px = 2400px (기존 1800px에서 확장)
+  START_HOUR: 0, // 0시부터 시작 (기존 6시)
+  END_HOUR: 30, // 30시까지 (다음날 6시)
+  TOTAL_HOURS: 30 // 30시간
 } as const;
 
 interface FixedLayoutProps {
@@ -152,20 +152,20 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
     const { START_HOUR, END_HOUR } = TIMELINE_CONSTANTS;
     
-    if (currentHour < START_HOUR || currentHour >= END_HOUR) {
-      return null;
-    }
+    // 0-30시 범위이므로 모든 시간이 범위 내
+    // 0-23시는 그대로, 24-29시는 다음날 0-5시로 처리
+    let adjustedHour = currentHour;
     
-    const progress = (currentHour - START_HOUR) / (END_HOUR - START_HOUR);
+    // 현재 시간이 범위 내에 있는지 확인하지 않고 항상 표시
+    const progress = adjustedHour / (END_HOUR - START_HOUR);
     const percentage = progress * 100;
     
-    return percentage;
+    return Math.max(0, Math.min(100, percentage));
   }, [currentTime]);
 
   // 현재 시간으로 스크롤 이동하는 함수
   const scrollToCurrentTime = useCallback(() => {
     const currentTimePosition = getCurrentTimePosition();
-    if (currentTimePosition === null) return;
 
     const contentElement = contentScrollRef.current;
     const headerElement = headerScrollRef.current;
@@ -295,15 +295,13 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
             {children}
             
             {/* Current Time Indicator - Inside scrollable content - Extends through all rows */}
-            {currentTimePosition !== null && (
-              <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
-                style={{ 
-                  left: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)`,
-                  zIndex: 100
-                }}
-              />
-            )}
+            <div 
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
+              style={{ 
+                left: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)`,
+                zIndex: 100
+              }}
+            />
           </div>
         </div>
       </div>

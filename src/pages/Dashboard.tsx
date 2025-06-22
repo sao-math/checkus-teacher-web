@@ -1,11 +1,27 @@
-
 import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, BookOpen, CheckSquare, TrendingUp, Calendar, Clock } from 'lucide-react';
+import authService from '@/services/auth';
 
 const Dashboard = () => {
+  const { user } = useAuth();
+
+  const handleDebugTokens = () => {
+    authService.debugTokenStatus();
+  };
+
+  const handleTestRefresh = async () => {
+    try {
+      await authService.refreshToken();
+      console.log('Manual refresh successful');
+    } catch (error) {
+      console.error('Manual refresh failed:', error);
+    }
+  };
+
   const stats = [
     {
       title: '총 반 수',
@@ -53,10 +69,86 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">대시보드</h1>
-        <p className="text-gray-600 mt-1">학생 관리 시스템 현황을 한눈에 확인하세요</p>
+        <p className="text-gray-600 mt-2">CheckUS 교사 관리 시스템에 오신 것을 환영합니다.</p>
+      </div>
+
+      {/* User Info Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>사용자 정보</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {user?.data ? (
+            <div className="space-y-2">
+              <p><strong>이름:</strong> {user.data.name}</p>
+              <p><strong>사용자명:</strong> {user.data.username}</p>
+              <p><strong>전화번호:</strong> {user.data.phoneNumber}</p>
+              <p><strong>디스코드 ID:</strong> {user.data.discordId || '미설정'}</p>
+              <p><strong>역할:</strong> {user.data.roles?.join(', ')}</p>
+            </div>
+          ) : (
+            <p>사용자 정보를 불러오는 중...</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Token Debug Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>토큰 관리 디버그</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-gray-600">
+            새로운 토큰 관리 시스템:
+            <br />• 액세스 토큰: 메모리 저장
+            <br />• 리프레시 토큰: 쿠키 저장
+          </p>
+          
+          <div className="flex space-x-4">
+            <Button onClick={handleDebugTokens} variant="outline">
+              토큰 상태 확인 (콘솔)
+            </Button>
+            <Button onClick={handleTestRefresh} variant="outline">
+              수동 토큰 갱신 테스트
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>학생 관리</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">학생 정보를 관리하고 출석을 확인하세요.</p>
+            <Button className="w-full">학생 관리로 이동</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>스터디 모니터링</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">실시간으로 학생들의 학습 현황을 모니터링하세요.</p>
+            <Button className="w-full">모니터링으로 이동</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>과제 관리</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 mb-4">과제를 생성하고 관리하세요.</p>
+            <Button className="w-full">과제 관리로 이동</Button>
+          </CardContent>
+        </Card>
       </div>
 
       {/* 통계 카드 */}

@@ -381,7 +381,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     
     // For ongoing sessions, ensure minimum width
     if (!endStr) {
-      duration = Math.max(duration, 0.5); // Minimum 0.5% width for visibility
+      duration = Math.max(duration, 0.2); // Minimum 0.2% width for visibility (reduced from 0.5%)
     }
     
     return Math.min(duration, 100);

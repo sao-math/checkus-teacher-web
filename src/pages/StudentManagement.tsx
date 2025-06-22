@@ -310,7 +310,16 @@ const StudentManagement = () => {
                       </Avatar>
                       <div>
                         <div className="font-medium text-gray-900">{student.name}</div>
-                        <div className="text-sm text-gray-500">@{student.username}</div>
+                        <div className="text-sm text-gray-500">
+                          @{student.username}
+                          {student.schoolName && student.grade ? (
+                            <span className="text-gray-600"> - {student.schoolName} {student.grade}학년</span>
+                          ) : student.schoolName ? (
+                            <span className="text-gray-600"> - {student.schoolName}</span>
+                          ) : (
+                            <span className="text-gray-600"> - 학교 정보 없음</span>
+                          )}
+                        </div>
                       </div>
                       <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
                         {student.statusDescription}

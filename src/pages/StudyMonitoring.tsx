@@ -29,6 +29,13 @@ const LastRefreshTime: React.FC<{ lastRefreshTime: Date | null }> = ({ lastRefre
     return () => clearInterval(interval);
   }, []);
 
+  // Force update immediately when lastRefreshTime changes
+  useEffect(() => {
+    if (lastRefreshTime) {
+      forceUpdate({}); // Immediately update when lastRefreshTime changes
+    }
+  }, [lastRefreshTime]);
+
   const formatLastRefreshTime = (time: Date | null) => {
     if (!time) return null;
     

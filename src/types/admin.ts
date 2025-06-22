@@ -6,6 +6,8 @@ export interface UserRoleResponse {
   roleName: string;
   status: string;
   statusDescription: string;
+  schoolName?: string | null;
+  grade?: number | null;
 }
 
 export interface ResponseBase<T> {

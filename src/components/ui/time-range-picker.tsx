@@ -44,8 +44,8 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
     if (!barRef.current) return 0;
     const rect = barRef.current.getBoundingClientRect();
     const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const minutes = Math.round(percentage * 24 * 60 / 15) * 15; // Snap to 15-minute intervals
-    return Math.min(Math.max(0, minutes), 24 * 60 - 15);
+    const minutes = Math.round(percentage * 24 * 60); // Allow 1-minute intervals instead of 15
+    return Math.min(Math.max(0, minutes), 24 * 60); // Allow selection until 24:00 (midnight)
   }, []);
 
   const startMinutes = timeToMinutes(startTime);
@@ -65,14 +65,14 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
     const newMinutes = getMinutesFromPosition(e.clientX);
 
     if (dragType === 'start') {
-      const newStart = Math.min(newMinutes, endMinutes - 15);
+      const newStart = Math.min(newMinutes, endMinutes - 1); // Minimum 1-minute duration
       onTimeChange(minutesToTime(newStart), endTime);
     } else if (dragType === 'end') {
-      const newEnd = Math.max(newMinutes, startMinutes + 15);
+      const newEnd = Math.max(newMinutes, startMinutes + 1); // Minimum 1-minute duration
       onTimeChange(startTime, minutesToTime(newEnd));
     } else if (dragType === 'range') {
       const deltaX = e.clientX - dragStart;
-      const deltaMinutes = Math.round((deltaX / (barRef.current?.getBoundingClientRect().width || 1)) * 24 * 60 / 15) * 15;
+      const deltaMinutes = Math.round((deltaX / (barRef.current?.getBoundingClientRect().width || 1)) * 24 * 60); // Remove 15-minute restriction
       
       const duration = endMinutes - startMinutes;
       let newStartMinutes = startMinutes + deltaMinutes;
@@ -116,11 +116,11 @@ const TimeRangePicker: React.FC<TimeRangePickerProps> = ({
     
     if (newMinutes < midPoint) {
       // Clicked closer to start, adjust start time
-      const newStart = Math.min(newMinutes, endMinutes - 15);
+      const newStart = Math.min(newMinutes, endMinutes - 1); // Minimum 1-minute duration
       onTimeChange(minutesToTime(newStart), endTime);
     } else {
       // Clicked closer to end, adjust end time
-      const newEnd = Math.max(newMinutes, startMinutes + 15);
+      const newEnd = Math.max(newMinutes, startMinutes + 1); // Minimum 1-minute duration
       onTimeChange(startTime, minutesToTime(newEnd));
     }
   }, [disabled, isDragging, getMinutesFromPosition, startMinutes, endMinutes, minutesToTime, onTimeChange, startTime, endTime]);

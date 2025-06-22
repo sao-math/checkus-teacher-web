@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Users, BookOpen, CheckSquare, Settings, Monitor } from 'lucide-react';
+import { Users, BookOpen, CheckSquare, Settings, Monitor, School } from 'lucide-react';
 
 const menuItems = [
   {
@@ -40,6 +40,11 @@ const adminMenuItems = [
     title: '선생님 관리',
     url: '/teachers',
     icon: Settings,
+  },
+  {
+    title: '학교 관리',
+    url: '/schools',
+    icon: School,
   },
 ];
 

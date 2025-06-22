@@ -13,6 +13,7 @@ import TeacherDetails from '@/pages/TeacherDetails';
 import ClassManagement from '@/pages/ClassManagement';
 import ClassForm from '@/pages/ClassForm';
 import ClassDetails from '@/pages/ClassDetails';
+import SchoolManagement from '@/pages/SchoolManagement';
 import Layout from '@/components/Layout';
 import TaskManagement from './pages/TaskManagement';
 import StudentDetails from './pages/StudentDetails';
@@ -79,6 +80,9 @@ const App = () => {
               
               {/* Study Monitoring route */}
               <Route path="monitoring" element={<StudyMonitoring />} />
+              
+              {/* School Management route */}
+              <Route path="schools" element={<SchoolManagement />} />
             </Route>
           </Routes>
           <Toaster />

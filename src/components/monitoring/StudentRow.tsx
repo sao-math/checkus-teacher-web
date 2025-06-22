@@ -111,7 +111,6 @@ const StudentRow: React.FC<StudentRowProps> = ({
                 "px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer truncate max-w-[80px]",
                 getStatusColor(student.status)
               )}
-              title={student.studentName}
             >
               {student.studentName}
             </button>

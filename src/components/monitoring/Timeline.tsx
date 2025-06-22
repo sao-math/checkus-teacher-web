@@ -196,20 +196,37 @@ const FixedTimelineHeader: React.FC = () => {
   return (
     <div className="relative h-12 bg-gray-50" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Grid lines for each hour */}
-      <div className="flex h-full" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
+      <div className="relative h-full" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
+        {/* Hour divider lines */}
+        {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS + 1 }, (_, i) => {
+          const hour = TIMELINE_CONSTANTS.START_HOUR + i;
+          const position = (i / TIMELINE_CONSTANTS.TOTAL_HOURS) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
+          
+          return (
+            <div
+              key={`line-${hour}`}
+              className="absolute top-0 bottom-0 border-r border-gray-200"
+              style={{ left: `${position}px` }}
+            />
+          );
+        })}
+        
+        {/* Hour labels positioned at exact hour marks */}
         {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => {
           const hour = TIMELINE_CONSTANTS.START_HOUR + i;
           const displayHour = hour >= 24 ? hour - 24 : hour; // 24시 이후는 다음날로 표시
           const isNextDay = hour >= 24;
+          const position = (i / TIMELINE_CONSTANTS.TOTAL_HOURS) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
           
           return (
             <div 
-              key={hour} 
-              className="flex flex-col items-center justify-center border-r border-gray-200 text-sm font-medium text-gray-600"
+              key={`label-${hour}`} 
+              className="absolute flex flex-col items-center justify-center text-sm font-medium text-gray-600"
               style={{ 
-                width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH / TIMELINE_CONSTANTS.TOTAL_HOURS}px`,
-                minWidth: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH / TIMELINE_CONSTANTS.TOTAL_HOURS}px`,
-                maxWidth: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH / TIMELINE_CONSTANTS.TOTAL_HOURS}px`
+                left: `${position}px`,
+                top: '0',
+                height: '100%',
+                transform: 'translateX(-50%)' // Center the label on the line
               }}
             >
               <span className={isNextDay ? 'text-blue-600' : ''}>

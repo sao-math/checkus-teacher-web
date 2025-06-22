@@ -13,7 +13,6 @@ import { TaskNode } from '@/types/task';
 import { TaskSidebar } from '@/components/students/TaskSidebar';
 import { useAutoCloseSidebar } from '@/hooks/useAutoCloseSidebar';
 import { StudyTimeDayModal } from '@/components/students/StudyTimeDayModal';
-import { StudyTimeEventModal } from '@/components/students/StudyTimeEventModal';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { isAxiosError } from 'axios';
@@ -22,7 +21,6 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
 import { TaskTree } from '@/components/tasks/TaskTree';
-import { toast } from '@/components/ui/use-toast';
 import { formatKoreanTime, formatKoreanTimeRange, createUtcDateTime, convertLocalDateToUtc } from '@/utils/dateUtils';
 import { Progress, TimelineSegment } from '@/components/ui/progress';
 import { StudyTimeForm } from '@/components/students/StudyTimeForm';
@@ -157,7 +155,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [assignedTasks, setAssignedTasks] = useState<{[key: string]: TaskNode[]}>({});
+  const [assignedTasks, setAssignedTasks] = useState<{[date: string]: TaskNode[]}>({});
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualTitle, setManualTitle] = useState('');
   const [manualActivityId, setManualActivityId] = useState<number | null>(null);
@@ -168,6 +166,9 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
   const [studyTimeActivities, setStudyTimeActivities] = useState<Activity[]>([]);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorDetails, setErrorDetails] = useState<Array<{ date: string; schedule: string; error: string }>>([]);
+  const [selectedStudyTimeForEdit, setSelectedStudyTimeForEdit] = useState<AssignedStudyTime | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const { toast } = useToast();
 
   // Fetch study-assignable activities for study time assignment
   const fetchStudyTimeActivities = async () => {
@@ -479,6 +480,43 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
     fetchActualStudyTimesForDate(date);
   };
 
+  const handleStudyTimeClick = (studyTime: AssignedStudyTime, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent date click event
+    setSelectedStudyTimeForEdit(studyTime);
+    setShowEditModal(true);
+    // Fetch activities when opening edit modal
+    fetchStudyTimeActivities();
+  };
+
+  const handleStudyTimeUpdate = async (updates: Partial<AssignedStudyTime>) => {
+    if (selectedStudyTimeForEdit) {
+      await onUpdateStudyTime(selectedStudyTimeForEdit.id, updates);
+      setShowEditModal(false);
+      setSelectedStudyTimeForEdit(null);
+    }
+  };
+
+  const handleStudyTimeDelete = async () => {
+    if (selectedStudyTimeForEdit) {
+      try {
+        await onDeleteStudyTime(selectedStudyTimeForEdit.id);
+        setShowEditModal(false);
+        setSelectedStudyTimeForEdit(null);
+        toast({
+          title: "성공",
+          description: "공부시간이 삭제되었습니다.",
+        });
+      } catch (error) {
+        console.error('Failed to delete study time:', error);
+        toast({
+          title: "오류",
+          description: "공부시간 삭제에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const handleTaskDragStart = (task: TaskNode, event: React.DragEvent) => {
     // 드래그 시작 시 필요한 데이터 설정
     const dragData = {
@@ -680,15 +718,26 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-move"
+                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors relative group"
                       draggable
                       onDragStart={e => handleStudyTimeDragStart(studyTime, e)}
                       onDragEnd={handleDragEnd}
+                      onClick={e => handleStudyTimeClick(studyTime, e)}
+                      title="클릭하여 수정하거나 드래그하여 이동"
                     >
-                      <div className="font-medium">{studyTime.title}</div>
-                      <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
+                      {/* Activity type badge */}
+                      <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                        <span className="inline-block px-1 py-0.5 text-[8px] font-medium bg-green-600 text-white rounded-full leading-none">
+                          {studyTime.activityName}
+                        </span>
+                      </div>
+                      <div className="font-medium pr-8">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">
                         {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
+                      </div>
+                      {/* Edit indicator */}
+                      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-2 h-2 bg-green-600 rounded-full"></div>
                       </div>
                     </div>
                   ))}
@@ -816,15 +865,26 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                   {assigned.slice(0, 3).map((studyTime) => (
                     <div
                       key={studyTime.id}
-                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-move"
+                      className="text-xs p-1 rounded truncate bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors relative group"
                       draggable
                       onDragStart={e => handleStudyTimeDragStart(studyTime, e)}
                       onDragEnd={handleDragEnd}
+                      onClick={e => handleStudyTimeClick(studyTime, e)}
+                      title="클릭하여 수정하거나 드래그하여 이동"
                     >
-                      <div className="font-medium">{studyTime.title}</div>
-                      <div className="text-[10px] text-green-600">{studyTime.activityName}</div>
+                      {/* Activity type badge */}
+                      <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                        <span className="inline-block px-1 py-0.5 text-[8px] font-medium bg-green-600 text-white rounded-full leading-none">
+                          {studyTime.activityName}
+                        </span>
+                      </div>
+                      <div className="font-medium pr-8">{studyTime.title}</div>
                       <div className="text-[10px] text-green-600">
                         {formatKoreanTimeRange(studyTime.startTime, studyTime.endTime)}
+                      </div>
+                      {/* Edit indicator */}
+                      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="w-2 h-2 bg-green-600 rounded-full"></div>
                       </div>
                     </div>
                   ))}
@@ -1129,84 +1189,24 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           </DialogHeader>
           <StudyTimeForm
             defaultValues={{
-              title: '',
-              activityId: '',
-              date: new Date(),
+              title: manualTitle,
+              activityId: manualActivityId?.toString() || '',
+              date: selectedDate || new Date(),
               startTime: '09:00',
               endTime: '10:00',
             }}
             activities={studyTimeActivities}
-            onSubmit={async (data) => {
-              setIsLoading(true);
-              try {
-                const selectedActivity = studyTimeActivities.find(a => a.id.toString() === data.activityId);
-                if (!selectedActivity) {
-                  toast({
-                    title: '활동 선택 필요',
-                    description: '활동을 선택해주세요.',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-
-                if (!data.title.trim()) {
-                  toast({
-                    title: '제목 입력 필요',
-                    description: '공부시간 제목을 입력해주세요.',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-
-                // Use createUtcDateTime for proper timezone conversion
-                const startDateTime = createUtcDateTime(data.date!, data.startTime);
-                const endDateTime = createUtcDateTime(data.date!, data.endTime);
-
-                const studyTime: Partial<AssignedStudyTime> = {
-                  studentId: studentId,
-                  activityId: selectedActivity.id,
-                  startTime: startDateTime,
-                  endTime: endDateTime,
-                  assignedBy: 1, // TODO: Replace with actual user ID
-                  title: data.title,
-                  activityName: selectedActivity.name
-                };
-
-                console.log('Sending study time with proper UTC conversion:', {
-                  selectedTime: `${data.startTime} - ${data.endTime}`,
-                  selectedDate: data.date,
-                  utcStartTime: startDateTime,
-                  utcEndTime: endDateTime,
-                  studyTime
-                });
-
-                await onGenerateStudyTimes(data.date!, 1, studyTime);
-                setShowManualModal(false);
-                
-                toast({
-                  title: "성공",
-                  description: "공부시간이 추가되었습니다.",
-                });
-              } catch (error: any) {
-                console.error('Manual study time assignment error:', error);
-                
-                // Extract error message from server response
-                let errorMessage = '공부시간 추가 중 오류가 발생했습니다.';
-                
-                if (error?.response?.data?.message) {
-                  errorMessage = error.response.data.message;
-                } else if (error?.message) {
-                  errorMessage = error.message;
-                }
-                
-                toast({
-                  title: '공부시간 추가 실패',
-                  description: errorMessage,
-                  variant: 'destructive',
-                });
-              } finally {
-                setIsLoading(false);
-              }
+            onSubmit={(data) => {
+              // Update the state variables and call handleManualAdd
+              setManualTitle(data.title);
+              setManualActivityId(parseInt(data.activityId));
+              const startDate = new Date(data.date!);
+              startDate.setHours(parseInt(data.startTime.split(':')[0]), parseInt(data.startTime.split(':')[1]));
+              setManualStartTime(startDate);
+              const endDate = new Date(data.date!);
+              endDate.setHours(parseInt(data.endTime.split(':')[0]), parseInt(data.endTime.split(':')[1]));
+              setManualEndTime(endDate);
+              handleManualAdd();
             }}
             onCancel={() => setShowManualModal(false)}
             isLoading={isLoading}
@@ -1217,6 +1217,69 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
           />
         </DialogContent>
       </Dialog>
+
+      {/* 공부시간 수정 모달 */}
+      {selectedStudyTimeForEdit && (
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>공부시간 수정</DialogTitle>
+            </DialogHeader>
+            <StudyTimeForm
+              defaultValues={{
+                title: selectedStudyTimeForEdit.title || '',
+                activityId: selectedStudyTimeForEdit.activityId.toString(),
+                date: new Date(selectedStudyTimeForEdit.startTime),
+                startTime: formatKoreanTime(selectedStudyTimeForEdit.startTime, 'HH:mm'),
+                endTime: formatKoreanTime(selectedStudyTimeForEdit.endTime, 'HH:mm'),
+              }}
+              activities={studyTimeActivities}
+              onSubmit={async (data) => {
+                try {
+                  const updates: Partial<AssignedStudyTime> = {
+                    title: data.title,
+                    activityId: parseInt(data.activityId),
+                    startTime: createUtcDateTime(data.date!, data.startTime),
+                    endTime: createUtcDateTime(data.date!, data.endTime),
+                  };
+                  
+                  await handleStudyTimeUpdate(updates);
+                  toast({
+                    title: "성공",
+                    description: "공부시간이 수정되었습니다.",
+                  });
+                } catch (error) {
+                  console.error('Failed to update study time:', error);
+                  toast({
+                    title: "오류",
+                    description: "공부시간 수정에 실패했습니다.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              onCancel={() => {
+                setShowEditModal(false);
+                setSelectedStudyTimeForEdit(null);
+              }}
+              isLoading={isLoading}
+              showDatePicker={true}
+              showDayOfWeek={false}
+              submitButtonText="수정"
+              fetchActivities={fetchStudyTimeActivities}
+            />
+            <div className="flex justify-between pt-4">
+              <Button 
+                variant="destructive" 
+                onClick={handleStudyTimeDelete}
+                disabled={isLoading}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                삭제
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* 휴지통 영역 - 드래그 중일 때만 표시 */}
       {isDragging && (

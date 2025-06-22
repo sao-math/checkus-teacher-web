@@ -262,10 +262,7 @@ const StudentDetails = () => {
           item.id === id ? result.data : item
         )
       );
-      toast({
-        title: '학습시간이 수정되었습니다.',
-        description: '선택한 학습시간이 수정되었습니다.',
-      });
+      // Success toast removed - let child component handle it
     } catch (error) {
       // Let StudyTimeCalendar handle the error toast display
       throw error;

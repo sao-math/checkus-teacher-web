@@ -297,7 +297,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
                 style={{ 
                   left: `${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-                  zIndex: 50
+                  zIndex: 15
                 }}
               >
                 {/* Current Time Box - Positioned at the top of the timeline */}
@@ -307,7 +307,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
                     left: '50%',
                     transform: 'translateX(-50%)',
                     top: '1px',
-                    zIndex: 60,
+                    zIndex: 16,
                     whiteSpace: 'nowrap',
                     textAlign: 'center'
                   }}
@@ -339,7 +339,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
               style={{ 
                 left: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)`,
-                zIndex: 100
+                zIndex: 25
               }}
             />
           </div>

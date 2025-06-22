@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +58,7 @@ export const StudentWeeklySchedule: React.FC<StudentWeeklyScheduleProps> = ({ st
   const [editingSchedule, setEditingSchedule] = useState<WeeklySchedule | null>(null);
 
   const getDayName = (dayOfWeek: number) => {
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const days = ['', '월', '화', '수', '목', '금', '토', '일']; // Index 0 is empty, 1=월요일, 7=일요일
     return days[dayOfWeek];
   };
 
@@ -120,7 +119,7 @@ export const StudentWeeklySchedule: React.FC<StudentWeeklyScheduleProps> = ({ st
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-            {[1, 2, 3, 4, 5, 6, 0].map((dayOfWeek) => {
+            {[1, 2, 3, 4, 5, 6, 7].map((dayOfWeek) => {
               const daySchedule = getDaySchedule(dayOfWeek);
               return (
                 <div key={dayOfWeek} className="space-y-2">

@@ -330,10 +330,13 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       for (let i = 0; i < days; i++) {
         const currentDate = addDays(startDate, i);
         const dayOfWeek = currentDate.getDay();
+        // Convert JavaScript dayOfWeek (0=Sunday, 1=Monday, ..., 6=Saturday) 
+        // to backend format (1=Monday, ..., 7=Sunday)
+        const backendDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
 
         // Find schedules for this day of week
         const daySchedules = studyAssignableSchedules.filter(
-          schedule => schedule.dayOfWeek === dayOfWeek
+          schedule => schedule.dayOfWeek === backendDayOfWeek
         );
 
         // Create study times for each schedule

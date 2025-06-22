@@ -65,7 +65,7 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
     { value: '4', label: '목요일' },
     { value: '5', label: '금요일' },
     { value: '6', label: '토요일' },
-    { value: '0', label: '일요일' },
+    { value: '7', label: '일요일' },
   ];
 
   return (

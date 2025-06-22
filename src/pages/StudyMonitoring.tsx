@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { FixedLayout } from '@/components/monitoring/FixedLayout';
 import { FixedTimelineHeader } from '@/components/monitoring/Timeline';
 import StudentRow from '@/components/monitoring/StudentRow';
+import { SendMessageDialog } from '@/components/monitoring/SendMessageDialog';
 import monitoringApi from '@/services/monitoringApi';
 import { MonitoringStudent } from '@/types/monitoring';
 import { formatKoreanTime } from '@/utils/dateUtils';
@@ -73,6 +74,7 @@ const StudyMonitoring: React.FC = () => {
   const [selectedStudents, setSelectedStudents] = useState<Set<number>>(new Set());
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   // Query for monitoring data - only enable when authenticated
   const { 
@@ -139,11 +141,21 @@ const StudyMonitoring: React.FC = () => {
       return;
     }
 
-    // TODO: Implement bulk message functionality
-    toast({
-      title: "메시지 기능",
-      description: `${selectedStudents.size}명의 학생에게 메시지 기능이 구현될 예정입니다.`,
-    });
+    setShowMessageDialog(true);
+  };
+
+  // Handle message send complete
+  const handleMessageSendComplete = () => {
+    // Clear selection after sending
+    setSelectedStudents(new Set());
+    
+    // Optionally refresh data
+    refetch();
+  };
+
+  // Get selected students data
+  const getSelectedStudentsData = (): MonitoringStudent[] => {
+    return students.filter(student => selectedStudents.has(student.studentId));
   };
 
   // Manual refresh
@@ -341,6 +353,7 @@ const StudyMonitoring: React.FC = () => {
                     student={student}
                     isSelected={selectedStudents.has(student.studentId)}
                     onSelectionChange={handleStudentSelection}
+                    onMessageSent={handleMessageSendComplete}
                   />
                 ))}
                 
@@ -354,6 +367,14 @@ const StudyMonitoring: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add SendMessageDialog */}
+      <SendMessageDialog
+        open={showMessageDialog}
+        onOpenChange={setShowMessageDialog}
+        selectedStudents={getSelectedStudentsData()}
+        onSendComplete={handleMessageSendComplete}
+      />
     </div>
   );
 };

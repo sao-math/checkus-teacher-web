@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { MessageCircle } from 'lucide-react';
 import { StudyTimeBar } from './Timeline';
 import { FixedRow } from './FixedLayout';
+import { SendMessageDialog } from './SendMessageDialog';
 import { MonitoringStudent, StudentStatus } from '@/types/monitoring';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +14,7 @@ interface StudentRowProps {
   student: MonitoringStudent;
   isSelected: boolean;
   onSelectionChange: (studentId: number, selected: boolean) => void;
+  onMessageSent?: () => void;
 }
 
 const getStatusColor = (status: StudentStatus): string => {
@@ -39,8 +43,14 @@ const getStatusText = (status: StudentStatus): string => {
   }
 };
 
-const StudentRow: React.FC<StudentRowProps> = ({ student, isSelected, onSelectionChange }) => {
+const StudentRow: React.FC<StudentRowProps> = ({ 
+  student, 
+  isSelected, 
+  onSelectionChange, 
+  onMessageSent 
+}) => {
   const navigate = useNavigate();
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   const handleStudentClick = () => {
     navigate(`/students/${student.studentId}`);
@@ -48,6 +58,15 @@ const StudentRow: React.FC<StudentRowProps> = ({ student, isSelected, onSelectio
 
   const handleCheckboxChange = (checked: boolean) => {
     onSelectionChange(student.studentId, checked);
+  };
+
+  const handleMessageClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowMessageDialog(true);
+  };
+
+  const handleMessageSendComplete = () => {
+    onMessageSent?.();
   };
 
   // Get all connected actual study times from assigned times
@@ -101,6 +120,25 @@ const StudentRow: React.FC<StudentRowProps> = ({ student, isSelected, onSelectio
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
+      
+      {/* Individual message button */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMessageClick}
+              className="h-8 w-8 p-0 hover:bg-blue-50"
+            >
+              <MessageCircle className="h-4 w-4 text-blue-600" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>메시지 보내기</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 
@@ -113,10 +151,20 @@ const StudentRow: React.FC<StudentRowProps> = ({ student, isSelected, onSelectio
   );
 
   return (
-    <FixedRow 
-      leftContent={leftContent}
-      rightContent={rightContent}
-    />
+    <>
+      <FixedRow 
+        leftContent={leftContent}
+        rightContent={rightContent}
+      />
+      
+      {/* Individual message dialog */}
+      <SendMessageDialog
+        open={showMessageDialog}
+        onOpenChange={setShowMessageDialog}
+        selectedStudents={[student]}
+        onSendComplete={handleMessageSendComplete}
+      />
+    </>
   );
 };
 

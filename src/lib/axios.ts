@@ -37,6 +37,10 @@ axiosInstance.interceptors.request.use(
       const token = localStorage.getItem('accessToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+      } else {
+        // If no token is available and this is not a public endpoint,
+        // it might be a race condition with authentication loading
+        console.warn('No token available for protected endpoint:', config.url);
       }
       return config;
     } catch (error) {

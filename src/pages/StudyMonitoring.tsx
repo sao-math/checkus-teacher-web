@@ -13,6 +13,7 @@ import StudentRow from '@/components/monitoring/StudentRow';
 import monitoringApi from '@/services/monitoringApi';
 import { MonitoringStudent } from '@/types/monitoring';
 import { formatKoreanTime } from '@/utils/dateUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Separate component for last refresh time to optimize re-rendering
 const LastRefreshTime: React.FC<{ lastRefreshTime: Date | null }> = ({ lastRefreshTime }) => {
@@ -62,6 +63,7 @@ const LastRefreshTime: React.FC<{ lastRefreshTime: Date | null }> = ({ lastRefre
 
 const StudyMonitoring: React.FC = () => {
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedDate, setSelectedDate] = useState(() => {
     // Use Korean local date for the date selector
     const today = new Date();
@@ -72,7 +74,7 @@ const StudyMonitoring: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
 
-  // Query for monitoring data
+  // Query for monitoring data - only enable when authenticated
   const { 
     data: monitoringData, 
     isLoading, 
@@ -82,8 +84,16 @@ const StudyMonitoring: React.FC = () => {
   } = useQuery({
     queryKey: ['monitoring', selectedDate],
     queryFn: () => monitoringApi.getStudyTimeMonitoring(selectedDate),
+    enabled: isAuthenticated && !authLoading, // Only run query when authenticated
     refetchInterval: autoRefresh ? 60000 : false, // Refetch every minute if auto refresh is on
     refetchIntervalInBackground: true,
+    retry: (failureCount, error) => {
+      // Don't retry authentication errors
+      if (error && 'response' in error && (error as any).response?.status === 401) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 
   // Update last refresh time when data is successfully fetched
@@ -153,6 +163,22 @@ const StudyMonitoring: React.FC = () => {
 
   const isAllSelected = students.length > 0 && selectedStudents.size === students.length;
   const isPartiallySelected = selectedStudents.size > 0 && selectedStudents.size < students.length;
+
+  // Show loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">인증 확인 중...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isError) {
     return (

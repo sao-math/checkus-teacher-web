@@ -132,7 +132,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
               onClick={handleMessageClick}
               className="h-6 w-6 p-0 hover:bg-blue-50"
             >
-              <MessageCircle className="h-3 w-3 text-blue-600" />
+              <MessageCircle className="h-3 w-3" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

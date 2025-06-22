@@ -244,19 +244,6 @@ const StudyMonitoring: React.FC = () => {
           {/* Last refresh time */}
           <LastRefreshTime lastRefreshTime={lastRefreshTime} />
           
-          {/* Scroll to current time button */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => fixedLayoutRef.current?.scrollToCurrentTime()}
-            disabled={!isCurrentTimeInRange()}
-            className="flex items-center space-x-2"
-            title={!isCurrentTimeInRange() ? '현재 시간이 타임라인 범위(06:00-24:00) 밖입니다' : '현재 시간 위치로 스크롤'}
-          >
-            <Clock className="h-4 w-4" />
-            <span>현재 시간으로</span>
-          </Button>
-          
           {/* Manual refresh button */}
           <Button 
             variant="outline" 
@@ -288,6 +275,19 @@ const StudyMonitoring: React.FC = () => {
                   className="w-auto"
                 />
               </div>
+              
+              {/* Scroll to current time button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => fixedLayoutRef.current?.scrollToCurrentTime()}
+                disabled={!isCurrentTimeInRange()}
+                className="flex items-center space-x-2"
+                title={!isCurrentTimeInRange() ? '현재 시간이 타임라인 범위(06:00-24:00) 밖입니다' : '현재 시간 위치로 스크롤'}
+              >
+                <Clock className="h-4 w-4" />
+                <span>현재 시간으로</span>
+              </Button>
             </div>
             
             {/* Status badges */}
@@ -310,24 +310,25 @@ const StudyMonitoring: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Checkbox
-                checked={isAllSelected}
-                ref={(el) => {
-                  if (el && el.querySelector('button')) {
-                    const button = el.querySelector('button') as HTMLButtonElement & { indeterminate?: boolean };
-                    if (button) button.indeterminate = isPartiallySelected;
-                  }
-                }}
-                onCheckedChange={handleSelectAll}
-              />
-              <span>
-                학생 목록 ({students.length}명)
-                {selectedStudents.size > 0 && ` • ${selectedStudents.size}명 선택됨`}
-              </span>
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <Checkbox
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el && el.querySelector('button')) {
+                      const button = el.querySelector('button') as HTMLButtonElement & { indeterminate?: boolean };
+                      if (button) button.indeterminate = isPartiallySelected;
+                    }
+                  }}
+                  onCheckedChange={handleSelectAll}
+                />
+                <span className="font-medium text-gray-900">
+                  학생 목록 ({students.length}명)
+                </span>
+              </div>
               
               {/* Legend - Compact version */}
-              <div className="flex items-center space-x-3 ml-8">
+              <div className="flex items-center space-x-4 ml-8">
                 <div className="flex items-center space-x-1">
                   <div className="w-3 h-3 bg-gray-200 border border-gray-300 rounded-sm"></div>
                   <span className="text-xs text-gray-600">할당</span>
@@ -343,16 +344,27 @@ const StudyMonitoring: React.FC = () => {
               </div>
             </div>
             
-            {/* Bulk actions */}
-            {selectedStudents.size > 0 && (
-              <Button 
-                onClick={handleBulkMessage}
-                className="flex items-center space-x-2"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <span>메시지 보내기 ({selectedStudents.size})</span>
-              </Button>
-            )}
+            {/* Message button - Always visible */}
+            <Button 
+              onClick={handleBulkMessage}
+              disabled={selectedStudents.size === 0}
+              variant={selectedStudents.size > 0 ? "default" : "outline"}
+              className={`
+                transition-all duration-200 ease-in-out
+                ${selectedStudents.size > 0 
+                  ? 'shadow-md hover:shadow-lg' 
+                  : 'text-gray-500'
+                }
+              `}
+            >
+              <MessageCircle className="h-4 w-4 mr-2" />
+              <span>
+                {selectedStudents.size > 0 
+                  ? `${selectedStudents.size}명에게 메시지 보내기` 
+                  : '메시지 보내기'
+                }
+              </span>
+            </Button>
           </CardTitle>
         </CardHeader>
         

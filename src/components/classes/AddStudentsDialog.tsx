@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search } from 'lucide-react';
 import { Student } from '@/types/student';
+import { getGradeText } from '@/utils/gradeUtils';
 
 // Mock students data - 실제로는 API에서 가져와야 함
 const mockStudents: Student[] = [
@@ -20,54 +21,64 @@ const mockStudents: Student[] = [
     username: 'minsu123',
     name: '김민수',
     phoneNumber: '010-1234-5678',
+    studentPhoneNumber: '010-1234-5678',
     discordId: 'minsu#1234',
     createdAt: '2024-01-01',
-    status: '재원',
+    status: 'ENROLLED',
+    school: '리플랜고등학교',
     schoolId: 1,
-    schoolName: '리플랜고등학교',
     grade: 3,
-    gender: 'male',
-    completionRate: 85
+    gender: 'MALE',
+    classes: [],
+    guardians: []
   },
   {
     id: 2,
     username: 'jiwon456',
     name: '박지원',
     phoneNumber: '010-2345-6789',
+    studentPhoneNumber: '010-2345-6789',
     discordId: 'jiwon#5678',
     createdAt: '2024-01-01',
-    status: '상담예약',
+    status: 'CONSULTATION',
+    school: '사오중학교',
     schoolId: 2,
-    schoolName: '사오중학교',
-    grade: 2,
-    gender: 'female',
-    completionRate: 92
+    grade: 8,
+    gender: 'FEMALE',
+    classes: [],
+    guardians: []
   },
   {
     id: 3,
     username: 'soyoung789',
     name: '이소영',
     phoneNumber: '010-3456-7890',
+    studentPhoneNumber: '010-3456-7890',
+    discordId: 'soyoung#9012',
     createdAt: '2024-01-01',
-    status: '문의',
+    status: 'INQUIRY',
+    school: '리플랜고등학교',
     schoolId: 1,
-    schoolName: '리플랜고등학교',
-    grade: 1,
-    gender: 'female',
-    completionRate: 78
+    grade: 10,
+    gender: 'FEMALE',
+    classes: [],
+    guardians: []
   },
   {
     id: 4,
     username: 'hyunwoo012',
     name: '최현우',
     phoneNumber: '010-4567-8901',
+    studentPhoneNumber: '010-4567-8901',
+    discordId: 'hyunwoo#3456',
     createdAt: '2024-01-01',
-    status: '대기',
+    status: 'WAITING',
+    school: '리플랜고등학교',
     schoolId: 1,
-    schoolName: '리플랜고등학교',
-    grade: 3,
-    gender: 'male',
-    completionRate: 45
+    grade: 12,
+    gender: 'MALE',
+    classes: [],
+    guardians: []
   }
 ];
 
@@ -88,7 +99,7 @@ export const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   const filteredStudents = mockStudents.filter(student => 
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.schoolName.toLowerCase().includes(searchTerm.toLowerCase())
+    student.school.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleStudentSelect = (studentId: number) => {
@@ -140,7 +151,7 @@ export const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
                 >
                   <div className="font-medium">{student.name}</div>
                   <div className="text-sm text-gray-500">
-                    {student.grade}학년 · {student.schoolName}
+                    {getGradeText(student.grade)} · {student.school}
                   </div>
                 </label>
               </div>

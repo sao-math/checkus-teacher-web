@@ -11,6 +11,7 @@ import {
   UserCircle
 } from 'lucide-react';
 import { Student } from '@/types/student';
+import { getGradeText } from '@/utils/gradeUtils';
 
 interface StudentBasicInfoProps {
   student: Student;
@@ -83,20 +84,6 @@ export const StudentBasicInfo: React.FC<StudentBasicInfoProps> = ({
         return '여성';
       default:
         return '미설정';
-    }
-  };
-
-  const getGradeText = (grade: number) => {
-    if (grade >= 1 && grade <= 6) {
-      return `초등학교 ${grade}학년`;
-    } else if (grade >= 7 && grade <= 9) {
-      return `중학교 ${grade - 6}학년`;
-    } else if (grade >= 10 && grade <= 12) {
-      return `고등학교 ${grade - 9}학년`;
-    } else if (grade === 13) {
-      return 'N수';
-    } else {
-      return `${grade}학년`;
     }
   };
 

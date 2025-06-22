@@ -10,6 +10,7 @@ import { Student, StudentUpdateRequest } from '@/types/student';
 import { studentApi } from '@/services/studentApi';
 import { schoolApi, School } from '@/services/schoolApi';
 import { Save } from 'lucide-react';
+import { getGradeText } from '@/utils/gradeUtils';
 
 const StudentEdit = () => {
   const { id } = useParams();
@@ -49,20 +50,6 @@ const StudentEdit = () => {
       return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
     } else {
       return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-    }
-  };
-
-  const getGradeText = (grade: number) => {
-    if (grade >= 1 && grade <= 6) {
-      return `초등학교 ${grade}학년`;
-    } else if (grade >= 7 && grade <= 9) {
-      return `중학교 ${grade - 6}학년`;
-    } else if (grade >= 10 && grade <= 12) {
-      return `고등학교 ${grade - 9}학년`;
-    } else if (grade === 13) {
-      return 'N수';
-    } else {
-      return `${grade}학년`;
     }
   };
 

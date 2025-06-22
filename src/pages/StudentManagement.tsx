@@ -12,6 +12,7 @@ import { UserRoleResponse } from '@/types/admin';
 import { studentApi } from '@/services/studentApi';
 import { adminApi } from '@/services/adminApi';
 import ManagementList from '@/components/ui/ManagementList';
+import { getGradeText } from '@/utils/gradeUtils';
 
 const StudentManagement = () => {
   const navigate = useNavigate();
@@ -124,20 +125,6 @@ const StudentManagement = () => {
       case 'WITHDRAWN': return '퇴원';
       case 'UNREGISTERED': return '미등록';
       default: return '알 수 없음';
-    }
-  };
-
-  const getGradeText = (grade: number) => {
-    if (grade >= 1 && grade <= 6) {
-      return `초등학교 ${grade}학년`;
-    } else if (grade >= 7 && grade <= 9) {
-      return `중학교 ${grade - 6}학년`;
-    } else if (grade >= 10 && grade <= 12) {
-      return `고등학교 ${grade - 9}학년`;
-    } else if (grade === 13) {
-      return 'N수';
-    } else {
-      return `${grade}학년`;
     }
   };
 
@@ -313,7 +300,7 @@ const StudentManagement = () => {
                         <div className="text-sm text-gray-500">
                           @{student.username}
                           {student.schoolName && student.grade ? (
-                            <span className="text-gray-600"> - {student.schoolName} {student.grade}학년</span>
+                            <span className="text-gray-600"> - {student.schoolName} {getGradeText(student.grade)}</span>
                           ) : student.schoolName ? (
                             <span className="text-gray-600"> - {student.schoolName}</span>
                           ) : (

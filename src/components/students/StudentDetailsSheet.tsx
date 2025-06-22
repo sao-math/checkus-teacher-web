@@ -22,6 +22,7 @@ import {
   Award,
   TrendingUp
 } from 'lucide-react';
+import { getGradeText } from '@/utils/gradeUtils';
 
 interface Student {
   id: number;
@@ -103,7 +104,7 @@ export const StudentDetailsSheet: React.FC<StudentDetailsSheetProps> = ({
             </Badge>
           </div>
           <SheetDescription>
-            {selectedStudent.grade}학년 · {selectedStudent.class} · {selectedStudent.school}
+            {getGradeText(selectedStudent.grade)} · {selectedStudent.class} · {selectedStudent.school}
           </SheetDescription>
         </SheetHeader>
 

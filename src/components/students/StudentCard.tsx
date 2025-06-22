@@ -2,6 +2,7 @@ import React from 'react';
 import { School, Phone, Users } from 'lucide-react';
 import ManagementCard from '@/components/ui/ManagementCard';
 import { Student } from '@/types/student';
+import { getGradeText } from '@/utils/gradeUtils';
 
 interface StudentCardProps {
   student: Student;
@@ -32,7 +33,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, onView, onEdit, onDe
   const info = [
     {
       icon: School,
-      text: `${student.school} ${student.grade}학년`
+      text: `${student.school} ${getGradeText(student.grade)}`
     },
     {
       icon: Phone,

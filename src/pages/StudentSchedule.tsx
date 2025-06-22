@@ -23,6 +23,7 @@ import { StudentBasicInfo } from '@/components/students/StudentBasicInfo';
 import { StudentWeeklySchedule } from '@/components/students/StudentWeeklySchedule';
 import { StudentCalendarView } from '@/components/students/StudentCalendarView';
 import { TaskSidebar } from '@/components/students/TaskSidebar';
+import { getGradeText } from '@/utils/gradeUtils';
 
 // Mock data - 실제로는 API에서 가져와야 함
 const mockStudent: Student = {
@@ -80,7 +81,7 @@ const StudentSchedule = () => {
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
                 <p className="text-sm text-gray-500">
-                  {student.grade}학년 · {student.school}
+                  {getGradeText(student.grade)} · {student.school}
                 </p>
               </div>
             </div>

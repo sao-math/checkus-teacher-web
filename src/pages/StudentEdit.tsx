@@ -327,7 +327,6 @@ const StudentEdit = () => {
                               value={school.name}
                               onSelect={() => handleSchoolSelect(school)}
                             >
-                              <SchoolIcon className="h-4 w-4 mr-3 text-gray-500" />
                               {school.name}
                               <Check
                                 className={cn(

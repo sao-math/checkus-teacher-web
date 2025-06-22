@@ -9,6 +9,8 @@ import authService from '@/services/auth';
 const Dashboard = () => {
   const { user } = useAuth();
 
+  // Debug handlers - Hidden for production
+  /*
   const handleDebugTokens = () => {
     authService.debugTokenStatus();
   };
@@ -21,6 +23,7 @@ const Dashboard = () => {
       console.error('Manual refresh failed:', error);
     }
   };
+  */
 
   const stats = [
     {
@@ -95,7 +98,8 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Token Debug Section */}
+      {/* Token Debug Section - Hidden for production */}
+      {/* 
       <Card>
         <CardHeader>
           <CardTitle>토큰 관리 디버그</CardTitle>
@@ -117,6 +121,7 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+      */}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

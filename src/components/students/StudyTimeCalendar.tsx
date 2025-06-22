@@ -726,7 +726,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       title="클릭하여 수정하거나 드래그하여 이동"
                     >
                       {/* Activity type badge */}
-                      <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                      <div className="absolute top-1 right-1">
                         <span className="inline-block px-1 py-0.5 text-[8px] font-medium bg-green-600 text-white rounded-full leading-none">
                           {studyTime.activityName}
                         </span>
@@ -873,7 +873,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
                       title="클릭하여 수정하거나 드래그하여 이동"
                     >
                       {/* Activity type badge */}
-                      <div className="absolute top-0 right-0 -mt-1 -mr-1">
+                      <div className="absolute top-1 right-1">
                         <span className="inline-block px-1 py-0.5 text-[8px] font-medium bg-green-600 text-white rounded-full leading-none">
                           {studyTime.activityName}
                         </span>

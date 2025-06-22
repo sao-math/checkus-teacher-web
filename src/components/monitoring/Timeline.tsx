@@ -6,7 +6,7 @@ import { formatKoreanTime, formatKoreanTimeRange } from '@/utils/dateUtils';
 // Timeline layout constants (shared with FixedLayout)
 const TIMELINE_CONSTANTS = {
   STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
-  TIMELINE_WIDTH: 2400, // 30시간 * 80px = 2400px (기존 1800px에서 확장)
+  TIMELINE_WIDTH: 2700, // 30시간 * 90px = 2700px (기존 2400px에서 확장하여 가시성 개선)
   START_HOUR: 0, // 0시부터 시작 (기존 6시)
   END_HOUR: 30, // 30시까지 (다음날 6시)
   TOTAL_HOURS: 30 // 30시간
@@ -196,7 +196,7 @@ const FixedTimelineHeader: React.FC = () => {
   return (
     <div className="relative h-12 bg-gray-50" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Grid lines for each hour */}
-      <div className="flex h-full">
+      <div className="flex h-full" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
         {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => {
           const hour = TIMELINE_CONSTANTS.START_HOUR + i;
           const displayHour = hour >= 24 ? hour - 24 : hour; // 24시 이후는 다음날로 표시
@@ -205,7 +205,12 @@ const FixedTimelineHeader: React.FC = () => {
           return (
             <div 
               key={hour} 
-              className="flex-1 flex flex-col items-center justify-center border-r border-gray-200 text-sm font-medium text-gray-600 min-w-[80px]"
+              className="flex flex-col items-center justify-center border-r border-gray-200 text-sm font-medium text-gray-600"
+              style={{ 
+                width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH / TIMELINE_CONSTANTS.TOTAL_HOURS}px`,
+                minWidth: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH / TIMELINE_CONSTANTS.TOTAL_HOURS}px`,
+                maxWidth: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH / TIMELINE_CONSTANTS.TOTAL_HOURS}px`
+              }}
             >
               <span className={isNextDay ? 'text-blue-600' : ''}>
                 {displayHour.toString().padStart(2, '0')}:00
@@ -283,41 +288,83 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
   }, [hasOngoingSessions]); // Re-create interval when ongoing session status changes
 
   const getTimePosition = useCallback((timeStr: string) => {
-    // Parse as UTC and convert to local time properly
-    const time = new Date(timeStr);
-    const hour = time.getHours() + time.getMinutes() / 60 + time.getSeconds() / 3600;
-    // Fixed to match header timeline: 6:00-24:00 (18 hours)
-    const startHour = TIMELINE_CONSTANTS.START_HOUR;
-    const endHour = TIMELINE_CONSTANTS.END_HOUR;
+    // Parse UTC time and convert to Korean time
+    const utcTime = new Date(timeStr);
+    const koreanTime = new Date(utcTime.getTime() + (9 * 60 * 60 * 1000));
+    
+    // Get hour in Korean timezone
+    let hour = koreanTime.getUTCHours() + koreanTime.getUTCMinutes() / 60 + koreanTime.getUTCSeconds() / 3600;
+    
+    // Handle the 30-hour timeline (00:00 today - 06:00 tomorrow)
+    const startHour = TIMELINE_CONSTANTS.START_HOUR; // 0
+    const endHour = TIMELINE_CONSTANTS.END_HOUR; // 30
+    
+    // Check if this time falls in the "next day" part (00:00-05:59 tomorrow)
+    // by comparing the date portion
+    const today = new Date();
+    const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+    const todayDateStr = koreanToday.toISOString().split('T')[0];
+    const timeKoreanDateStr = koreanTime.toISOString().split('T')[0];
+    
+    // If the time is on the next day and in early morning (0-6), adjust position
+    if (timeKoreanDateStr > todayDateStr && hour < 6) {
+      hour += 24; // Position it in the 24-30 range
+    }
     
     if (hour < startHour) return 0;
     if (hour >= endHour) return 100;
     
     const percentage = ((hour - startHour) / (endHour - startHour)) * 100;
-    
     return percentage;
   }, []);
 
   const getTimeDuration = useCallback((startStr: string, endStr: string | null) => {
     // Parse times ensuring proper timezone handling
-    const start = new Date(startStr);
-    const end = endStr ? new Date(endStr) : new Date(); // Use fresh current time for ongoing sessions
+    const startUtc = new Date(startStr);
+    const startKorean = new Date(startUtc.getTime() + (9 * 60 * 60 * 1000));
     
-    const startHour = start.getHours() + start.getMinutes() / 60 + start.getSeconds() / 3600;
-    const endHour = end.getHours() + end.getMinutes() / 60 + end.getSeconds() / 3600;
-    // Fixed to match header timeline: 6:00-24:00 (18 hours)
-    const timelineStartHour = TIMELINE_CONSTANTS.START_HOUR;
-    const timelineEndHour = TIMELINE_CONSTANTS.END_HOUR;
+    const endUtc = endStr ? new Date(endStr) : new Date();
+    const endKorean = new Date(endUtc.getTime() + (9 * 60 * 60 * 1000));
+    
+    // Calculate positions using the same logic as getTimePosition
+    const startPosition = (() => {
+      let hour = startKorean.getUTCHours() + startKorean.getUTCMinutes() / 60 + startKorean.getUTCSeconds() / 3600;
+      
+      const today = new Date();
+      const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+      const todayDateStr = koreanToday.toISOString().split('T')[0];
+      const startDateStr = startKorean.toISOString().split('T')[0];
+      
+      if (startDateStr > todayDateStr && hour < 6) {
+        hour += 24;
+      }
+      
+      return hour;
+    })();
+    
+    const endPosition = (() => {
+      let hour = endKorean.getUTCHours() + endKorean.getUTCMinutes() / 60 + endKorean.getUTCSeconds() / 3600;
+      
+      const today = new Date();
+      const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+      const todayDateStr = koreanToday.toISOString().split('T')[0];
+      const endDateStr = endKorean.toISOString().split('T')[0];
+      
+      if (endDateStr > todayDateStr && hour < 6) {
+        hour += 24;
+      }
+      
+      return hour;
+    })();
+    
+    const startHour = TIMELINE_CONSTANTS.START_HOUR;
     const totalHours = TIMELINE_CONSTANTS.TOTAL_HOURS;
     
-    let duration = Math.max(0, (endHour - startHour) / totalHours) * 100;
+    let duration = Math.max(0, (endPosition - startPosition) / totalHours) * 100;
     
-    // For ongoing sessions, ensure minimum width and extend to current time
+    // For ongoing sessions, ensure minimum width
     if (!endStr) {
-      const now = currentTime; // Use the same currentTime state for consistency
-      const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
-      const currentDuration = Math.max(0, (currentHour - startHour) / totalHours) * 100;
-      duration = Math.max(duration, currentDuration, 0.5); // Minimum 0.5% width for visibility
+      duration = Math.max(duration, 0.5); // Minimum 0.5% width for visibility
     }
     
     return Math.min(duration, 100);

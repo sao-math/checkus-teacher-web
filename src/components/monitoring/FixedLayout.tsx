@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
+import { toZonedTime } from 'date-fns-tz';
 
 // Timeline layout constants
 const TIMELINE_CONSTANTS = {
   STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
-  TIMELINE_WIDTH: 2400, // 30시간 * 80px = 2400px (기존 1800px에서 확장)
+  TIMELINE_WIDTH: 2700, // 30시간 * 90px = 2700px (기존 2400px에서 확장하여 가시성 개선)
   START_HOUR: 0, // 0시부터 시작 (기존 6시)
   END_HOUR: 30, // 30시까지 (다음날 6시)
   TOTAL_HOURS: 30 // 30시간
@@ -14,13 +15,14 @@ interface FixedLayoutProps {
   header: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  selectedDate?: string; // YYYY-MM-DD format
 }
 
 export interface FixedLayoutRef {
   scrollToCurrentTime: () => void;
 }
 
-const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, children, className }, ref) => {
+const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, children, className, selectedDate }, ref) => {
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -148,20 +150,53 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
 
   // Calculate current time position (memoized)
   const getCurrentTimePosition = useCallback(() => {
-    const now = currentTime;
-    const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
-    const { START_HOUR, END_HOUR } = TIMELINE_CONSTANTS;
+    // Get current time in Korean timezone using date-fns-tz
+    const now = new Date();
+    const koreanNow = toZonedTime(now, KOREAN_TIMEZONE);
     
-    // 0-30시 범위이므로 모든 시간이 범위 내
-    // 0-23시는 그대로, 24-29시는 다음날 0-5시로 처리
-    let adjustedHour = currentHour;
+    // Use selectedDate prop or fall back to today's Korean date
+    let targetDate = selectedDate;
+    if (!targetDate) {
+      const year = koreanNow.getFullYear();
+      const month = String(koreanNow.getMonth() + 1).padStart(2, '0');
+      const day = String(koreanNow.getDate()).padStart(2, '0');
+      targetDate = `${year}-${month}-${day}`;
+    }
     
-    // 현재 시간이 범위 내에 있는지 확인하지 않고 항상 표시
-    const progress = adjustedHour / (END_HOUR - START_HOUR);
-    const percentage = progress * 100;
+    // Create timeline start (00:00 of target date in Korean timezone)
+    const [year, month, day] = targetDate.split('-').map(Number);
+    const timelineStart = new Date(year, month - 1, day, 0, 0, 0); // month is 0-indexed
+    const timelineEnd = new Date(timelineStart.getTime() + 30 * 60 * 60 * 1000); // +30 hours
+    
+    // Debug logging
+    console.log('🕐 Current Time Position Debug:', {
+      now: now.toISOString(),
+      koreanNow: koreanNow.toISOString(),
+      selectedDate: targetDate,
+      timelineStart: timelineStart.toISOString(),
+      timelineEnd: timelineEnd.toISOString(),
+      koreanNowTime: `${koreanNow.getHours()}:${koreanNow.getMinutes().toString().padStart(2, '0')}`
+    });
+    
+    // Check if current Korean time is within the timeline range
+    if (koreanNow < timelineStart || koreanNow >= timelineEnd) {
+      console.log('❌ Current time is outside timeline range');
+      return null; // Current time is outside the timeline
+    }
+    
+    // Calculate hours difference from timeline start
+    const hoursDiff = (koreanNow.getTime() - timelineStart.getTime()) / (60 * 60 * 1000);
+    
+    // Calculate percentage position within 30-hour timeline
+    const percentage = (hoursDiff / 30) * 100;
+    
+    console.log('✅ Current time position calculated:', {
+      hoursDiff: hoursDiff.toFixed(2),
+      percentage: percentage.toFixed(2)
+    });
     
     return Math.max(0, Math.min(100, percentage));
-  }, [currentTime]);
+  }, [currentTime, selectedDate]);
 
   // 현재 시간으로 스크롤 이동하는 함수
   const scrollToCurrentTime = useCallback(() => {
@@ -277,7 +312,12 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
                     textAlign: 'center'
                   }}
                 >
-                  {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
+                  {(() => {
+                    const koreanTime = toZonedTime(currentTime, KOREAN_TIMEZONE);
+                    const hours = koreanTime.getHours().toString().padStart(2, '0');
+                    const minutes = koreanTime.getMinutes().toString().padStart(2, '0');
+                    return `${hours}:${minutes}`;
+                  })()}
                 </div>
               </div>
             )}
@@ -335,5 +375,7 @@ const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, classNam
     </div>
   );
 };
+
+const KOREAN_TIMEZONE = 'Asia/Seoul';
 
 export { FixedLayout, FixedRow }; 

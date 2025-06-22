@@ -282,7 +282,7 @@ const StudyMonitoring: React.FC = () => {
                 onClick={() => fixedLayoutRef.current?.scrollToCurrentTime()}
                 disabled={!isCurrentTimeInRange()}
                 className="flex items-center space-x-2"
-                title={!isCurrentTimeInRange() ? '현재 시간이 타임라인 범위(06:00-24:00) 밖입니다' : '현재 시간 위치로 스크롤'}
+                title={!isCurrentTimeInRange() ? '현재 시간이 타임라인 범위(00:00-06:00 다음날) 밖입니다' : '현재 시간 위치로 스크롤'}
               >
                 <Clock className="h-4 w-4" />
                 <span>현재 시간으로</span>
@@ -374,7 +374,7 @@ const StudyMonitoring: React.FC = () => {
               <p>데이터를 불러오는 중...</p>
             </div>
           ) : (
-            <FixedLayout header={<FixedTimelineHeader />} ref={fixedLayoutRef}>
+            <FixedLayout header={<FixedTimelineHeader />} ref={fixedLayoutRef} selectedDate={selectedDate}>
               <div>
                 {students.map((student) => (
                   <StudentRow

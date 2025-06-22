@@ -80,7 +80,8 @@ const StudyMonitoring: React.FC = () => {
     isLoading, 
     isError, 
     error, 
-    refetch 
+    refetch,
+    dataUpdatedAt
   } = useQuery({
     queryKey: ['monitoring', selectedDate],
     queryFn: () => monitoringApi.getStudyTimeMonitoring(selectedDate),
@@ -98,10 +99,10 @@ const StudyMonitoring: React.FC = () => {
 
   // Update last refresh time when data is successfully fetched
   useEffect(() => {
-    if (monitoringData && !isLoading && !isError) {
-      setLastRefreshTime(new Date());
+    if (monitoringData && !isLoading && !isError && dataUpdatedAt) {
+      setLastRefreshTime(new Date(dataUpdatedAt));
     }
-  }, [monitoringData, isLoading, isError]);
+  }, [monitoringData, isLoading, isError, dataUpdatedAt]);
 
   const students = monitoringData?.data?.students || [];
 
@@ -146,13 +147,16 @@ const StudyMonitoring: React.FC = () => {
   };
 
   // Manual refresh
-  const handleRefresh = () => {
-    refetch();
-    setLastRefreshTime(new Date());
-    toast({
-      title: "데이터 새로고침",
-      description: "모니터링 데이터를 업데이트했습니다.",
-    });
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      toast({
+        title: "데이터 새로고침",
+        description: "모니터링 데이터를 업데이트했습니다.",
+      });
+    } catch (error) {
+      console.error('Manuel refresh failed:', error);
+    }
   };
 
   // Get status counts

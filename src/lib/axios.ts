@@ -8,7 +8,7 @@ const axiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false
+  withCredentials: true // 쿠키 전송을 위해 필요
 });
 
 // List of endpoints that do NOT require authentication
@@ -24,6 +24,16 @@ const PUBLIC_ENDPOINTS = [
 // Flag to prevent multiple redirects
 let isRedirecting = false;
 
+// Import auth service with dynamic import to avoid circular dependency
+let authService: any = null;
+const getAuthService = async () => {
+  if (!authService) {
+    const { default: auth } = await import('../services/auth');
+    authService = auth;
+  }
+  return authService;
+};
+
 // Request interceptor
 axiosInstance.interceptors.request.use(
   async (config) => {
@@ -33,18 +43,17 @@ axiosInstance.interceptors.request.use(
         return config;
       }
 
-      // Get token from localStorage directly to avoid circular import
-      const token = localStorage.getItem('accessToken');
+      // Get access token from memory via auth service
+      const auth = await getAuthService();
+      const token = auth.getAccessToken();
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       } else {
-        // If no token is available and this is not a public endpoint,
-        // it might be a race condition with authentication loading
-        console.warn('No token available for protected endpoint:', config.url);
+        console.warn('No access token in memory for protected endpoint:', config.url);
       }
       return config;
     } catch (error) {
-      // Handle token-related errors without circular dependency
       console.error('Request interceptor error:', error);
       return Promise.reject(error);
     }
@@ -84,29 +93,31 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      const refreshToken = localStorage.getItem('refreshToken');
-      if (!refreshToken) {
-        // No refresh token available, redirect to login
-        handleAuthenticationFailure();
-        return Promise.reject(error);
-      }
+      console.log('401 error detected, attempting token refresh using cookie:', {
+        url: originalRequest.url
+      });
 
       try {
-        // Try to refresh token using direct axios call to avoid circular dependency
-        const refreshResponse = await axios.post(`${API_URL}/auth/refresh`, {
-          refreshToken
+        console.log('Attempting to refresh token...');
+        
+        // Try to refresh token using cookie-based refresh
+        const refreshResponse = await axios.post(`${API_URL}/auth/refresh`, {}, {
+          withCredentials: true // 쿠키의 리프레시 토큰 사용
         });
         
-        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
+        const { accessToken: newAccessToken } = refreshResponse.data.data;
         
-        // Update tokens in localStorage
-        localStorage.setItem('accessToken', newAccessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
+        // Update access token in memory via auth service
+        const auth = await getAuthService();
+        auth.setAccessToken(newAccessToken);
+        
+        console.log('Token refresh successful');
         
         // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return axiosInstance(originalRequest);
       } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
         // Refresh failed, redirect to login
         handleAuthenticationFailure();
         return Promise.reject(refreshError);
@@ -135,14 +146,14 @@ axiosInstance.interceptors.response.use(
 );
 
 // Helper function to handle authentication failure
-function handleAuthenticationFailure() {
+async function handleAuthenticationFailure() {
   if (isRedirecting) return;
   
   isRedirecting = true;
   
-  // Clear tokens
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+  // Clear access token from memory
+  const auth = await getAuthService();
+  auth.clearAccessToken();
   
   // Show error message
   handleError(new Error('Authentication failed'), {

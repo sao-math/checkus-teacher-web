@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { cn } from '@/lib/utils';
 
 // Timeline layout constants
@@ -16,7 +16,11 @@ interface FixedLayoutProps {
   className?: string;
 }
 
-const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }) => {
+export interface FixedLayoutRef {
+  scrollToCurrentTime: () => void;
+}
+
+const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, children, className }, ref) => {
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -158,6 +162,43 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
     return percentage;
   }, [currentTime]);
 
+  // 현재 시간으로 스크롤 이동하는 함수
+  const scrollToCurrentTime = useCallback(() => {
+    const currentTimePosition = getCurrentTimePosition();
+    if (currentTimePosition === null) return;
+
+    const contentElement = contentScrollRef.current;
+    const headerElement = headerScrollRef.current;
+    
+    if (contentElement && headerElement) {
+      // 현재 시간의 픽셀 위치 계산
+      const currentTimePixelPosition = (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
+      
+      // 학생 이름 열 너비 + 약간의 여백(50px)을 고려하여 목표 위치 설정
+      const targetScrollLeft = Math.max(0, currentTimePixelPosition - 50);
+      
+      // 부드러운 스크롤로 이동
+      contentElement.scrollTo({
+        left: targetScrollLeft,
+        behavior: 'smooth'
+      });
+      
+      headerElement.scrollTo({
+        left: targetScrollLeft,
+        behavior: 'smooth'
+      });
+      
+      // 스크롤 중임을 표시
+      setIsUserScrolling(true);
+      if (userScrollTimeoutRef.current) {
+        clearTimeout(userScrollTimeoutRef.current);
+      }
+      userScrollTimeoutRef.current = setTimeout(() => {
+        setIsUserScrolling(false);
+      }, 1000);
+    }
+  }, [getCurrentTimePosition]);
+
   // Disabled auto-scroll logic to allow free browsing
   /*
   useEffect(() => {
@@ -190,6 +231,10 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
   */
 
   const currentTimePosition = getCurrentTimePosition();
+
+  useImperativeHandle(ref, () => ({
+    scrollToCurrentTime: scrollToCurrentTime
+  }));
 
   return (
     <div className={cn("relative", className)}>
@@ -264,7 +309,7 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       </div>
     </div>
   );
-};
+});
 
 interface FixedRowProps {
   leftContent: React.ReactNode;

@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, MessageCircle, RefreshCw } from 'lucide-react';
+import { Calendar, MessageCircle, RefreshCw, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { FixedLayout } from '@/components/monitoring/FixedLayout';
+import { FixedLayout, FixedLayoutRef } from '@/components/monitoring/FixedLayout';
 import { FixedTimelineHeader } from '@/components/monitoring/Timeline';
 import StudentRow from '@/components/monitoring/StudentRow';
 import { SendMessageDialog } from '@/components/monitoring/SendMessageDialog';
@@ -75,6 +75,7 @@ const StudyMonitoring: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const fixedLayoutRef = useRef<FixedLayoutRef | null>(null);
 
   // Query for monitoring data - only enable when authenticated
   const { 
@@ -146,11 +147,15 @@ const StudyMonitoring: React.FC = () => {
 
   // Handle message send complete
   const handleMessageSendComplete = () => {
-    // Clear selection after sending
-    setSelectedStudents(new Set());
-    
-    // Optionally refresh data
     refetch();
+    setLastRefreshTime(new Date());
+  };
+
+  // 현재 시간이 타임라인 범위 내에 있는지 확인
+  const isCurrentTimeInRange = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    return currentHour >= 6 && currentHour < 24;
   };
 
   // Get selected students data
@@ -238,6 +243,19 @@ const StudyMonitoring: React.FC = () => {
           
           {/* Last refresh time */}
           <LastRefreshTime lastRefreshTime={lastRefreshTime} />
+          
+          {/* Scroll to current time button */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fixedLayoutRef.current?.scrollToCurrentTime()}
+            disabled={!isCurrentTimeInRange()}
+            className="flex items-center space-x-2"
+            title={!isCurrentTimeInRange() ? '현재 시간이 타임라인 범위(06:00-24:00) 밖입니다' : '현재 시간 위치로 스크롤'}
+          >
+            <Clock className="h-4 w-4" />
+            <span>현재 시간으로</span>
+          </Button>
           
           {/* Manual refresh button */}
           <Button 
@@ -345,7 +363,7 @@ const StudyMonitoring: React.FC = () => {
               <p>데이터를 불러오는 중...</p>
             </div>
           ) : (
-            <FixedLayout header={<FixedTimelineHeader />}>
+            <FixedLayout header={<FixedTimelineHeader />} ref={fixedLayoutRef}>
               <div>
                 {students.map((student) => (
                   <StudentRow

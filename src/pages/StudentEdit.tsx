@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useToast } from '@/hooks/use-toast';
 import { Student, StudentUpdateRequest } from '@/types/student';
 import { studentApi } from '@/services/studentApi';
 import { schoolApi, School } from '@/services/schoolApi';
-import { Save } from 'lucide-react';
+import { Save, School as SchoolIcon, Plus, Check } from 'lucide-react';
 import { getGradeText } from '@/utils/gradeUtils';
+import { cn } from '@/lib/utils';
 
 const StudentEdit = () => {
   const { id } = useParams();
@@ -32,6 +35,8 @@ const StudentEdit = () => {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingSchools, setLoadingSchools] = useState(true);
+  const [schoolOpen, setSchoolOpen] = useState(false);
+  const [addingNewSchool, setAddingNewSchool] = useState(false);
 
   // Phone number formatting function
   const formatPhoneNumber = (value: string) => {
@@ -63,6 +68,50 @@ const StudentEdit = () => {
       );
     }
     return options;
+  };
+
+  const fetchSchools = async () => {
+    try {
+      const schoolsData = await schoolApi.getSchools();
+      setSchools(schoolsData);
+    } catch (error) {
+      console.error('Failed to fetch schools:', error);
+      toast({
+        title: "오류",
+        description: "학교 목록을 불러오는데 실패했습니다",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddNewSchool = async (schoolName: string) => {
+    if (!schoolName.trim()) return;
+
+    try {
+      setAddingNewSchool(true);
+      const newSchool = await schoolApi.createSchool({ name: schoolName.trim() });
+      
+      // Add new school to the list
+      setSchools(prev => [...prev, newSchool]);
+      
+      // Select the new school
+      handleSchoolSelect(newSchool);
+      
+      toast({
+        title: "성공",
+        description: `"${newSchool.name}" 학교가 추가되었습니다`,
+      });
+    } catch (error) {
+      console.error('Failed to create school:', error);
+      toast({
+        title: "오류",
+        description: "새 학교 추가에 실패했습니다",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingNewSchool(false);
+      setSchoolOpen(false);
+    }
   };
 
   useEffect(() => {
@@ -113,15 +162,13 @@ const StudentEdit = () => {
     }));
   };
 
-  const handleSchoolChange = (schoolId: string) => {
-    const selectedSchool = schools.find(school => school.id === Number(schoolId));
-    if (selectedSchool) {
-      setFormData(prev => ({
-        ...prev,
-        schoolId: selectedSchool.id,
-        school: selectedSchool.name
-      }));
-    }
+  const handleSchoolSelect = (school: School) => {
+    setFormData(prev => ({
+      ...prev,
+      schoolId: school.id,
+      school: school.name
+    }));
+    setSchoolOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -227,21 +274,74 @@ const StudentEdit = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="school">학교 *</Label>
-                <Select
-                  value={formData.schoolId?.toString() || ''}
-                  onValueChange={handleSchoolChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="학교를 선택하세요" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schools.map((school) => (
-                      <SelectItem key={school.id} value={school.id.toString()}>
-                        {school.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={schoolOpen} onOpenChange={setSchoolOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={schoolOpen}
+                      className="w-full justify-between"
+                    >
+                      {formData.school || "학교를 선택하세요"}
+                      <SchoolIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="학교명을 입력하세요..." />
+                      <CommandEmpty>
+                        <div className="p-4 space-y-3">
+                          <div className="text-center space-y-1">
+                            <p className="text-sm text-gray-600">검색 결과가 없습니다</p>
+                            <p className="text-xs text-gray-500">새로운 학교를 추가하시겠습니까?</p>
+                          </div>
+                          
+                          <div className="border rounded-lg">
+                            <div 
+                              className="flex items-center gap-3 p-3 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors"
+                              onClick={() => {
+                                const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                                const schoolName = input?.value;
+                                if (schoolName) {
+                                  handleAddNewSchool(schoolName);
+                                }
+                              }}
+                            >
+                              <Plus className="h-4 w-4 text-blue-500" />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-blue-700">새 학교 추가</p>
+                                <p className="text-xs text-gray-500">입력한 학교를 새로 등록합니다</p>
+                              </div>
+                              {addingNewSchool && (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        <CommandList>
+                          {schools.map((school) => (
+                            <CommandItem
+                              key={school.id}
+                              value={school.name}
+                              onSelect={() => handleSchoolSelect(school)}
+                            >
+                              <SchoolIcon className="h-4 w-4 mr-3 text-gray-500" />
+                              {school.name}
+                              <Check
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  formData.schoolId === school.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">

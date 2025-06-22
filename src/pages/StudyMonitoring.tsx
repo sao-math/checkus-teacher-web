@@ -207,7 +207,7 @@ const StudyMonitoring: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-red-600 mb-2">데이터 로드 실패</h3>
+              <h3 className="text-lg font-semibold text-red-500 mb-2">데이터 로드 실패</h3>
               <p className="text-gray-600 mb-4">
                 {error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'}
               </p>
@@ -224,7 +224,7 @@ const StudyMonitoring: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">스터디 모니터링</h1>
+          <h1 className="text-2xl font-bold text-gray-800">스터디 모니터링</h1>
           <p className="text-gray-600 mt-1">학생들의 실시간 학습 현황을 모니터링합니다</p>
         </div>
         
@@ -236,7 +236,7 @@ const StudyMonitoring: React.FC = () => {
               checked={autoRefresh}
               onCheckedChange={(checked) => setAutoRefresh(checked === true)}
             />
-            <label htmlFor="auto-refresh" className="text-sm font-medium">
+            <label htmlFor="auto-refresh" className="text-sm font-medium text-gray-700">
               자동 새로고침 (1분)
             </label>
           </div>
@@ -264,7 +264,7 @@ const StudyMonitoring: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Calendar className="h-5 w-5" />
-                <label htmlFor="date" className="text-sm font-medium">
+                <label htmlFor="date" className="text-sm font-medium text-gray-700">
                   모니터링 날짜:
                 </label>
                 <Input
@@ -322,7 +322,7 @@ const StudyMonitoring: React.FC = () => {
                   }}
                   onCheckedChange={handleSelectAll}
                 />
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-gray-800">
                   학생 목록 ({students.length}명)
                 </span>
               </div>

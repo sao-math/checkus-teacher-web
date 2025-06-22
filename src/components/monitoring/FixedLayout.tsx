@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 // Timeline layout constants
 const TIMELINE_CONSTANTS = {
-  STUDENT_NAME_WIDTH: 192, // w-48 = 192px
+  STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
   TIMELINE_WIDTH: 1800,
   START_HOUR: 6,
   END_HOUR: 24,
@@ -196,7 +196,10 @@ const FixedLayout: React.FC<FixedLayoutProps> = ({ header, children, className }
       {/* Header Row */}
       <div className="flex w-full">
         {/* Fixed Student Name Header */}
-        <div className="w-48 h-12 border-b border-r border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 z-30">
+        <div 
+          className="h-12 border-b border-r border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 z-30"
+          style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
+        >
           <span className="text-sm font-medium text-gray-600">학생</span>
         </div>
         
@@ -273,7 +276,10 @@ const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, classNam
   return (
     <div className={cn("flex w-full border-b border-gray-200 hover:bg-gray-50 relative", className)}>
       {/* Fixed Student Info - Higher z-index to stay on top */}
-      <div className="w-48 p-3 bg-white flex-shrink-0 sticky left-0 z-20 border-r border-gray-200 relative">
+      <div 
+        className="p-3 bg-white flex-shrink-0 sticky left-0 z-20 border-r border-gray-200 relative"
+        style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
+      >
         {leftContent}
       </div>
       

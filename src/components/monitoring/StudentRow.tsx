@@ -96,7 +96,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
   );
 
   const leftContent = (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center space-x-2">
       <Checkbox
         checked={isSelected}
         onCheckedChange={handleCheckboxChange}
@@ -108,9 +108,10 @@ const StudentRow: React.FC<StudentRowProps> = ({
             <button
               onClick={handleStudentClick}
               className={cn(
-                "px-3 py-1 rounded-md text-sm font-medium transition-colors cursor-pointer",
+                "px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer truncate max-w-[80px]",
                 getStatusColor(student.status)
               )}
+              title={student.studentName}
             >
               {student.studentName}
             </button>
@@ -129,9 +130,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleMessageClick}
-              className="h-8 w-8 p-0 hover:bg-blue-50"
+              className="h-6 w-6 p-0 hover:bg-blue-50"
             >
-              <MessageCircle className="h-4 w-4 text-blue-600" />
+              <MessageCircle className="h-3 w-3 text-blue-600" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>

@@ -30,8 +30,7 @@ const Register = () => {
   const [schoolOpen, setSchoolOpen] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
-    hasUppercase: false,
-    hasLowercase: false,
+    hasLetter: false,
     hasNumber: false,
     hasSpecial: false,
   });
@@ -41,8 +40,7 @@ const Register = () => {
     const password = formData.password;
     setPasswordStrength({
       hasMinLength: password.length >= 8,
-      hasUppercase: /[A-Z]/.test(password),
-      hasLowercase: /[a-z]/.test(password),
+      hasLetter: /[a-zA-Z]/.test(password),
       hasNumber: /[0-9]/.test(password),
       hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
     });
@@ -100,8 +98,8 @@ const Register = () => {
     if (!formData.username.trim()) return '아이디를 입력해주세요.';
     if (!formData.password) return '비밀번호를 입력해주세요.';
     if (formData.password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
-    if (!passwordStrength.hasUppercase || !passwordStrength.hasLowercase || !passwordStrength.hasNumber || !passwordStrength.hasSpecial) {
-      return '비밀번호는 대소문자, 숫자, 특수문자를 모두 포함해야 합니다.';
+    if (!passwordStrength.hasLetter || !passwordStrength.hasNumber || !passwordStrength.hasSpecial) {
+      return '비밀번호는 영문자, 숫자, 특수문자를 모두 포함해야 합니다.';
     }
     if (!formData.name.trim()) return '이름을 입력해주세요.';
     if (!formData.phoneNumber.trim()) return '전화번호를 입력해주세요.';
@@ -208,7 +206,7 @@ const Register = () => {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
-                    placeholder="8자 이상, 영문대소문자+숫자+특수문자 포함"
+                    placeholder="8자 이상, 영문자+숫자+특수문자 포함"
                     value={formData.password}
                     onChange={handleChange}
                     className={cn(
@@ -230,15 +228,9 @@ const Register = () => {
                     <div className="grid grid-cols-2 gap-1">
                       <div className={cn(
                         "text-xs flex items-center gap-1",
-                        passwordStrength.hasUppercase ? "text-green-600" : "text-gray-500"
+                        passwordStrength.hasLetter ? "text-green-600" : "text-gray-500"
                       )}>
-                        {passwordStrength.hasUppercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 대문자 포함
-                      </div>
-                      <div className={cn(
-                        "text-xs flex items-center gap-1",
-                        passwordStrength.hasLowercase ? "text-green-600" : "text-gray-500"
-                      )}>
-                        {passwordStrength.hasLowercase ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 소문자 포함
+                        {passwordStrength.hasLetter ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />} 영문자 포함
                       </div>
                       <div className={cn(
                         "text-xs flex items-center gap-1",

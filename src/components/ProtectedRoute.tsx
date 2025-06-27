@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requiredRole?: 'TEACHER' | 'ADMIN';
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
@@ -25,13 +26,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if user has TEACHER or ADMIN role
-  const hasRequiredRole = user?.data?.roles.some(role => 
+  // Check basic access (TEACHER or ADMIN role)
+  const hasBasicRole = user?.data?.roles.some(role => 
     role.toUpperCase() === 'TEACHER' || role.toUpperCase() === 'ADMIN'
   );
 
-  if (!hasRequiredRole) {
-    // If user doesn't have required role, redirect to login with error message
+  if (!hasBasicRole) {
     return <Navigate 
       to="/login" 
       state={{ 
@@ -41,5 +41,31 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     />;
   }
 
+  // Check specific role requirement (for admin-only pages)
+  if (requiredRole === 'ADMIN') {
+    const hasAdminRole = user?.data?.roles.some(role => 
+      role.toUpperCase() === 'ADMIN'
+    );
+
+    if (!hasAdminRole) {
+      return <Navigate 
+        to="/dashboard" 
+        state={{ 
+          error: '관리자 권한이 필요합니다.' 
+        }} 
+        replace 
+      />;
+    }
+  }
+
   return <>{children}</>;
+};
+
+// Convenience component for admin-only routes
+export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <ProtectedRoute requiredRole="ADMIN">
+      {children}
+    </ProtectedRoute>
+  );
 }; 

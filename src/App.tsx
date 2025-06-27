@@ -18,7 +18,7 @@ import Layout from '@/components/Layout';
 import TaskManagement from './pages/TaskManagement';
 import StudentDetails from './pages/StudentDetails';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { ProtectedRoute, AdminRoute } from '@/components/ProtectedRoute';
 import Register from '@/pages/Register';
 import StudyMonitoring from './pages/StudyMonitoring';
 
@@ -59,12 +59,12 @@ const App = () => {
                 <Route path=":id/edit" element={<StudentEdit />} />
               </Route>
 
-              {/* Teacher routes */}
+              {/* Admin-only Teacher routes */}
               <Route path="teachers">
-                <Route index element={<TeacherManagement />} />
-                <Route path="new" element={<TeacherForm />} />
-                <Route path=":id" element={<TeacherDetails />} />
-                <Route path=":id/edit" element={<TeacherForm />} />
+                <Route index element={<AdminRoute><TeacherManagement /></AdminRoute>} />
+                <Route path="new" element={<AdminRoute><TeacherForm /></AdminRoute>} />
+                <Route path=":id" element={<AdminRoute><TeacherDetails /></AdminRoute>} />
+                <Route path=":id/edit" element={<AdminRoute><TeacherForm /></AdminRoute>} />
               </Route>
 
               {/* Class routes */}
@@ -81,8 +81,8 @@ const App = () => {
               {/* Study Monitoring route */}
               <Route path="monitoring" element={<StudyMonitoring />} />
               
-              {/* School Management route */}
-              <Route path="schools" element={<SchoolManagement />} />
+              {/* Admin-only School Management route */}
+              <Route path="schools" element={<AdminRoute><SchoolManagement /></AdminRoute>} />
             </Route>
           </Routes>
           <Toaster />

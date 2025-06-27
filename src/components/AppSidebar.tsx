@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { Users, BookOpen, CheckSquare, Settings, Monitor, School } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
   {
@@ -50,7 +51,12 @@ const adminMenuItems = [
 
 export function AppSidebar() {
   const location = useLocation();
-  const isAdmin = true; // 실제로는 사용자 권한에 따라 결정
+  const { user } = useAuth();
+  
+  // Check if user has ADMIN role
+  const isAdmin = user?.data?.roles?.some(role => 
+    role.toUpperCase() === 'ADMIN'
+  ) || false;
 
   return (
     <Sidebar className="border-r border-gray-200">

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save, User, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePhoneNumberInput } from '@/hooks/usePhoneNumberInput';
 import { adminApi, TeacherDetailResponse, TeacherUpdateRequest } from '@/services/adminApi';
 import {
   AlertDialog,
@@ -31,9 +32,14 @@ const TeacherForm = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // 전화번호 입력 훅 사용
+  const phoneNumber = usePhoneNumberInput({
+    initialValue: '',
+    startsWith010: true
+  });
+
   const [formData, setFormData] = useState({
     name: '',
-    phoneNumber: '',
     discordId: ''
   });
 
@@ -50,9 +56,10 @@ const TeacherForm = () => {
       setTeacher(data);
       setFormData({
         name: data.name,
-        phoneNumber: data.phoneNumber || '',
         discordId: data.discordId || ''
       });
+      // 전화번호 설정
+      phoneNumber.setValue(data.phoneNumber || '');
     } catch (error) {
       console.error('Failed to fetch teacher detail:', error);
       toast({
@@ -76,7 +83,7 @@ const TeacherForm = () => {
       return false;
     }
 
-    if (!formData.phoneNumber.trim()) {
+    if (!phoneNumber.value.trim()) {
       toast({
         title: "입력 오류",
         description: "전화번호를 입력해주세요.",
@@ -85,9 +92,8 @@ const TeacherForm = () => {
       return false;
     }
 
-    // 전화번호 형식 검증
-    const phoneRegex = /^01[0-9]-[0-9]{4}-[0-9]{4}$/;
-    if (!phoneRegex.test(formData.phoneNumber)) {
+    // 전화번호 유효성 검증
+    if (!phoneNumber.isValid) {
       toast({
         title: "입력 오류",
         description: "올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)",
@@ -120,7 +126,7 @@ const TeacherForm = () => {
       
       const updateData: TeacherUpdateRequest = {
         name: formData.name.trim(),
-        phoneNumber: formData.phoneNumber.trim(),
+        phoneNumber: phoneNumber.value.trim(),
         discordId: formData.discordId.trim() || undefined
       };
 
@@ -303,12 +309,20 @@ const TeacherForm = () => {
                       <Label htmlFor="phoneNumber">전화번호 *</Label>
                       <Input
                         id="phoneNumber"
-                        value={formData.phoneNumber}
-                        onChange={(e) => handleChange('phoneNumber', e.target.value)}
+                        value={phoneNumber.value}
+                        onChange={phoneNumber.onChange}
                         placeholder="010-1234-5678"
                         required
+                        className={!phoneNumber.isValid && phoneNumber.value.length > 3 ? 'border-red-500' : ''}
                       />
-                      <p className="text-xs text-gray-500">형식: 010-1234-5678</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500">010으로 시작하며 자동으로 하이픈이 추가됩니다</p>
+                        {phoneNumber.value.length > 3 && (
+                          <p className={`text-xs ${phoneNumber.isValid ? 'text-green-600' : 'text-red-500'}`}>
+                            {phoneNumber.isValid ? '✓ 올바른 형식' : '✗ 잘못된 형식'}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     
                     <div className="space-y-2">

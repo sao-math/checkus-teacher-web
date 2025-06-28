@@ -8,55 +8,45 @@ import { Button } from '@/components/ui/button';
 import { Search, Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserRoleResponse } from '@/types/admin';
-import { adminApi } from '@/services/adminApi';
+import { adminApi, TeacherListResponse } from '@/services/adminApi';
 import ManagementList from '@/components/ui/ManagementList';
-
-interface Teacher {
-  id: number;
-  username: string;
-  name: string;
-  phoneNumber: string;
-  discordId?: string;
-  createdAt: string;
-  status: 'active' | 'resigned';
-  classes: string[];
-}
-
-const mockTeachers: Teacher[] = [
-  {
-    id: 1,
-    username: 'teacher1',
-    name: '김선생님',
-    phoneNumber: '010-1234-5678',
-    discordId: 'teacher1#1234',
-    createdAt: '2024-01-01',
-    status: 'active',
-    classes: ['고1 수학', '고2 수학']
-  },
-  {
-    id: 2,
-    username: 'teacher2',
-    name: '이선생님',
-    phoneNumber: '010-2345-6789',
-    discordId: 'teacher2#5678',
-    createdAt: '2024-01-02',
-    status: 'active',
-    classes: ['중2 수학', '중3 수학']
-  }
-];
 
 const TeacherManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'active' | 'resigned' | 'all'>('all');
-  const [teachers, setTeachers] = useState<Teacher[]>(mockTeachers);
+  const [filterStatus, setFilterStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'all'>('all');
+  const [teachers, setTeachers] = useState<TeacherListResponse[]>([]);
   const [pendingTeachers, setPendingTeachers] = useState<UserRoleResponse[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [teachersLoading, setTeachersLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     fetchPendingTeachers();
+    fetchTeachers();
   }, []);
+
+  useEffect(() => {
+    fetchTeachers();
+  }, [filterStatus]);
+
+  const fetchTeachers = async () => {
+    try {
+      setTeachersLoading(true);
+      const status = filterStatus === 'all' ? 'ACTIVE' : filterStatus;
+      const data = await adminApi.getTeachers(status);
+      setTeachers(data);
+    } catch (error) {
+      console.error('Error fetching teachers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch teachers: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+    } finally {
+      setTeachersLoading(false);
+    }
+  };
 
   const fetchPendingTeachers = async () => {
     try {
@@ -79,6 +69,8 @@ const TeacherManagement = () => {
     try {
       await adminApi.approveRole(userId, 'TEACHER');
       setPendingTeachers(prev => prev.filter(teacher => teacher.userId !== userId));
+      // Refresh teachers list to include newly approved teacher
+      fetchTeachers();
       toast({
         title: "선생님 승인 완료",
         description: `${name} 선생님의 계정이 승인되었습니다.`,
@@ -113,25 +105,26 @@ const TeacherManagement = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'resigned': return 'bg-red-100 text-red-800';
+      case 'ACTIVE': return 'bg-green-100 text-green-800';
+      case 'SUSPENDED': return 'bg-red-100 text-red-800';
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return '재직중';
-      case 'resigned': return '퇴직';
+      case 'ACTIVE': return '활성화됨';
+      case 'SUSPENDED': return '일시정지';
+      case 'PENDING': return '승인 대기';
       default: return '알 수 없음';
     }
   };
 
   const filteredTeachers = teachers.filter(teacher =>
-    (filterStatus === 'all' || teacher.status === filterStatus) &&
     (teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       teacher.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.phoneNumber.includes(searchTerm))
+      teacher.phoneNumber?.includes(searchTerm))
   );
 
   const filteredPendingTeachers = pendingTeachers.filter(teacher =>
@@ -139,27 +132,38 @@ const TeacherManagement = () => {
     teacher.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleViewDetails = (teacher: Teacher) => {
+  const handleViewDetails = (teacher: TeacherListResponse) => {
     navigate(`/teachers/${teacher.id}`);
   };
 
-  const handleEditTeacher = (teacher: Teacher) => {
+  const handleEditTeacher = (teacher: TeacherListResponse) => {
     navigate(`/teachers/${teacher.id}/edit`);
   };
 
-  const handleDelete = (teacher: Teacher) => {
-    setTeachers(prev => prev.filter(t => t.id !== teacher.id));
-    toast({
-      title: "선생님 삭제",
-      description: `${teacher.name} 선생님이 삭제되었습니다.`,
-    });
+  const handleDelete = async (teacher: TeacherListResponse) => {
+    try {
+      await adminApi.deleteTeacher(teacher.id);
+      toast({
+        title: "교사 삭제 완료",
+        description: `${teacher.name} 교사가 삭제되었습니다.`,
+      });
+      // 목록 새로고침
+      await fetchTeachers();
+    } catch (error) {
+      console.error('Failed to delete teacher:', error);
+      toast({
+        title: "삭제 실패",
+        description: "교사 삭제에 실패했습니다. 다시 시도해주세요.",
+        variant: "destructive",
+      });
+    }
   };
 
   const columns = [
     {
       key: 'name',
       label: '선생님명',
-      render: (value: string, teacher: Teacher) => (
+      render: (value: string, teacher: TeacherListResponse) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
             <AvatarImage src="/placeholder.svg" />
@@ -190,8 +194,8 @@ const TeacherManagement = () => {
     {
       key: 'classes',
       label: '담당반',
-      render: (value: string[]) => (
-        value.length > 0 ? value.join(', ') : '담당반 없음'
+      render: (value: { id: number; name: string }[]) => (
+        value.length > 0 ? value.map(cls => cls.name).join(', ') : '담당반 없음'
       )
     },
     {
@@ -292,12 +296,12 @@ const TeacherManagement = () => {
             <div className="flex gap-2">
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as 'active' | 'resigned' | 'all')}
+                onChange={(e) => setFilterStatus(e.target.value as 'ACTIVE' | 'SUSPENDED' | 'all')}
                 className="h-8 px-3 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">전체</option>
-                <option value="active">재직중</option>
-                <option value="resigned">퇴직</option>
+                <option value="ACTIVE">활성화됨</option>
+                <option value="SUSPENDED">일시정지</option>
               </select>
             </div>
           </div>
@@ -311,7 +315,7 @@ const TeacherManagement = () => {
         onView={handleViewDetails}
         onEdit={handleEditTeacher}
         onDelete={handleDelete}
-        getDeleteConfirmation={(teacher: Teacher) => ({
+        getDeleteConfirmation={(teacher: TeacherListResponse) => ({
           title: '정말 삭제하시겠습니까?',
           description: `${teacher.name} 선생님의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
         })}

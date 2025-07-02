@@ -242,10 +242,15 @@ export const useForm = <T extends Record<string, any> = Record<string, any>>(
     const value = values[field];
     const error = validateSingleField(field, value);
     
-    setFormErrors(prev => ({
-      ...prev,
-      [field]: error || undefined
-    }));
+    setFormErrors(prev => {
+      const newErrors = { ...prev };
+      if (error) {
+        newErrors[field] = error;
+      } else {
+        delete newErrors[field];
+      }
+      return newErrors;
+    });
     
     return !error;
   }, [values, validateSingleField]);
@@ -255,7 +260,7 @@ export const useForm = <T extends Record<string, any> = Record<string, any>>(
    */
   const validate = useCallback((): boolean => {
     let isFormValid = true;
-    const newErrors: Partial<Record<keyof T, string>> = {};
+    const newErrors: FormErrors<T> = {};
     
     // Field-level validation
     if (fields) {
@@ -299,10 +304,15 @@ export const useForm = <T extends Record<string, any> = Record<string, any>>(
     // Auto-validate field if it has been touched
     if (touchedFields[field]) {
       const error = validateSingleField(field, transformedValue);
-      setFormErrors(prev => ({
-        ...prev,
-        [field]: error || undefined
-      }));
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        if (error) {
+          newErrors[field] = error;
+        } else {
+          delete newErrors[field];
+        }
+        return newErrors;
+      });
     }
     
     // Call onChange callback

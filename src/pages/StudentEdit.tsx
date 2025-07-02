@@ -168,7 +168,7 @@ const StudentEdit = () => {
       const student = await studentApi.getStudentDetail(parseInt(id));
       
       // useForm과 usePhoneNumberInput에 데이터 설정
-      form.setValues({
+      const formData = {
         name: student.name || '',
         discordId: student.discordId || '',
         school: student.school || '',
@@ -176,9 +176,16 @@ const StudentEdit = () => {
         status: (student.status as StudentFormData['status']) || 'ENROLLED',
         gender: (student.gender as StudentFormData['gender']) || 'MALE',
         schoolId: student.schoolId
-      });
+      };
       
+      form.setValues(formData);
       phoneNumber.setValue(student.phoneNumber || '');
+      
+      // 데이터 로드 후 validation 실행 (약간의 지연 후)
+      setTimeout(() => {
+        form.validate();
+      }, 100);
+      
     } catch (error) {
       console.error('Failed to fetch student:', error);
       toast({

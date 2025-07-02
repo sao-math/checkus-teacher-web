@@ -12,7 +12,9 @@ import { studentApi } from '@/services/studentApi';
 import { adminApi } from '@/services/adminApi';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
 import ManagementList from '@/components/ui/ManagementList';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { getGradeText } from '@/utils/gradeUtils';
+import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const StudentManagement = () => {
   const { toast } = useToast();
@@ -113,30 +115,6 @@ const StudentManagement = () => {
   };
 
   // 유틸리티 함수들
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'INQUIRY': return 'bg-yellow-100 text-yellow-800';
-      case 'CONSULTATION': return 'bg-orange-100 text-orange-800';
-      case 'ENROLLED': return 'bg-green-100 text-green-800';
-      case 'WAITING': return 'bg-purple-100 text-purple-800';
-      case 'WITHDRAWN': return 'bg-red-100 text-red-800';
-      case 'UNREGISTERED': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'INQUIRY': return '문의';
-      case 'CONSULTATION': return '상담';
-      case 'ENROLLED': return '재원';
-      case 'WAITING': return '대기';
-      case 'WITHDRAWN': return '퇴원';
-      case 'UNREGISTERED': return '미등록';
-      default: return '알 수 없음';
-    }
-  };
-
   const getRelationshipText = (relationship: string) => {
     switch (relationship) {
       case 'father': return '아버지';
@@ -173,9 +151,7 @@ const StudentManagement = () => {
       key: 'status',
       label: '상태',
       render: (value: string) => (
-        <Badge className={getStatusColor(value)}>
-          {getStatusText(value)}
-        </Badge>
+        <StatusBadge status={value} type="student" />
       )
     },
     {
@@ -233,11 +209,7 @@ const StudentManagement = () => {
   ];
 
   if (crud.loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <PageLoadingSpinner text="학생 목록을 불러오는 중..." />;
   }
 
   return (

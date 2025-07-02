@@ -21,6 +21,8 @@ import { WeeklyScheduleDialog } from '@/components/students/WeeklyScheduleDialog
 import { studentApi } from '@/services/studentApi';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { formatKoreanTime, toUtcIsoString } from '@/utils/dateUtils';
+import PageHeader from '@/components/ui/PageHeader';
+import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const StudentDetails = () => {
   const { id } = useParams();
@@ -320,36 +322,26 @@ const StudentDetails = () => {
   }, [studentId, showError]);
 
   if (loading || !student) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <PageLoadingSpinner text="학생 정보를 불러오는 중..." />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
-      <div className={`bg-white border-b sticky top-0 z-10 transition-all duration-300 ease-in-out`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleEdit}>
-                <Edit className="h-4 w-4 mr-2" />
-                정보 수정
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={student.name}
+        description={`${student.school || '학교 정보 없음'} - ${student.grade}학년`}
+        onBack={handleBack}
+        actions={[
+          {
+            label: '정보 수정',
+            onClick: handleEdit,
+            variant: 'outline',
+            icon: <Edit className="h-4 w-4" />
+          }
+        ]}
+        className="max-w-7xl"
+      />
 
       {/* 메인 컨텐츠 */}
       <div className={`transition-all duration-300 ease-in-out ${

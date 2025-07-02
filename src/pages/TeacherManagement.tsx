@@ -10,6 +10,8 @@ import { UserRoleResponse } from '@/types/admin';
 import { adminApi, TeacherListResponse } from '@/services/adminApi';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
 import ManagementList from '@/components/ui/ManagementList';
+import StatusBadge from '@/components/ui/StatusBadge';
+import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const TeacherManagement = () => {
   const { toast } = useToast();
@@ -111,25 +113,6 @@ const TeacherManagement = () => {
     }
   };
 
-  // 유틸리티 함수들
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800';
-      case 'SUSPENDED': return 'bg-red-100 text-red-800';
-      case 'PENDING': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return '활성화됨';
-      case 'SUSPENDED': return '일시정지';
-      case 'PENDING': return '승인 대기';
-      default: return '알 수 없음';
-    }
-  };
-
   // 승인 대기 교사 필터링
   const filteredPendingTeachers = pendingTeachers.filter(teacher =>
     teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -160,9 +143,7 @@ const TeacherManagement = () => {
       key: 'status',
       label: '상태',
       render: (value: string) => (
-        <Badge className={getStatusColor(value)}>
-          {getStatusText(value)}
-        </Badge>
+        <StatusBadge status={value} type="teacher" />
       )
     },
     {
@@ -179,11 +160,7 @@ const TeacherManagement = () => {
   ];
 
   if (crud.loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <PageLoadingSpinner text="교사 목록을 불러오는 중..." />;
   }
 
   return (

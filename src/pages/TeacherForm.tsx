@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Save, User, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePhoneNumberInput } from '@/hooks/usePhoneNumberInput';
+import { useForm } from '@/hooks/useForm';
+import { useAsyncForm } from '@/hooks/useAsyncForm';
 import { adminApi, TeacherDetailResponse, TeacherUpdateRequest } from '@/services/adminApi';
 import {
   AlertDialog,
@@ -21,6 +23,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+interface TeacherFormData {
+  name: string;
+  discordId: string;
+}
+
+interface TeacherSubmitData extends TeacherFormData {
+  phoneNumber: string;
+  id?: number;
+}
+
 const TeacherForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -29,7 +41,6 @@ const TeacherForm = () => {
 
   const [teacher, setTeacher] = useState<TeacherDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   // 전화번호 입력 훅 사용
@@ -38,9 +49,72 @@ const TeacherForm = () => {
     startsWith010: true
   });
 
-  const [formData, setFormData] = useState({
-    name: '',
-    discordId: ''
+  // useForm 훅 사용으로 폼 상태 관리 통합
+  const form = useForm<TeacherFormData>({
+    initialValues: {
+      name: '',
+      discordId: ''
+    },
+    fields: {
+      name: {
+        validation: {
+          required: true,
+          minLength: 1,
+          maxLength: 50,
+          custom: (value: string) => {
+            if (value && !value.trim()) {
+              return '이름을 입력해주세요.';
+            }
+            return null;
+          }
+        }
+      },
+      discordId: {
+        validation: {
+          maxLength: 100
+        }
+      }
+    }
+  });
+
+  // useAsyncForm 훅으로 비동기 제출 로직 통합
+  const asyncForm = useAsyncForm<TeacherSubmitData, any>({
+    onSubmit: async (data) => {
+      if (!isEdit || !id) {
+        throw new Error("수정할 교사 정보를 찾을 수 없습니다.");
+      }
+
+      const updateData: TeacherUpdateRequest = {
+        name: data.name.trim(),
+        phoneNumber: data.phoneNumber.trim(),
+        discordId: data.discordId.trim() || undefined
+      };
+
+      return await adminApi.updateTeacher(parseInt(id), updateData);
+    },
+    messages: {
+      successTitle: "교사 정보 수정 완료",
+      successDescription: (data) => `${data.name} 교사의 정보가 성공적으로 수정되었습니다.`,
+      errorTitle: "수정 실패",
+      errorDescription: "교사 정보 수정에 실패했습니다. 다시 시도해주세요."
+    },
+    redirect: {
+      path: id ? `/teachers/${id}` : '/teachers'
+    },
+    onBeforeSubmit: async (data) => {
+      // 폼 검증을 여기서 수행
+      if (!form.validate()) {
+        throw new Error("입력 정보를 확인해주세요.");
+      }
+
+      if (!data.phoneNumber.trim()) {
+        throw new Error("전화번호를 입력해주세요.");
+      }
+
+      if (!phoneNumber.isValid) {
+        throw new Error("올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)");
+      }
+    }
   });
 
   useEffect(() => {
@@ -54,11 +128,12 @@ const TeacherForm = () => {
       setLoading(true);
       const data = await adminApi.getTeacherDetail(teacherId);
       setTeacher(data);
-      setFormData({
+      
+      // useForm과 usePhoneNumberInput에 데이터 설정
+      form.setValues({
         name: data.name,
         discordId: data.discordId || ''
       });
-      // 전화번호 설정
       phoneNumber.setValue(data.phoneNumber || '');
     } catch (error) {
       console.error('Failed to fetch teacher detail:', error);
@@ -73,80 +148,21 @@ const TeacherForm = () => {
     }
   };
 
-  const validateForm = () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "입력 오류",
-        description: "이름을 입력해주세요.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!phoneNumber.value.trim()) {
-      toast({
-        title: "입력 오류",
-        description: "전화번호를 입력해주세요.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    // 전화번호 유효성 검증
-    if (!phoneNumber.isValid) {
-      toast({
-        title: "입력 오류",
-        description: "올바른 전화번호 형식을 입력해주세요. (예: 010-1234-5678)",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      return;
-    }
-
-    if (!isEdit || !id) {
-      toast({
-        title: "오류",
-        description: "수정할 교사 정보를 찾을 수 없습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // useAsyncForm으로 제출 (검증 포함)
+    const submitData: TeacherSubmitData = {
+      ...form.values,
+      phoneNumber: phoneNumber.value,
+      id: id ? parseInt(id) : undefined
+    };
 
     try {
-      setSaving(true);
-      
-      const updateData: TeacherUpdateRequest = {
-        name: formData.name.trim(),
-        phoneNumber: phoneNumber.value.trim(),
-        discordId: formData.discordId.trim() || undefined
-      };
-
-      await adminApi.updateTeacher(parseInt(id), updateData);
-      
-      toast({
-        title: "교사 정보 수정 완료",
-        description: `${formData.name} 교사의 정보가 성공적으로 수정되었습니다.`,
-      });
-
-      navigate(`/teachers/${id}`);
+      await asyncForm.submit(submitData);
     } catch (error) {
-      console.error('Failed to update teacher:', error);
-      toast({
-        title: "수정 실패",
-        description: "교사 정보 수정에 실패했습니다. 다시 시도해주세요.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
+      // 에러는 useAsyncForm에서 자동 처리됨
+      console.error('Form submission error:', error);
     }
   };
 
@@ -176,13 +192,6 @@ const TeacherForm = () => {
     }
   };
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -198,10 +207,12 @@ const TeacherForm = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500">교사 정보를 찾을 수 없습니다.</p>
-          <Button onClick={() => navigate('/teachers')} className="mt-4">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            목록으로 돌아가기
+          <User className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">교사를 찾을 수 없습니다</h1>
+          <p className="text-gray-500 mb-6">요청하신 교사 정보를 찾을 수 없습니다.</p>
+          <Button onClick={() => navigate('/teachers')} className="bg-blue-500 hover:bg-blue-600">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            교사 목록으로 돌아가기
           </Button>
         </div>
       </div>
@@ -209,182 +220,154 @@ const TeacherForm = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 헤더 */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/teachers')}>
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {isEdit ? '교사 정보 수정' : '새 교사 등록'}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {isEdit ? `${formData.name} 교사의 정보를 수정합니다` : '새로운 교사를 등록합니다'}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              {isEdit && (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={deleting}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {deleting ? '삭제 중...' : '삭제'}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {formData.name} 교사의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>취소</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleDelete} 
-                        disabled={deleting}
-                        className="bg-red-600 hover:bg-red-700"
-                      >
-                        {deleting ? '삭제 중...' : '삭제'}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              )}
-              <Button onClick={handleSubmit} disabled={saving}>
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? '저장 중...' : '저장'}
-              </Button>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/teachers')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            교사 목록으로 돌아가기
+          </Button>
+          
+          <h1 className="text-3xl font-bold text-gray-900">
+            {isEdit ? '교사 정보 수정' : '새 교사 등록'}
+          </h1>
+          {isEdit && teacher && (
+            <p className="text-gray-600 mt-2">
+              {teacher.name} 교사의 정보를 수정합니다.
+            </p>
+          )}
         </div>
-      </div>
 
-      {/* 메인 컨텐츠 */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <form onSubmit={handleSubmit}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <User className="h-5 w-5" />
-                교사 기본 정보
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* 기본 정보 */}
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">기본 정보</h3>
-                  <div className="space-y-4">
-                    {isEdit && teacher && (
-                      <div className="space-y-2">
-                        <Label htmlFor="username">사용자명</Label>
-                        <Input
-                          id="username"
-                          value={teacher.username}
-                          disabled
-                          className="bg-gray-50"
-                        />
-                        <p className="text-xs text-gray-500">사용자명은 변경할 수 없습니다.</p>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="name">이름 *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => handleChange('name', e.target.value)}
-                        placeholder="교사 이름을 입력하세요"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">전화번호 *</Label>
-                      <Input
-                        id="phoneNumber"
-                        value={phoneNumber.value}
-                        onChange={phoneNumber.onChange}
-                        placeholder="010-1234-5678"
-                        required
-                        className={!phoneNumber.isValid && phoneNumber.value.length > 3 ? 'border-red-500' : ''}
-                      />
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-gray-500">010으로 시작하며 자동으로 하이픈이 추가됩니다</p>
-                        {phoneNumber.value.length > 3 && (
-                          <p className={`text-xs ${phoneNumber.isValid ? 'text-green-600' : 'text-red-500'}`}>
-                            {phoneNumber.isValid ? '✓ 올바른 형식' : '✗ 잘못된 형식'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="discordId">Discord ID</Label>
-                      <Input
-                        id="discordId"
-                        value={formData.discordId}
-                        onChange={(e) => handleChange('discordId', e.target.value)}
-                        placeholder="username#1234"
-                      />
-                      <p className="text-xs text-gray-500">선택사항입니다.</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 상태 정보 (읽기 전용) */}
-                {isEdit && teacher && (
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-gray-900">계정 정보</h3>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>현재 상태</Label>
-                        <div className="p-2 bg-gray-50 rounded-md">
-                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            teacher.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                            teacher.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {teacher.status === 'ACTIVE' ? '활성' : 
-                             teacher.status === 'SUSPENDED' ? '정지' : teacher.status}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>가입일</Label>
-                        <div className="p-2 bg-gray-50 rounded-md text-sm">
-                          {new Date(teacher.createdAt).toLocaleString('ko-KR')}
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label>담당 반</Label>
-                        <div className="p-2 bg-gray-50 rounded-md text-sm">
-                          {teacher.classes.length > 0 ? (
-                            <div className="space-y-1">
-                              {teacher.classes.map((cls) => (
-                                <div key={cls.id}>{cls.name}</div>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-gray-500">담당 반 없음</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              {isEdit ? '교사 정보 수정' : '교사 정보 입력'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* 이름 필드 - useForm 사용 */}
+              <div className="space-y-2">
+                <Label htmlFor="name">이름 *</Label>
+                <Input
+                  id="name"
+                  {...form.getFieldProps('name')}
+                  placeholder="교사 이름을 입력하세요"
+                  className={form.errors.name ? 'border-red-500' : ''}
+                />
+                {form.errors.name && (
+                  <p className="text-sm text-red-500">{form.errors.name}</p>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </form>
+
+              {/* 전화번호 필드 - 기존 usePhoneNumberInput 사용 */}
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">전화번호 *</Label>
+                <Input
+                  id="phoneNumber"
+                  value={phoneNumber.value}
+                  onChange={phoneNumber.onChange}
+                  placeholder="010-0000-0000"
+                  className={!phoneNumber.isValid && phoneNumber.value.length > 3 ? 'border-red-500' : ''}
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-500">010으로 시작하며 자동으로 하이픈이 추가됩니다</p>
+                  {phoneNumber.value.length > 3 && (
+                    <p className={`text-xs ${phoneNumber.isValid ? 'text-green-600' : 'text-red-500'}`}>
+                      {phoneNumber.isValid ? '✓ 올바른 형식' : '✗ 잘못된 형식'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* 디스코드 ID 필드 - useForm 사용 */}
+              <div className="space-y-2">
+                <Label htmlFor="discordId">디스코드 ID (선택)</Label>
+                <Input
+                  id="discordId"
+                  {...form.getFieldProps('discordId')}
+                  placeholder="username#1234"
+                  className={form.errors.discordId ? 'border-red-500' : ''}
+                />
+                {form.errors.discordId && (
+                  <p className="text-sm text-red-500">{form.errors.discordId}</p>
+                )}
+                <p className="text-xs text-gray-500">
+                  디스코드를 사용하여 소통하는 경우 입력해주세요
+                </p>
+              </div>
+
+              <div className="flex justify-between pt-6">
+                <div>
+                  {isEdit && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          disabled={deleting || asyncForm.isSubmitting}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          교사 삭제
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {teacher?.name} 교사의 모든 정보가 영구적으로 삭제됩니다. 
+                            이 작업은 되돌릴 수 없습니다.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>취소</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-red-500 hover:bg-red-600"
+                          >
+                            삭제
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate('/teachers')}
+                    disabled={asyncForm.isSubmitting || deleting}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={asyncForm.isSubmitting || deleting || !form.isValid || !phoneNumber.isValid}
+                    className="bg-blue-500 hover:bg-blue-600"
+                  >
+                    {asyncForm.isSubmitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        저장 중...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        {isEdit ? '수정 저장' : '교사 등록'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

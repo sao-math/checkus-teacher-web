@@ -9,8 +9,18 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { School, Check, Eye, EyeOff, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePhoneNumberInput } from '@/hooks/usePhoneNumberInput';
+import { useForm } from '@/hooks/useForm';
+import { useAsyncForm } from '@/hooks/useAsyncForm';
 import authService from '@/services/auth';
 import api from '@/lib/axios';
+
+interface RegisterFormData {
+  username: string;
+  password: string;
+  confirmPassword: string;
+  name: string;
+  discordId: string;
+}
 
 const Register = () => {
   const navigate = useNavigate();
@@ -21,124 +31,180 @@ const Register = () => {
     startsWith010: true
   });
 
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    confirmPassword: '',
-    name: '',
-    discordId: '',
-    role: 'teacher',
+  // useForm 훅으로 폼 상태 관리 통합
+  const form = useForm<RegisterFormData>({
+    initialValues: {
+      username: '',
+      password: '',
+      confirmPassword: '',
+      name: '',
+      discordId: ''
+    },
+    fields: {
+      username: {
+        validation: {
+          required: true,
+          minLength: 4,
+          maxLength: 20,
+          pattern: /^[a-zA-Z0-9_]+$/,
+          custom: (value: string) => {
+            if (value && !/^[a-zA-Z0-9_]+$/.test(value)) {
+              return '영문자, 숫자, 언더바만 사용 가능합니다.';
+            }
+            return null;
+          }
+        }
+      },
+      password: {
+        validation: {
+          required: true,
+          minLength: 8,
+          custom: (value: string) => {
+            if (!value) return null;
+            
+            const hasLetter = /[a-zA-Z]/.test(value);
+            const hasNumber = /[0-9]/.test(value);
+            const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+            
+            if (!hasLetter || !hasNumber || !hasSpecial) {
+              return '비밀번호는 영문자, 숫자, 특수문자를 모두 포함해야 합니다.';
+            }
+            return null;
+          }
+        }
+      },
+      confirmPassword: {
+        validation: {
+          required: true,
+          custom: (value: string) => {
+            if (value && value !== form.values.password) {
+              return '비밀번호가 일치하지 않습니다.';
+            }
+            return null;
+          }
+        }
+      },
+      name: {
+        validation: {
+          required: true,
+          minLength: 1,
+          maxLength: 50,
+          custom: (value: string) => {
+            if (value && !value.trim()) {
+              return '이름을 입력해주세요.';
+            }
+            return null;
+          }
+        }
+      },
+      discordId: {
+        validation: {
+          maxLength: 100
+        }
+      }
+    },
+    // 폼 레벨 검증 (비밀번호 확인)
+    validate: (values) => {
+      const errors: Partial<Record<keyof RegisterFormData, string>> = {};
+      
+      if (values.password && values.confirmPassword && values.password !== values.confirmPassword) {
+        errors.confirmPassword = '비밀번호가 일치하지 않습니다.';
+      }
+      
+      return errors;
+    }
   });
+
+  // useAsyncForm 훅으로 비동기 제출 로직 통합
+  const asyncForm = useAsyncForm<RegisterFormData & { phoneNumber: string }, any>({
+    onSubmit: async (data) => {
+      // 사용자명 중복 확인
+      const usernameCheck = await authService.checkUsername(data.username);
+      if (!usernameCheck.success || !usernameCheck.data) {
+        throw new Error('이미 사용 중인 사용자명입니다.');
+      }
+
+      // 전화번호 중복 확인
+      const phoneCheck = await authService.checkPhoneNumber(data.phoneNumber);
+      if (!phoneCheck.success || !phoneCheck.data) {
+        throw new Error('이미 등록된 전화번호입니다.');
+      }
+
+      // 회원가입 요청
+      const response = await api.post('/auth/register/teacher', {
+        username: data.username,
+        password: data.password,
+        name: data.name,
+        phoneNumber: data.phoneNumber,
+        discordId: data.discordId || null
+      });
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || '회원가입에 실패했습니다.');
+      }
+
+      return response.data;
+    },
+    messages: {
+      successTitle: "회원가입 완료",
+      successDescription: "회원가입이 완료되었습니다! 관리자의 승인을 기다려주세요.",
+      errorTitle: "회원가입 실패"
+    },
+    redirect: {
+      path: '/login',
+      delay: 2000
+    },
+    onBeforeSubmit: async (data) => {
+      // 폼 검증
+      if (!form.validate()) {
+        throw new Error("입력 정보를 확인해주세요.");
+      }
+
+      // 전화번호 검증
+      if (!data.phoneNumber.trim()) {
+        throw new Error("전화번호를 입력해주세요.");
+      }
+
+      if (!phoneNumber.isValid) {
+        throw new Error("올바른 전화번호 형식을 입력해주세요.");
+      }
+    }
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [schoolOpen, setSchoolOpen] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
     hasMinLength: false,
     hasLetter: false,
     hasNumber: false,
     hasSpecial: false,
   });
-  const [confirmPassword, setConfirmPassword] = useState('');
 
+  // 비밀번호 강도 체크 (기존 로직 유지)
   useEffect(() => {
-    const password = formData.password;
+    const password = form.values.password;
     setPasswordStrength({
       hasMinLength: password.length >= 8,
       hasLetter: /[a-zA-Z]/.test(password),
       hasNumber: /[0-9]/.test(password),
       hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
     });
-  }, [formData.password]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    if (name === 'confirmPassword') {
-      setConfirmPassword(value);
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const handleRoleChange = (value: string) => {
-    setFormData(prev => ({ ...prev, role: value }));
-  };
-
-  const handleSchoolSelect = (school: string) => {
-    setFormData(prev => ({ ...prev, school }));
-    setSchoolOpen(false);
-  };
-
-  const validate = () => {
-    if (!formData.username.trim()) return '아이디를 입력해주세요.';
-    if (!formData.password) return '비밀번호를 입력해주세요.';
-    if (formData.password.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
-    if (!passwordStrength.hasLetter || !passwordStrength.hasNumber || !passwordStrength.hasSpecial) {
-      return '비밀번호는 영문자, 숫자, 특수문자를 모두 포함해야 합니다.';
-    }
-    if (!formData.name.trim()) return '이름을 입력해주세요.';
-    if (!phoneNumber.value.trim()) return '전화번호를 입력해주세요.';
-    if (!phoneNumber.isValid) return '올바른 전화번호 형식을 입력해주세요.';
-    return '';
-  };
+  }, [form.values.password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    const validationError = validate();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    if (formData.password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
-    setLoading(true);
+    
+    // useAsyncForm으로 제출 (검증 포함)
+    const submitData = {
+      ...form.values,
+      phoneNumber: phoneNumber.value
+    };
 
     try {
-      // Check username availability
-      const usernameCheck = await authService.checkUsername(formData.username);
-      if (!usernameCheck.success || !usernameCheck.data) {
-        throw new Error('이미 사용 중인 사용자명입니다.');
-      }
-
-      // Check phone number availability
-      const phoneCheck = await authService.checkPhoneNumber(phoneNumber.value);
-      if (!phoneCheck.success || !phoneCheck.data) {
-        throw new Error('이미 등록된 전화번호입니다.');
-      }
-
-      // Register
-      const response = await api.post('/auth/register/teacher', {
-        username: formData.username,
-        password: formData.password,
-        name: formData.name,
-        phoneNumber: phoneNumber.value,
-        discordId: formData.discordId || null
-      });
-
-      if (response.data.success) {
-        setSuccess('회원가입이 완료되었습니다! 관리자의 승인을 기다려주세요.');
-        
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else {
-        throw new Error(response.data.message || '회원가입에 실패했습니다.');
-      }
-    } catch (err: any) {
-      // Handle both axios error responses and regular errors
-      const errorMessage = err.response?.data?.message || err.message || '회원가입 중 오류가 발생했습니다.';
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      await asyncForm.submit(submitData);
+    } catch (error) {
+      // 에러는 useAsyncForm에서 자동 처리됨
+      console.error('Form submission error:', error);
     }
   };
 
@@ -158,7 +224,7 @@ const Register = () => {
   };
 
   const passwordsMatch = () => {
-    return formData.password === confirmPassword && confirmPassword !== '';
+    return form.values.password === form.values.confirmPassword && form.values.confirmPassword !== '';
   };
 
   return (
@@ -174,32 +240,32 @@ const Register = () => {
               <CardTitle className="text-blue-700">회원가입</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* 아이디 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="username">아이디</Label>
                 <Input
                   id="username"
-                  name="username"
-                  type="text"
-                  required
+                  {...form.getFieldProps('username')}
                   placeholder="4-20자, 영문자/숫자/언더바만 가능"
-                  value={formData.username}
-                  onChange={handleChange}
+                  className={form.errors.username ? 'border-red-500' : ''}
                 />
+                {form.errors.username && (
+                  <p className="text-sm text-red-500">{form.errors.username}</p>
+                )}
               </div>
+
+              {/* 비밀번호 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="password">비밀번호</Label>
                 <div className="relative">
                   <Input
                     id="password"
-                    name="password"
+                    {...form.getFieldProps('password')}
                     type={showPassword ? "text" : "password"}
-                    required
                     placeholder="8자 이상, 영문자+숫자+특수문자 포함"
-                    value={formData.password}
-                    onChange={handleChange}
                     className={cn(
                       "pr-10",
-                      !passwordStrength.hasMinLength && formData.password && "border-red-500"
+                      (form.errors.password || (!passwordStrength.hasMinLength && form.values.password)) && "border-red-500"
                     )}
                   />
                   <button
@@ -210,7 +276,10 @@ const Register = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {formData.password && (
+                {form.errors.password && (
+                  <p className="text-sm text-red-500">{form.errors.password}</p>
+                )}
+                {form.values.password && (
                   <div className="text-xs space-y-1">
                     <div className={cn(
                       "flex items-center gap-1",
@@ -243,20 +312,19 @@ const Register = () => {
                   </div>
                 )}
               </div>
+
+              {/* 비밀번호 확인 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">비밀번호 확인</Label>
                 <div className="relative">
                   <Input
                     id="confirmPassword"
-                    name="confirmPassword"
+                    {...form.getFieldProps('confirmPassword')}
                     type={showConfirmPassword ? "text" : "password"}
-                    required
                     placeholder="비밀번호를 다시 입력하세요"
-                    value={confirmPassword}
-                    onChange={handleChange}
                     className={cn(
                       "pr-10",
-                      confirmPassword && !passwordsMatch() && "border-red-500"
+                      (form.errors.confirmPassword || (form.values.confirmPassword && !passwordsMatch())) && "border-red-500"
                     )}
                   />
                   <button
@@ -267,7 +335,10 @@ const Register = () => {
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {confirmPassword && (
+                {form.errors.confirmPassword && (
+                  <p className="text-sm text-red-500">{form.errors.confirmPassword}</p>
+                )}
+                {form.values.confirmPassword && (
                   <div className={cn(
                     "text-xs flex items-center gap-1",
                     passwordsMatch() ? "text-green-600" : "text-red-500"
@@ -277,18 +348,22 @@ const Register = () => {
                   </div>
                 )}
               </div>
+
+              {/* 이름 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="name">이름</Label>
                 <Input
                   id="name"
-                  name="name"
-                  type="text"
+                  {...form.getFieldProps('name')}
                   placeholder="이름을 입력하세요"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
+                  className={form.errors.name ? 'border-red-500' : ''}
                 />
+                {form.errors.name && (
+                  <p className="text-sm text-red-500">{form.errors.name}</p>
+                )}
               </div>
+
+              {/* 전화번호 필드 - 기존 usePhoneNumberInput 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">전화번호</Label>
                 <Input
@@ -298,7 +373,6 @@ const Register = () => {
                   placeholder="010-0000-0000"
                   value={phoneNumber.value}
                   onChange={phoneNumber.onChange}
-                  required
                   className={!phoneNumber.isValid && phoneNumber.value.length > 3 ? 'border-red-500' : ''}
                 />
                 <div className="flex items-center justify-between">
@@ -310,35 +384,36 @@ const Register = () => {
                   )}
                 </div>
               </div>
+
+              {/* 디스코드 ID 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="discordId">디스코드 ID (선택)</Label>
                 <Input
                   id="discordId"
-                  name="discordId"
-                  type="text"
+                  {...form.getFieldProps('discordId')}
                   placeholder="username#1234"
-                  value={formData.discordId}
-                  onChange={handleChange}
+                  className={form.errors.discordId ? 'border-red-500' : ''}
                 />
+                {form.errors.discordId && (
+                  <p className="text-sm text-red-500">{form.errors.discordId}</p>
+                )}
               </div>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              {error && (
-                <div className="w-full p-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div className="w-full p-2 text-sm text-green-600 bg-green-50 border border-green-200 rounded">
-                  {success}
-                </div>
-              )}
+              {/* 에러/성공 메시지는 useAsyncForm에서 자동 toast로 처리됨 */}
               <Button 
                 type="submit" 
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={loading}
+                disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid || !isPasswordValid() || !passwordsMatch()}
               >
-                {loading ? '가입 중...' : '회원가입'}
+                {asyncForm.isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    가입 중...
+                  </>
+                ) : (
+                  '회원가입'
+                )}
               </Button>
               <div className="text-center text-sm">
                 이미 계정이 있으신가요?{' '}
@@ -346,6 +421,7 @@ const Register = () => {
                   type="button"
                   onClick={() => navigate('/login')}
                   className="text-blue-600 hover:underline"
+                  disabled={asyncForm.isSubmitting}
                 >
                   로그인
                 </button>

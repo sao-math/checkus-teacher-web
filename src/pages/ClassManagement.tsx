@@ -1,48 +1,43 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useToast } from '@/hooks/use-toast';
 import { Class } from '@/types/class';
-import { mockClasses } from '@/data/mockClasses';
-import { useClassFilters } from '@/hooks/useClassFilters';
+import { classApi } from '@/services/classApi';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 import ClassManagementHeader from '@/components/classes/ClassManagementHeader';
 import ClassFilters from '@/components/classes/ClassFilters';
 import ManagementList from '@/components/ui/ManagementList';
 
 const ClassManagement = () => {
-  const [classes, setClasses] = useState<Class[]>(mockClasses);
-  const { toast } = useToast();
-  const navigate = useNavigate();
+  // useCrudOperations 훅으로 모든 CRUD 로직 통합
+  const crud = useCrudOperations<Class>({
+    endpoints: {
+      list: classApi.getClasses,
+      create: classApi.createClass,
+      update: classApi.updateClass,
+      delete: classApi.deleteClass,
+    },
+    routes: {
+      detail: (cls) => `/classes/${cls.id}`,
+      edit: (cls) => `/classes/${cls.id}/edit`,
+      create: '/classes/new',
+    },
+    searchFields: ['name', 'teacher', 'schedule'],
+    statusField: 'status',
+    statusOptions: [
+      { value: 'all', label: '전체' },
+      { value: 'active', label: '활성' },
+      { value: 'inactive', label: '비활성' },
+    ],
+    messages: {
+      deleteSuccess: (cls) => `${cls.name} 클래스가 삭제되었습니다.`,
+      deleteError: '클래스 삭제에 실패했습니다. 다시 시도해주세요.',
+      fetchError: '클래스 목록을 불러오는데 실패했습니다.',
+    },
+    initialFilter: 'all',
+  });
 
-  const {
-    searchTerm,
-    setSearchTerm,
-    filterStatus,
-    setFilterStatus,
-    filteredClasses
-  } = useClassFilters(classes);
-
-  const handleCreateClass = () => {
-    navigate('/classes/new');
-  };
-
-  const handleClassClick = (cls: Class) => {
-    navigate(`/classes/${cls.id}`);
-  };
-
-  const handleEditClass = (cls: Class) => {
-    navigate(`/classes/${cls.id}/edit`);
-  };
-
-  const handleDeleteClass = (cls: Class) => {
-    setClasses(prev => prev.filter(c => c.id !== cls.id));
-    toast({
-      title: "클래스 삭제",
-      description: `${cls.name} 클래스가 삭제되었습니다.`,
-    });
-  };
-
+  // 컬럼 정의
   const columns = [
     {
       key: 'name',
@@ -92,25 +87,22 @@ const ClassManagement = () => {
 
   return (
     <div className="space-y-6">
-      <ClassManagementHeader onCreateClick={handleCreateClass} />
+      <ClassManagementHeader onCreateClick={crud.handleCreate} />
 
       <ClassFilters
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        filterStatus={filterStatus}
-        onFilterChange={setFilterStatus}
+        searchTerm={crud.searchTerm}
+        onSearchChange={crud.setSearchTerm}
+        filterStatus={crud.filterStatus as 'all' | 'active' | 'inactive'}
+        onFilterChange={crud.setFilterStatus}
       />
 
       <ManagementList
-        items={filteredClasses}
+        items={crud.filteredItems}
         columns={columns}
-        onView={handleClassClick}
-        onEdit={handleEditClass}
-        onDelete={handleDeleteClass}
-        getDeleteConfirmation={(cls: Class) => ({
-          title: '정말 삭제하시겠습니까?',
-          description: `${cls.name} 반의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
-        })}
+        onView={crud.handleView}
+        onEdit={crud.handleEdit}
+        onDelete={crud.deleteItem}
+        getDeleteConfirmation={crud.getDeleteConfirmation}
         emptyMessage="검색 결과가 없습니다. 다른 검색어를 시도해보세요."
       />
     </div>

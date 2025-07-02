@@ -220,15 +220,6 @@ export const useCrudOperations = <T extends {id: string | number; name?: string}
     }
   }, [fetchItems, config.autoLoad]);
 
-  // 필터 상태가 변경되면 다시 로드 (상태별 API 호출이 필요한 경우)
-  useEffect(() => {
-    if (config.statusField && filterStatus !== 'all') {
-      fetchItems({ status: filterStatus });
-    } else if (filterStatus === 'all') {
-      fetchItems();
-    }
-  }, [filterStatus, config.statusField, fetchItems]);
-
   return {
     // 상태
     items,

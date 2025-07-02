@@ -79,6 +79,22 @@ export const studentApi = {
     }
   },
 
+  deleteStudent: async (studentId: number) => {
+    try {
+      const response = await api.delete(`/students/${studentId}`);
+      return response.data.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        console.error('API Error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
+  },
+
   // Weekly Schedule Management
   getWeeklySchedule: async (studentId: number) => {
     try {

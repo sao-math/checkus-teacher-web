@@ -1,53 +1,61 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Search, Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
+import { Search, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
 import { UserRoleResponse } from '@/types/admin';
 import { studentApi } from '@/services/studentApi';
 import { adminApi } from '@/services/adminApi';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 import ManagementList from '@/components/ui/ManagementList';
 import { getGradeText } from '@/utils/gradeUtils';
 
 const StudentManagement = () => {
-  const navigate = useNavigate();
-  const [students, setStudents] = useState<Student[]>([]);
-  const [pendingStudents, setPendingStudents] = useState<UserRoleResponse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pendingLoading, setPendingLoading] = useState(false);
   const { toast } = useToast();
-
+  
+  // 승인 대기 학생 관리 (별도 관리)
+  const [pendingStudents, setPendingStudents] = useState<UserRoleResponse[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED' | 'all'>('all');
 
+  // 주요 학생 관리 (useCrudOperations)
+  const crud = useCrudOperations<Student>({
+    endpoints: {
+      list: studentApi.getStudents,
+      update: studentApi.updateStudent,
+      delete: studentApi.deleteStudent,
+    },
+    routes: {
+      detail: (student) => `/students/${student.id}`,
+      edit: (student) => `/students/${student.id}/edit`,
+    },
+    searchFields: ['name', 'school', 'studentPhoneNumber'],
+    statusField: 'status',
+    statusOptions: [
+      { value: 'all', label: '전체' },
+      { value: 'INQUIRY', label: '문의' },
+      { value: 'CONSULTATION', label: '상담' },
+      { value: 'ENROLLED', label: '재원' },
+      { value: 'WAITING', label: '대기' },
+      { value: 'WITHDRAWN', label: '퇴원' },
+      { value: 'UNREGISTERED', label: '미등록' },
+    ],
+    messages: {
+      deleteSuccess: (student) => `${student.name} 학생이 삭제되었습니다.`,
+      deleteError: '학생 삭제에 실패했습니다. 다시 시도해주세요.',
+      fetchError: '학생 목록을 불러오는데 실패했습니다.',
+    },
+    initialFilter: 'all',
+  });
+
+  // 승인 대기 학생 조회
   useEffect(() => {
-    fetchStudents();
     fetchPendingStudents();
   }, []);
-
-  const fetchStudents = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching students...');
-      const data = await studentApi.getStudents();
-      console.log('Received student data:', data);
-      setStudents(data);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch students: " + (error instanceof Error ? error.message : 'Unknown error'),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchPendingStudents = async () => {
     try {
@@ -75,7 +83,7 @@ const StudentManagement = () => {
         description: `${name} 학생의 계정이 승인되었습니다.`,
       });
       // 승인 후 학생 목록 새로고침
-      fetchStudents();
+      crud.refreshItems();
     } catch (error) {
       console.error('Error approving student:', error);
       toast({
@@ -104,6 +112,7 @@ const StudentManagement = () => {
     }
   };
 
+  // 유틸리티 함수들
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'INQUIRY': return 'bg-yellow-100 text-yellow-800';
@@ -137,43 +146,13 @@ const StudentManagement = () => {
     }
   };
 
-  const handleViewDetails = (student: Student) => {
-    navigate(`/students/${student.id}`);
-  };
-
-  const handleEdit = (student: Student) => {
-    navigate(`/students/${student.id}/edit`);
-  };
-
-  const handleDeleteStudent = async (student: Student) => {
-    try {
-      // TODO: Implement delete API call
-      setStudents(prev => prev.filter(s => s.id !== student.id));
-      toast({
-        title: "학생 삭제",
-        description: `${student.name} 학생이 삭제되었습니다.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete student",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const filteredStudents = students.filter(student =>
-    (filterStatus === 'all' || student.status === filterStatus) &&
-    (student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.school.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.studentPhoneNumber && student.studentPhoneNumber.includes(searchTerm)))
-  );
-
+  // 승인 대기 학생 필터링
   const filteredPendingStudents = pendingStudents.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 컬럼 정의
   const columns = [
     {
       key: 'name',
@@ -253,7 +232,7 @@ const StudentManagement = () => {
     }
   ];
 
-  if (loading) {
+  if (crud.loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -348,15 +327,18 @@ const StudentManagement = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="학생 이름, 학교, 전화번호로 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={crud.searchTerm}
+                onChange={(e) => {
+                  crud.setSearchTerm(e.target.value);
+                  setSearchTerm(e.target.value); // 승인 대기 학생용
+                }}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-2">
               <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED' | 'all')}
+                value={crud.filterStatus}
+                onChange={(e) => crud.setFilterStatus(e.target.value)}
                 className="h-8 px-3 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">전체</option>
@@ -374,15 +356,12 @@ const StudentManagement = () => {
 
       {/* 학생 목록 */}
       <ManagementList
-        items={filteredStudents}
+        items={crud.filteredItems}
         columns={columns}
-        onView={handleViewDetails}
-        onEdit={handleEdit}
-        onDelete={handleDeleteStudent}
-        getDeleteConfirmation={(student: Student) => ({
-          title: '정말 삭제하시겠습니까?',
-          description: `${student.name} 학생의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
-        })}
+        onView={crud.handleView}
+        onEdit={crud.handleEdit}
+        onDelete={crud.deleteItem}
+        getDeleteConfirmation={crud.getDeleteConfirmation}
         emptyMessage="검색 결과가 없습니다. 다른 검색어를 시도해보세요."
       />
     </div>

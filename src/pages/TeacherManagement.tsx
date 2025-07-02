@@ -1,52 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Search, Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
+import { Search, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserRoleResponse } from '@/types/admin';
 import { adminApi, TeacherListResponse } from '@/services/adminApi';
+import { useCrudOperations } from '@/hooks/useCrudOperations';
 import ManagementList from '@/components/ui/ManagementList';
 
 const TeacherManagement = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'ACTIVE' | 'SUSPENDED' | 'all'>('all');
-  const [teachers, setTeachers] = useState<TeacherListResponse[]>([]);
+  const { toast } = useToast();
+  
+  // 승인 대기 교사 관리 (별도 관리)
   const [pendingTeachers, setPendingTeachers] = useState<UserRoleResponse[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
-  const [teachersLoading, setTeachersLoading] = useState(false);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    fetchPendingTeachers();
-    fetchTeachers();
+  // adminApi.getTeachers를 useCrudOperations와 호환되도록 하는 어댑터 (memoized)
+  const getTeachersAdapter = useCallback(async (params?: { status?: string }) => {
+    const status = params?.status && params.status !== 'all' ? params.status : 'ACTIVE';
+    return adminApi.getTeachers(status);
   }, []);
 
-  useEffect(() => {
-    fetchTeachers();
-  }, [filterStatus]);
+  // 주요 교사 관리 (useCrudOperations)
+  const crud = useCrudOperations<TeacherListResponse>({
+    endpoints: {
+      list: getTeachersAdapter,
+      update: adminApi.updateTeacher,
+      delete: adminApi.deleteTeacher,
+    },
+    routes: {
+      detail: (teacher) => `/teachers/${teacher.id}`,
+      edit: (teacher) => `/teachers/${teacher.id}/edit`,
+    },
+    searchFields: ['name', 'username', 'phoneNumber'],
+    statusField: 'status',
+    statusOptions: [
+      { value: 'all', label: '전체' },
+      { value: 'ACTIVE', label: '활성화됨' },
+      { value: 'SUSPENDED', label: '일시정지' },
+    ],
+    messages: {
+      deleteSuccess: (teacher) => `${teacher.name} 교사가 삭제되었습니다.`,
+      deleteError: '교사 삭제에 실패했습니다. 다시 시도해주세요.',
+      fetchError: '교사 목록을 불러오는데 실패했습니다.',
+    },
+    initialFilter: 'all',
+  });
 
-  const fetchTeachers = async () => {
-    try {
-      setTeachersLoading(true);
-      const status = filterStatus === 'all' ? 'ACTIVE' : filterStatus;
-      const data = await adminApi.getTeachers(status);
-      setTeachers(data);
-    } catch (error) {
-      console.error('Error fetching teachers:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch teachers: " + (error instanceof Error ? error.message : 'Unknown error'),
-        variant: "destructive",
-      });
-    } finally {
-      setTeachersLoading(false);
-    }
-  };
+  // 승인 대기 교사 조회
+  useEffect(() => {
+    fetchPendingTeachers();
+  }, []);
 
   const fetchPendingTeachers = async () => {
     try {
@@ -69,8 +77,8 @@ const TeacherManagement = () => {
     try {
       await adminApi.approveRole(userId, 'TEACHER');
       setPendingTeachers(prev => prev.filter(teacher => teacher.userId !== userId));
-      // Refresh teachers list to include newly approved teacher
-      fetchTeachers();
+      // 승인 후 교사 목록 새로고침
+      crud.refreshItems();
       toast({
         title: "선생님 승인 완료",
         description: `${name} 선생님의 계정이 승인되었습니다.`,
@@ -103,6 +111,7 @@ const TeacherManagement = () => {
     }
   };
 
+  // 유틸리티 함수들
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'ACTIVE': return 'bg-green-100 text-green-800';
@@ -121,44 +130,13 @@ const TeacherManagement = () => {
     }
   };
 
-  const filteredTeachers = teachers.filter(teacher =>
-    (teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.phoneNumber?.includes(searchTerm))
-  );
-
+  // 승인 대기 교사 필터링
   const filteredPendingTeachers = pendingTeachers.filter(teacher =>
     teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     teacher.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleViewDetails = (teacher: TeacherListResponse) => {
-    navigate(`/teachers/${teacher.id}`);
-  };
-
-  const handleEditTeacher = (teacher: TeacherListResponse) => {
-    navigate(`/teachers/${teacher.id}/edit`);
-  };
-
-  const handleDelete = async (teacher: TeacherListResponse) => {
-    try {
-      await adminApi.deleteTeacher(teacher.id);
-      toast({
-        title: "교사 삭제 완료",
-        description: `${teacher.name} 교사가 삭제되었습니다.`,
-      });
-      // 목록 새로고침
-      await fetchTeachers();
-    } catch (error) {
-      console.error('Failed to delete teacher:', error);
-      toast({
-        title: "삭제 실패",
-        description: "교사 삭제에 실패했습니다. 다시 시도해주세요.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  // 컬럼 정의
   const columns = [
     {
       key: 'name',
@@ -198,23 +176,21 @@ const TeacherManagement = () => {
         value.length > 0 ? value.map(cls => cls.name).join(', ') : '담당반 없음'
       )
     },
-    {
-      key: 'discordId',
-      label: 'Discord',
-      render: (value: string) => value || '-'
-    },
-    {
-      key: 'createdAt',
-      label: '가입일',
-      render: (value: string) => new Date(value).toLocaleDateString()
-    }
   ];
+
+  if (crud.loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">선생님 관리</h1>
+          <h1 className="text-3xl font-bold text-gray-900">교사 관리</h1>
         </div>
       </div>
 
@@ -288,15 +264,27 @@ const TeacherManagement = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="선생님 이름, 사용자명, 전화번호로 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={crud.searchTerm}
+                onChange={(e) => {
+                  crud.setSearchTerm(e.target.value);
+                  setSearchTerm(e.target.value); // 승인 대기 교사용
+                }}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-2">
               <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as 'ACTIVE' | 'SUSPENDED' | 'all')}
+                value={crud.filterStatus}
+                onChange={(e) => {
+                  const newStatus = e.target.value;
+                  crud.setFilterStatus(newStatus);
+                  // 상태별 데이터 로드
+                  if (newStatus !== 'all') {
+                    crud.fetchItems({ status: newStatus });
+                  } else {
+                    crud.fetchItems();
+                  }
+                }}
                 className="h-8 px-3 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">전체</option>
@@ -308,17 +296,14 @@ const TeacherManagement = () => {
         </CardContent>
       </Card>
 
-      {/* 선생님 목록 */}
+      {/* 교사 목록 */}
       <ManagementList
-        items={filteredTeachers}
+        items={crud.filteredItems}
         columns={columns}
-        onView={handleViewDetails}
-        onEdit={handleEditTeacher}
-        onDelete={handleDelete}
-        getDeleteConfirmation={(teacher: TeacherListResponse) => ({
-          title: '정말 삭제하시겠습니까?',
-          description: `${teacher.name} 선생님의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
-        })}
+        onView={crud.handleView}
+        onEdit={crud.handleEdit}
+        onDelete={crud.deleteItem}
+        getDeleteConfirmation={crud.getDeleteConfirmation}
         emptyMessage="검색 결과가 없습니다. 다른 검색어를 시도해보세요."
       />
     </div>

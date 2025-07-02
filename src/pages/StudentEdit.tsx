@@ -26,13 +26,16 @@ interface StudentFormData {
   grade: number;
   status: 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
   gender: 'MALE' | 'FEMALE';
-  schoolId?: number;
+  schoolId: number;
 }
 
 const StudentEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const [schoolOpen, setSchoolOpen] = useState(false);
+  const [isInitialDataLoaded, setIsInitialDataLoaded] = useState(false);
 
   // useApiCall 훅들로 API 호출 관리 (raw axios 호출 사용)
   const schoolsApi = useApiCall(
@@ -71,7 +74,8 @@ const StudentEdit = () => {
       school: '',
       grade: 1,
       status: 'ENROLLED',
-      gender: 'MALE'
+      gender: 'MALE',
+      schoolId: 0
     },
     fields: {
       name: {
@@ -153,8 +157,6 @@ const StudentEdit = () => {
     }
   });
 
-  const [schoolOpen, setSchoolOpen] = useState(false);
-
   const generateGradeOptions = () => {
     const options = [];
     for (let i = 1; i <= 13; i++) {
@@ -176,9 +178,9 @@ const StudentEdit = () => {
     }
   }, [id]);
 
-  // 학생 데이터가 로드되면 폼에 설정
+  // 학생 데이터가 로드되면 폼에 설정 (한 번만 실행)
   useEffect(() => {
-    if (studentDetailApi.data) {
+    if (studentDetailApi.data && !isInitialDataLoaded) {
       const student = studentDetailApi.data;
       
       const formData = {
@@ -196,12 +198,21 @@ const StudentEdit = () => {
       
       // 데이터 설정 후 에러 리셋 (validation은 실행하지 않음)
       form.resetErrors();
+      
+      // 초기 데이터 로드 완료 표시
+      setIsInitialDataLoaded(true);
     }
-  }, [studentDetailApi.data]);
+  }, [studentDetailApi.data, isInitialDataLoaded]);
 
   const handleSchoolSelect = (school: SchoolType) => {
-    form.setFieldValue('schoolId', school.id);
-    form.setFieldValue('school', school.name);
+    // setValues를 사용하여 한 번에 업데이트
+    const updatedValues = {
+      ...form.values,
+      schoolId: school.id,
+      school: school.name
+    };
+    
+    form.setValues(updatedValues);
     setSchoolOpen(false);
   };
 

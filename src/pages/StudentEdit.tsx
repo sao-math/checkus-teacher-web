@@ -13,9 +13,11 @@ import { useToast } from '@/hooks/use-toast';
 import { usePhoneNumberInput } from '@/hooks/usePhoneNumberInput';
 import { useForm } from '@/hooks/useForm';
 import { useAsyncForm } from '@/hooks/useAsyncForm';
+import { useApiCall } from '@/hooks/useApiCall';
 import { Student, StudentUpdateRequest } from '@/types/student';
 import { studentApi } from '@/services/studentApi';
 import { schoolApi, School as SchoolType } from '@/services/schoolApi';
+import api from '@/lib/axios';
 
 interface StudentFormData {
   name: string;
@@ -31,6 +33,29 @@ const StudentEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // useApiCall 훅들로 API 호출 관리 (raw axios 호출 사용)
+  const schoolsApi = useApiCall(
+    () => api.get('/schools'),
+    { errorMessage: "학교 목록을 불러오는데 실패했습니다" }
+  );
+
+  const studentDetailApi = useApiCall(
+    (studentId: number) => api.get(`/students/${studentId}`),
+    { 
+      errorMessage: "학생 정보를 불러오는데 실패했습니다",
+      onError: () => navigate('/students')
+    }
+  );
+
+  const createSchoolApi = useApiCall(
+    (schoolData: { name: string }) => api.post('/schools', schoolData),
+    {
+      showSuccessToast: true,
+      successMessage: "새 학교가 추가되었습니다",
+      errorMessage: "학교 추가에 실패했습니다"
+    }
+  );
 
   // 전화번호 훅 사용
   const phoneNumber = usePhoneNumberInput({
@@ -128,11 +153,7 @@ const StudentEdit = () => {
     }
   });
 
-  const [schools, setSchools] = useState<SchoolType[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingSchools, setLoadingSchools] = useState(true);
   const [schoolOpen, setSchoolOpen] = useState(false);
-  const [addingNewSchool, setAddingNewSchool] = useState(false);
 
   const generateGradeOptions = () => {
     const options = [];
@@ -146,28 +167,20 @@ const StudentEdit = () => {
     return options;
   };
 
-  const fetchSchools = async () => {
-    try {
-      const schoolsData = await schoolApi.getSchools();
-      setSchools(schoolsData);
-    } catch (error) {
-      console.error('Failed to fetch schools:', error);
-      toast({
-        title: "오류",
-        description: "학교 목록을 불러오는데 실패했습니다",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchStudent = async () => {
-    if (!id) return;
+  // 학교 및 학생 데이터 로드
+  useEffect(() => {
+    schoolsApi.execute();
     
-    try {
-      setLoading(true);
-      const student = await studentApi.getStudentDetail(parseInt(id));
+    if (id) {
+      studentDetailApi.execute(parseInt(id));
+    }
+  }, [id]);
+
+  // 학생 데이터가 로드되면 폼에 설정
+  useEffect(() => {
+    if (studentDetailApi.data) {
+      const student = studentDetailApi.data;
       
-      // useForm과 usePhoneNumberInput에 데이터 설정
       const formData = {
         name: student.name || '',
         discordId: student.discordId || '',
@@ -181,32 +194,10 @@ const StudentEdit = () => {
       form.setValues(formData);
       phoneNumber.setValue(student.phoneNumber || '');
       
-      // 데이터 로드 후 validation 실행 (약간의 지연 후)
-      setTimeout(() => {
-        form.validate();
-      }, 100);
-      
-    } catch (error) {
-      console.error('Failed to fetch student:', error);
-      toast({
-        title: "오류",
-        description: "학생 정보를 불러오는데 실패했습니다",
-        variant: "destructive",
-      });
-      navigate('/students');
-    } finally {
-      setLoading(false);
+      // 데이터 설정 후 에러 리셋 (validation은 실행하지 않음)
+      form.resetErrors();
     }
-  };
-
-  useEffect(() => {
-    Promise.all([
-      fetchSchools(),
-      fetchStudent()
-    ]).finally(() => {
-      setLoadingSchools(false);
-    });
-  }, [id]);
+  }, [studentDetailApi.data]);
 
   const handleSchoolSelect = (school: SchoolType) => {
     form.setFieldValue('schoolId', school.id);
@@ -219,24 +210,14 @@ const StudentEdit = () => {
     if (!schoolName?.trim()) return;
 
     try {
-      setAddingNewSchool(true);
-      const newSchool = await schoolApi.createSchool({ name: schoolName.trim() });
-      await fetchSchools();
+      const newSchool = await createSchoolApi.execute({ name: schoolName.trim() });
+      // 학교 목록 새로고침
+      await schoolsApi.execute();
+      // 새로 추가된 학교 선택
       handleSchoolSelect(newSchool);
-      
-      toast({
-        title: "성공",
-        description: "새 학교가 추가되었습니다",
-      });
     } catch (error) {
+      // 에러는 useApiCall에서 자동 처리됨
       console.error('Failed to add new school:', error);
-      toast({
-        title: "오류",
-        description: "학교 추가에 실패했습니다",
-        variant: "destructive",
-      });
-    } finally {
-      setAddingNewSchool(false);
     }
   };
 
@@ -265,7 +246,10 @@ const StudentEdit = () => {
     }
   };
 
-  if (loadingSchools || loading) {
+  // 로딩 상태 통합
+  const isLoading = schoolsApi.loading || studentDetailApi.loading;
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -373,17 +357,17 @@ const StudentEdit = () => {
                           <p className="text-sm text-gray-500 mb-2">검색 결과가 없습니다</p>
                           <Button 
                             onClick={handleAddNewSchool}
-                            disabled={addingNewSchool}
+                            disabled={createSchoolApi.loading}
                             className="w-full text-xs"
                             variant="outline"
                           >
-                            {addingNewSchool ? '추가 중...' : '새 학교 추가'}
+                            {createSchoolApi.loading ? '추가 중...' : '새 학교 추가'}
                           </Button>
                         </div>
                       </CommandEmpty>
                       <CommandGroup>
                         <CommandList>
-                          {schools.map((school) => (
+                          {schoolsApi.data?.map((school: SchoolType) => (
                             <CommandItem
                               key={school.id}
                               value={school.name}

@@ -52,7 +52,7 @@ const TeacherForm = () => {
   // useForm 훅 사용으로 폼 상태 관리 통합
   const form = useForm<TeacherFormData>({
     initialValues: {
-      name: '',
+    name: '',
       discordId: ''
     },
     fields: {
@@ -221,7 +221,7 @@ const TeacherForm = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <Button
             variant="outline"
@@ -230,11 +230,11 @@ const TeacherForm = () => {
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             교사 목록으로 돌아가기
-          </Button>
+              </Button>
           
           <h1 className="text-3xl font-bold text-gray-900">
             {isEdit ? '교사 정보 수정' : '새 교사 등록'}
-          </h1>
+                </h1>
           {isEdit && teacher && (
             <p className="text-gray-600 mt-2">
               {teacher.name} 교사의 정보를 수정합니다.
@@ -304,39 +304,39 @@ const TeacherForm = () => {
 
               <div className="flex justify-between pt-6">
                 <div>
-                  {isEdit && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+              {isEdit && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
                         <Button 
                           variant="destructive" 
                           disabled={deleting || asyncForm.isSubmitting}
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4 mr-2" />
                           교사 삭제
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
-                          <AlertDialogDescription>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>정말 삭제하시겠습니까?</AlertDialogTitle>
+                      <AlertDialogDescription>
                             {teacher?.name} 교사의 모든 정보가 영구적으로 삭제됩니다. 
                             이 작업은 되돌릴 수 없습니다.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>취소</AlertDialogCancel>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>취소</AlertDialogCancel>
                           <AlertDialogAction
                             onClick={handleDelete}
                             className="bg-red-500 hover:bg-red-600"
                           >
-                            삭제
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-                
+                        삭제
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+              </div>
+
                 <div className="flex gap-3">
                   <Button
                     type="button"

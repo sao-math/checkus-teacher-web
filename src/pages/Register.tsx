@@ -34,10 +34,10 @@ const Register = () => {
   // useForm 훅으로 폼 상태 관리 통합
   const form = useForm<RegisterFormData>({
     initialValues: {
-      username: '',
-      password: '',
-      confirmPassword: '',
-      name: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
+    name: '',
       discordId: ''
     },
     fields: {
@@ -281,31 +281,31 @@ const Register = () => {
                 )}
                 {form.values.password && (
                   <div className="text-xs space-y-1">
-                    <div className={cn(
+                      <div className={cn(
                       "flex items-center gap-1",
                       passwordStrength.hasMinLength ? "text-green-600" : "text-red-500"
-                    )}>
+                      )}>
                       {passwordStrength.hasMinLength ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                       8자 이상
-                    </div>
-                    <div className={cn(
+                      </div>
+                      <div className={cn(
                       "flex items-center gap-1",
                       passwordStrength.hasLetter ? "text-green-600" : "text-red-500"
-                    )}>
+                      )}>
                       {passwordStrength.hasLetter ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                       영문자 포함
-                    </div>
-                    <div className={cn(
+                      </div>
+                      <div className={cn(
                       "flex items-center gap-1",
                       passwordStrength.hasNumber ? "text-green-600" : "text-red-500"
-                    )}>
+                      )}>
                       {passwordStrength.hasNumber ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                       숫자 포함
-                    </div>
-                    <div className={cn(
+                      </div>
+                      <div className={cn(
                       "flex items-center gap-1",
                       passwordStrength.hasSpecial ? "text-green-600" : "text-red-500"
-                    )}>
+                      )}>
                       {passwordStrength.hasSpecial ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                       특수문자 포함
                     </div>
@@ -401,8 +401,8 @@ const Register = () => {
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
               {/* 에러/성공 메시지는 useAsyncForm에서 자동 toast로 처리됨 */}
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700"
                 disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid || !isPasswordValid() || !passwordsMatch()}
               >

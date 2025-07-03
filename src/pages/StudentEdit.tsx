@@ -69,12 +69,12 @@ const StudentEdit = () => {
   // useForm 훅으로 폼 상태 관리 통합
   const form = useForm<StudentFormData>({
     initialValues: {
-      name: '',
-      discordId: '',
-      school: '',
-      grade: 1,
-      status: 'ENROLLED',
-      gender: 'MALE',
+    name: '',
+    discordId: '',
+    school: '',
+    grade: 1,
+    status: 'ENROLLED',
+    gender: 'MALE',
       schoolId: 0
     },
     fields: {
@@ -403,7 +403,7 @@ const StudentEdit = () => {
               {/* 학년 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="grade">학년</Label>
-                <Select 
+                <Select
                   value={form.values.grade.toString()}
                   onValueChange={(value) => form.setFieldValue('grade', parseInt(value))}
                 >
@@ -422,7 +422,7 @@ const StudentEdit = () => {
               {/* 상태 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="status">상태</Label>
-                <Select 
+                <Select
                   value={form.values.status}
                   onValueChange={(value) => form.setFieldValue('status', value as StudentFormData['status'])}
                 >
@@ -442,17 +442,17 @@ const StudentEdit = () => {
             </div>
 
             <div className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => navigate('/students')}
                 disabled={asyncForm.isSubmitting}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 취소
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid}
               >
                 {asyncForm.isSubmitting ? (

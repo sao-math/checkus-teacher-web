@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import DatePicker from 'react-datepicker';
 import { CalendarIcon } from 'lucide-react';
 import { ko } from 'date-fns/locale';
-import TimeRangePicker from '@/components/ui/time-range-picker';
+import TimeInputPicker from '@/components/ui/time-input-picker';
 import { Activity } from '@/types/activity';
 
 interface StudyTimeFormData {
@@ -174,7 +174,7 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
         <FormItem>
           <FormLabel>시간 선택</FormLabel>
           <FormControl>
-            <TimeRangePicker
+            <TimeInputPicker
               startTime={form.watch('startTime')}
               endTime={form.watch('endTime')}
               onTimeChange={(startTime, endTime) => {

@@ -21,6 +21,7 @@ import { WeeklyScheduleDialog } from '@/components/students/WeeklyScheduleDialog
 import { studentApi } from '@/services/studentApi';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { formatKoreanTime, toUtcIsoString } from '@/utils/dateUtils';
+import { getGradeText } from '@/utils/gradeUtils';
 import PageHeader from '@/components/ui/PageHeader';
 import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -330,7 +331,7 @@ const StudentDetails = () => {
       {/* 헤더 */}
       <PageHeader
         title={student.name}
-        description={`${student.school || '학교 정보 없음'} - ${student.grade}학년`}
+        description={`${student.school || '학교 정보 없음'} - ${getGradeText(student.grade)}`}
         onBack={handleBack}
         actions={[
           {

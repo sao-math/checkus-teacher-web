@@ -18,6 +18,7 @@ import { Student, StudentUpdateRequest } from '@/types/student';
 import { studentApi } from '@/services/studentApi';
 import { schoolApi, School as SchoolType } from '@/services/schoolApi';
 import api from '@/lib/axios';
+import { getGradeText } from '@/utils/gradeUtils';
 
 interface StudentFormData {
   name: string;
@@ -230,14 +231,6 @@ const StudentEdit = () => {
       // 에러는 useApiCall에서 자동 처리됨
       console.error('Failed to add new school:', error);
     }
-  };
-
-  const getGradeText = (grade: number): string => {
-    if (grade >= 1 && grade <= 6) return `초등학교 ${grade}학년`;
-    if (grade >= 7 && grade <= 9) return `중학교 ${grade - 6}학년`;
-    if (grade >= 10 && grade <= 12) return `고등학교 ${grade - 9}학년`;
-    if (grade === 13) return 'N수생';
-    return `${grade}학년`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

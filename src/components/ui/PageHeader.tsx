@@ -60,22 +60,22 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   
   return (
     <div className={`${baseClasses} ${className}`}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 min-h-16">
           {/* 왼쪽: 뒤로가기 버튼과 제목 */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 min-w-0 flex-1">
             {onBack && (
-              <Button variant="ghost" size="sm" onClick={onBack}>
+              <Button variant="ghost" size="sm" onClick={onBack} className="flex-shrink-0">
                 <ArrowLeft className="h-4 w-4" />
-                {backLabel && <span className="ml-2">{backLabel}</span>}
+                {backLabel && <span className="ml-2 hidden sm:inline">{backLabel}</span>}
               </Button>
             )}
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-semibold text-gray-900 truncate">
                 {title}
               </h1>
               {description && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 truncate mt-1">
                   {description}
                 </p>
               )}
@@ -84,7 +84,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
           {/* 오른쪽: 액션 버튼들 */}
           {actions.length > 0 && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               {actions.map((action, index) => (
                 <Button
                   key={index}
@@ -95,7 +95,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   className={action.className}
                 >
                   {action.icon && <span className="mr-2">{action.icon}</span>}
-                  {action.label}
+                  <span className="hidden sm:inline">{action.label}</span>
+                  {/* Show only icon on mobile */}
+                  <span className="sm:hidden">{action.icon}</span>
                 </Button>
               ))}
             </div>

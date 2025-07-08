@@ -1,59 +1,59 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Search, UserCheck, UserX, AlertCircle } from 'lucide-react';
+import { Search, Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserRoleResponse } from '@/types/admin';
-import { adminApi, TeacherListResponse } from '@/services/adminApi';
-import { useCrudOperations } from '@/hooks/useCrudOperations';
+import { adminApi } from '@/services/adminApi';
 import ManagementList from '@/components/ui/ManagementList';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
+
+interface Teacher {
+  id: number;
+  username: string;
+  name: string;
+  phoneNumber: string;
+  discordId?: string;
+  createdAt: string;
+  status: 'active' | 'resigned';
+  classes: string[];
+}
+
+const mockTeachers: Teacher[] = [
+  {
+    id: 1,
+    username: 'teacher1',
+    name: '김선생님',
+    phoneNumber: '010-1234-5678',
+    discordId: 'teacher1#1234',
+    createdAt: '2024-01-01',
+    status: 'active',
+    classes: ['고1 수학', '고2 수학']
+  },
+  {
+    id: 2,
+    username: 'teacher2',
+    name: '이선생님',
+    phoneNumber: '010-2345-6789',
+    discordId: 'teacher2#5678',
+    createdAt: '2024-01-02',
+    status: 'active',
+    classes: ['중2 수학', '중3 수학']
+  }
+];
 
 const TeacherManagement = () => {
-  const { toast } = useToast();
-  
-  // 승인 대기 교사 관리 (별도 관리)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'resigned' | 'all'>('all');
+  const [teachers, setTeachers] = useState<Teacher[]>(mockTeachers);
   const [pendingTeachers, setPendingTeachers] = useState<UserRoleResponse[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // adminApi.getTeachers를 useCrudOperations와 호환되도록 하는 어댑터 (memoized)
-  const getTeachersAdapter = useCallback(async (params?: { status?: string }) => {
-    const status = params?.status && params.status !== 'all' ? params.status : 'ACTIVE';
-    return adminApi.getTeachers(status);
-  }, []);
-
-  // 주요 교사 관리 (useCrudOperations)
-  const crud = useCrudOperations<TeacherListResponse>({
-    endpoints: {
-      list: getTeachersAdapter,
-      update: adminApi.updateTeacher,
-      delete: adminApi.deleteTeacher,
-    },
-    routes: {
-      detail: (teacher) => `/teachers/${teacher.id}`,
-      edit: (teacher) => `/teachers/${teacher.id}/edit`,
-    },
-    searchFields: ['name', 'username', 'phoneNumber'],
-    statusField: 'status',
-    statusOptions: [
-      { value: 'all', label: '전체' },
-      { value: 'ACTIVE', label: '활성화됨' },
-      { value: 'SUSPENDED', label: '일시정지' },
-    ],
-    messages: {
-      deleteSuccess: (teacher) => `${teacher.name} 교사가 삭제되었습니다.`,
-      deleteError: '교사 삭제에 실패했습니다. 다시 시도해주세요.',
-      fetchError: '교사 목록을 불러오는데 실패했습니다.',
-    },
-    initialFilter: 'all',
-  });
-
-  // 승인 대기 교사 조회
   useEffect(() => {
     fetchPendingTeachers();
   }, []);
@@ -79,8 +79,6 @@ const TeacherManagement = () => {
     try {
       await adminApi.approveRole(userId, 'TEACHER');
       setPendingTeachers(prev => prev.filter(teacher => teacher.userId !== userId));
-      // 승인 후 교사 목록 새로고침
-      crud.refreshItems();
       toast({
         title: "선생님 승인 완료",
         description: `${name} 선생님의 계정이 승인되었습니다.`,
@@ -113,18 +111,55 @@ const TeacherManagement = () => {
     }
   };
 
-  // 승인 대기 교사 필터링
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'resigned': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'active': return '재직중';
+      case 'resigned': return '퇴직';
+      default: return '알 수 없음';
+    }
+  };
+
+  const filteredTeachers = teachers.filter(teacher =>
+    (filterStatus === 'all' || teacher.status === filterStatus) &&
+    (teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.phoneNumber.includes(searchTerm))
+  );
+
   const filteredPendingTeachers = pendingTeachers.filter(teacher =>
     teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     teacher.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 컬럼 정의
+  const handleViewDetails = (teacher: Teacher) => {
+    navigate(`/teachers/${teacher.id}`);
+  };
+
+  const handleEditTeacher = (teacher: Teacher) => {
+    navigate(`/teachers/${teacher.id}/edit`);
+  };
+
+  const handleDelete = (teacher: Teacher) => {
+    setTeachers(prev => prev.filter(t => t.id !== teacher.id));
+    toast({
+      title: "선생님 삭제",
+      description: `${teacher.name} 선생님이 삭제되었습니다.`,
+    });
+  };
+
   const columns = [
     {
       key: 'name',
       label: '선생님명',
-      render: (value: string, teacher: TeacherListResponse) => (
+      render: (value: string, teacher: Teacher) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
             <AvatarImage src="/placeholder.svg" />
@@ -143,7 +178,9 @@ const TeacherManagement = () => {
       key: 'status',
       label: '상태',
       render: (value: string) => (
-        <StatusBadge status={value} type="teacher" />
+        <Badge className={getStatusColor(value)}>
+          {getStatusText(value)}
+        </Badge>
       )
     },
     {
@@ -153,21 +190,27 @@ const TeacherManagement = () => {
     {
       key: 'classes',
       label: '담당반',
-      render: (value: { id: number; name: string }[]) => (
-        value.length > 0 ? value.map(cls => cls.name).join(', ') : '담당반 없음'
+      render: (value: string[]) => (
+        value.length > 0 ? value.join(', ') : '담당반 없음'
       )
     },
+    {
+      key: 'discordId',
+      label: 'Discord',
+      render: (value: string) => value || '-'
+    },
+    {
+      key: 'createdAt',
+      label: '가입일',
+      render: (value: string) => new Date(value).toLocaleDateString()
+    }
   ];
-
-  if (crud.loading) {
-    return <PageLoadingSpinner text="교사 목록을 불러오는 중..." />;
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">교사 관리</h1>
+          <h1 className="text-3xl font-bold text-gray-900">선생님 관리</h1>
         </div>
       </div>
 
@@ -241,46 +284,37 @@ const TeacherManagement = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 placeholder="선생님 이름, 사용자명, 전화번호로 검색..."
-                value={crud.searchTerm}
-                onChange={(e) => {
-                  crud.setSearchTerm(e.target.value);
-                  setSearchTerm(e.target.value); // 승인 대기 교사용
-                }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-2">
               <select
-                value={crud.filterStatus}
-                onChange={(e) => {
-                  const newStatus = e.target.value;
-                  crud.setFilterStatus(newStatus);
-                  // 상태별 데이터 로드
-                  if (newStatus !== 'all') {
-                    crud.fetchItems({ status: newStatus });
-                  } else {
-                    crud.fetchItems();
-                  }
-                }}
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as 'active' | 'resigned' | 'all')}
                 className="h-8 px-3 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="all">전체</option>
-                <option value="ACTIVE">활성화됨</option>
-                <option value="SUSPENDED">일시정지</option>
+                <option value="active">재직중</option>
+                <option value="resigned">퇴직</option>
               </select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 교사 목록 */}
+      {/* 선생님 목록 */}
       <ManagementList
-        items={crud.filteredItems}
+        items={filteredTeachers}
         columns={columns}
-        onView={crud.handleView}
-        onEdit={crud.handleEdit}
-        onDelete={crud.deleteItem}
-        getDeleteConfirmation={crud.getDeleteConfirmation}
+        onView={handleViewDetails}
+        onEdit={handleEditTeacher}
+        onDelete={handleDelete}
+        getDeleteConfirmation={(teacher: Teacher) => ({
+          title: '정말 삭제하시겠습니까?',
+          description: `${teacher.name} 선생님의 모든 정보가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`
+        })}
         emptyMessage="검색 결과가 없습니다. 다른 검색어를 시도해보세요."
       />
     </div>

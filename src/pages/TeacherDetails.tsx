@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,59 +6,66 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ArrowLeft, Phone, Mail, Users, School, Edit } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface Teacher {
-  id: number;
-  username: string;
-  name: string;
-  phoneNumber: string;
-  discordId?: string;
-  createdAt: string;
-  status: 'active' | 'pending' | 'resigned';
-  classes: string[];
-}
-
-// Mock data - 실제로는 API에서 가져와야 함
-const mockTeachers: Teacher[] = [
-  {
-    id: 1,
-    username: 'teacher1',
-    name: '김선생님',
-    phoneNumber: '010-1234-5678',
-    discordId: 'teacher1#1234',
-    createdAt: '2024-01-01',
-    status: 'active',
-    classes: ['고1 수학', '고2 수학']
-  },
-  {
-    id: 2,
-    username: 'teacher2',
-    name: '이선생님',
-    phoneNumber: '010-2345-6789',
-    discordId: 'teacher2#5678',
-    createdAt: '2024-01-02',
-    status: 'active',
-    classes: ['중2 수학', '중3 수학']
-  }
-];
+import { TeacherDetailResponse } from '@/types/teacher';
+import { teacherApi } from '@/services/teacherApi';
+import { useToast } from '@/hooks/use-toast';
 
 const TeacherDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, isLoading, error } = useAuth();
+  const { user, isLoading: authLoading, error: authError } = useAuth();
+  const { toast } = useToast();
   const isProfile = !id || id === 'profile';
+  
+  const [teacher, setTeacher] = useState<TeacherDetailResponse | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    console.log('TeacherDetails mounted');
-    console.log('id:', id);
-    console.log('isProfile:', isProfile);
-    console.log('user:', user);
-    console.log('isLoading:', isLoading);
-    console.log('error:', error);
-  }, [id, isProfile, user, isLoading, error]);
+    const fetchTeacherData = async () => {
+      if (isProfile && user) {
+        // For profile view, use current user data
+        // Note: You might need to create a separate API endpoint for current teacher profile
+        // For now, we'll fetch using the current user's ID if available
+        if (user.data.id) {
+          try {
+            setLoading(true);
+            const data = await teacherApi.getTeacherDetail(Number(user.data.id));
+            setTeacher(data);
+          } catch (error) {
+            console.error('Error fetching teacher profile:', error);
+            toast({
+              title: "오류",
+              description: "프로필 정보를 불러오는데 실패했습니다.",
+              variant: "destructive",
+            });
+          } finally {
+            setLoading(false);
+          }
+        }
+      } else if (id && !isProfile) {
+        // For teacher details view, fetch specific teacher data
+        try {
+          setLoading(true);
+          const data = await teacherApi.getTeacherDetail(Number(id));
+          setTeacher(data);
+        } catch (error) {
+          console.error('Error fetching teacher details:', error);
+          toast({
+            title: "오류",
+            description: "교사 정보를 불러오는데 실패했습니다.",
+            variant: "destructive",
+          });
+          navigate('/teachers');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
 
-  if (isLoading) {
-    console.log('Rendering loading state');
+    fetchTeacherData();
+  }, [id, isProfile, user, navigate, toast]);
+
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -70,11 +77,10 @@ const TeacherDetails = () => {
   }
 
   if (isProfile && !user) {
-    console.log('Rendering error state - no user data');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500">{error || '사용자 정보를 불러올 수 없습니다.'}</p>
+          <p className="text-gray-500">{authError || '사용자 정보를 불러올 수 없습니다.'}</p>
           <Button onClick={() => navigate('/login')} className="mt-4">
             로그인 페이지로 이동
           </Button>
@@ -83,33 +89,31 @@ const TeacherDetails = () => {
     );
   }
 
-  console.log('Rendering main content');
-  // 실제로는 API에서 가져와야 함
-  const teacher = isProfile && user ? {
-    id: Number(user.data.id),
-    username: user.data.username,
-    name: user.data.name,
-    phoneNumber: user.data.phoneNumber || '',
-    discordId: user.data.discordId || undefined,
-    createdAt: user.data.createdAt || new Date().toISOString().split('T')[0],
-    status: 'active' as const,
-    classes: [] // TODO: Get classes from API
-  } : mockTeachers.find(t => t.id === Number(id)) || mockTeachers[0];
+  if (!teacher) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500">교사 정보를 찾을 수 없습니다.</p>
+          <Button onClick={() => navigate('/teachers')} className="mt-4">
+            교사 목록으로 돌아가기
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'resigned': return 'bg-red-100 text-red-800';
+      case 'ACTIVE': return 'bg-green-100 text-green-800';
+      case 'SUSPENDED': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active': return '재직중';
-      case 'pending': return '승인대기';
-      case 'resigned': return '퇴직';
+      case 'ACTIVE': return '재직중';
+      case 'SUSPENDED': return '정지됨';
       default: return '알 수 없음';
     }
   };
@@ -188,7 +192,7 @@ const TeacherDetails = () => {
                 )}
                 <div className="flex items-center gap-2 text-gray-600">
                   <School className="h-4 w-4" />
-                  <span>가입일: {teacher.createdAt}</span>
+                  <span>가입일: {new Date(teacher.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
             </CardContent>
@@ -203,20 +207,19 @@ const TeacherDetails = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {teacher.classes.length > 0 ? (
-                <div className="space-y-2">
-                  {teacher.classes.map((cls, index) => (
-                    <div
-                      key={index}
-                      className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
-                      onClick={() => navigate(`/classes/${index + 1}`)}
-                    >
-                      <p className="font-medium text-gray-900">{cls}</p>
+              {teacher.classes && teacher.classes.length > 0 ? (
+                <div className="space-y-3">
+                  {teacher.classes.map((classInfo) => (
+                    <div key={classInfo.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="font-medium text-gray-900">{classInfo.name}</div>
+                      <div className="text-sm text-gray-500">
+                        학생 수: {classInfo.studentCount}명
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500">담당 반이 없습니다.</p>
+                <p className="text-gray-500 text-center py-8">담당 반이 없습니다.</p>
               )}
             </CardContent>
           </Card>

@@ -10,7 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { usePhoneNumberInput } from '@/hooks/usePhoneNumberInput';
 import { useForm } from '@/hooks/useForm';
 import { useAsyncForm } from '@/hooks/useAsyncForm';
-import { adminApi, TeacherDetailResponse, TeacherUpdateRequest } from '@/services/adminApi';
+import { TeacherDetailResponse, TeacherUpdateRequest } from '@/types/teacher';
+import { teacherApi } from '@/services/teacherApi';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,7 +91,7 @@ const TeacherForm = () => {
         discordId: data.discordId.trim() || undefined
       };
 
-      return await adminApi.updateTeacher(parseInt(id), updateData);
+      return await teacherApi.updateTeacher(parseInt(id), updateData);
     },
     messages: {
       successTitle: "교사 정보 수정 완료",
@@ -126,7 +127,7 @@ const TeacherForm = () => {
   const fetchTeacherDetail = async (teacherId: number) => {
     try {
       setLoading(true);
-      const data = await adminApi.getTeacherDetail(teacherId);
+      const data = await teacherApi.getTeacherDetail(teacherId);
       setTeacher(data);
       
       // useForm과 usePhoneNumberInput에 데이터 설정
@@ -171,7 +172,7 @@ const TeacherForm = () => {
 
     try {
       setDeleting(true);
-      await adminApi.deleteTeacher(teacher.id);
+      await teacherApi.deleteTeacher(teacher.id);
       
       toast({
         title: "교사 삭제",

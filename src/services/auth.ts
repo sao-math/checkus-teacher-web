@@ -56,14 +56,50 @@ const authService = {
     }
   },
 
-  async checkUsername(username: string): Promise<{ success: boolean; data: boolean }> {
-    const response = await api.get<{ success: boolean; data: boolean }>(`/auth/check-username?username=${username}`);
-    return response.data;
+  async checkUsername(username: string): Promise<{ success: boolean; data: boolean; message?: string }> {
+    try {
+      const response = await api.get<{ success: boolean; data: boolean; message: string }>(`/auth/check-username?username=${username}`);
+      return response.data;
+    } catch (error: any) {
+      // Handle 409 Conflict (duplicate username) and 400 Bad Request (invalid format)
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          data: false,
+          message: errorData.message || '사용자명 확인에 실패했습니다.'
+        };
+      }
+      // Handle other errors
+      return {
+        success: false,
+        data: false,
+        message: '사용자명 확인 중 오류가 발생했습니다.'
+      };
+    }
   },
 
-  async checkPhoneNumber(phoneNumber: string): Promise<{ success: boolean; data: boolean }> {
-    const response = await api.get<{ success: boolean; data: boolean }>(`/auth/check-phone?phoneNumber=${phoneNumber}`);
-    return response.data;
+  async checkPhoneNumber(phoneNumber: string): Promise<{ success: boolean; data: boolean; message?: string }> {
+    try {
+      const response = await api.get<{ success: boolean; data: boolean; message: string }>(`/auth/check-phone?phoneNumber=${phoneNumber}`);
+      return response.data;
+    } catch (error: any) {
+      // Handle 409 Conflict (duplicate phone) and 400 Bad Request (invalid format)
+      if (error.response && error.response.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          data: false,
+          message: errorData.message || '전화번호 확인에 실패했습니다.'
+        };
+      }
+      // Handle other errors
+      return {
+        success: false,
+        data: false,
+        message: '전화번호 확인 중 오류가 발생했습니다.'
+      };
+    }
   },
 
   // 인증 상태 확인 (메모리의 액세스 토큰 기준)

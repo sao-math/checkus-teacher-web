@@ -31,6 +31,28 @@ const Register = () => {
     startsWith010: true
   });
 
+  // 실시간 사용자명 검증 상태
+  const [usernameCheckState, setUsernameCheckState] = useState<{
+    isChecking: boolean;
+    isValid: boolean | null;
+    message: string;
+  }>({
+    isChecking: false,
+    isValid: null,
+    message: ''
+  });
+
+  // 실시간 전화번호 검증 상태
+  const [phoneCheckState, setPhoneCheckState] = useState<{
+    isChecking: boolean;
+    isValid: boolean | null;
+    message: string;
+  }>({
+    isChecking: false,
+    isValid: null,
+    message: ''
+  });
+
   // useForm 훅으로 폼 상태 관리 통합
   const form = useForm<RegisterFormData>({
     initialValues: {
@@ -118,16 +140,13 @@ const Register = () => {
   // useAsyncForm 훅으로 비동기 제출 로직 통합
   const asyncForm = useAsyncForm<RegisterFormData & { phoneNumber: string }, any>({
     onSubmit: async (data) => {
-      // 사용자명 중복 확인
-      const usernameCheck = await authService.checkUsername(data.username);
-      if (!usernameCheck.success || !usernameCheck.data) {
-        throw new Error('이미 사용 중인 사용자명입니다.');
+      // 실시간 검증 결과를 활용하여 추가 확인
+      if (usernameCheckState.isValid !== true) {
+        throw new Error(usernameCheckState.message || '사용자명을 확인해주세요.');
       }
 
-      // 전화번호 중복 확인
-      const phoneCheck = await authService.checkPhoneNumber(data.phoneNumber);
-      if (!phoneCheck.success || !phoneCheck.data) {
-        throw new Error('이미 등록된 전화번호입니다.');
+      if (phoneCheckState.isValid !== true) {
+        throw new Error(phoneCheckState.message || '전화번호를 확인해주세요.');
       }
 
       // 회원가입 요청
@@ -191,6 +210,90 @@ const Register = () => {
     });
   }, [form.values.password]);
 
+  // 실시간 사용자명 중복 확인
+  useEffect(() => {
+    const username = form.values.username;
+    
+    if (!username || username.length < 4) {
+      setUsernameCheckState({
+        isChecking: false,
+        isValid: null,
+        message: ''
+      });
+      return;
+    }
+
+    // 클라이언트 측 검증 먼저 수행
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setUsernameCheckState({
+        isChecking: false,
+        isValid: false,
+        message: '영문자, 숫자, 언더바만 사용 가능합니다.'
+      });
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setUsernameCheckState(prev => ({ ...prev, isChecking: true }));
+      
+      try {
+        const result = await authService.checkUsername(username);
+        setUsernameCheckState({
+          isChecking: false,
+          isValid: result.success && result.data,
+          message: result.success && result.data 
+            ? '사용 가능한 사용자명입니다.' 
+            : result.message || '이미 사용 중인 사용자명입니다.'
+        });
+      } catch (error) {
+        setUsernameCheckState({
+          isChecking: false,
+          isValid: false,
+          message: '사용자명 확인 중 오류가 발생했습니다.'
+        });
+      }
+    }, 500); // 500ms 디바운싱
+
+    return () => clearTimeout(timeoutId);
+  }, [form.values.username]);
+
+  // 실시간 전화번호 중복 확인
+  useEffect(() => {
+    const phone = phoneNumber.value;
+    
+    if (!phone || !phoneNumber.isValid) {
+      setPhoneCheckState({
+        isChecking: false,
+        isValid: null,
+        message: ''
+      });
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      setPhoneCheckState(prev => ({ ...prev, isChecking: true }));
+      
+      try {
+        const result = await authService.checkPhoneNumber(phone);
+        setPhoneCheckState({
+          isChecking: false,
+          isValid: result.success && result.data,
+          message: result.success && result.data 
+            ? '사용 가능한 전화번호입니다.' 
+            : result.message || '이미 등록된 전화번호입니다.'
+        });
+      } catch (error) {
+        setPhoneCheckState({
+          isChecking: false,
+          isValid: false,
+          message: '전화번호 확인 중 오류가 발생했습니다.'
+        });
+      }
+    }, 500); // 500ms 디바운싱
+
+    return () => clearTimeout(timeoutId);
+  }, [phoneNumber.value, phoneNumber.isValid]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -243,14 +346,35 @@ const Register = () => {
               {/* 아이디 필드 - useForm 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="username">아이디</Label>
-                <Input
-                  id="username"
-                  {...form.getFieldProps('username')}
-                  placeholder="4-20자, 영문자/숫자/언더바만 가능"
-                  className={form.errors.username ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="username"
+                    {...form.getFieldProps('username')}
+                    placeholder="4-20자, 영문자/숫자/언더바만 가능"
+                    className={cn(
+                      "pr-10",
+                      form.errors.username && "border-red-500",
+                      usernameCheckState.isValid === false && "border-red-500",
+                      usernameCheckState.isValid === true && "border-green-500"
+                    )}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {usernameCheckState.isChecking ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                    ) : usernameCheckState.isValid === true ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : usernameCheckState.isValid === false ? (
+                      <X className="h-4 w-4 text-red-500" />
+                    ) : null}
+                  </div>
+                </div>
                 {form.errors.username && (
                   <p className="text-sm text-red-500">{form.errors.username}</p>
+                )}
+                {!form.errors.username && usernameCheckState.message && (
+                  <p className={`text-sm ${usernameCheckState.isValid ? 'text-green-600' : 'text-red-500'}`}>
+                    {usernameCheckState.message}
+                  </p>
                 )}
               </div>
 
@@ -366,23 +490,44 @@ const Register = () => {
               {/* 전화번호 필드 - 기존 usePhoneNumberInput 사용 */}
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">전화번호</Label>
-                <Input
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  type="tel"
-                  placeholder="010-0000-0000"
-                  value={phoneNumber.value}
-                  onChange={phoneNumber.onChange}
-                  className={!phoneNumber.isValid && phoneNumber.value.length > 3 ? 'border-red-500' : ''}
-                />
+                <div className="relative">
+                  <Input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    placeholder="010-0000-0000"
+                    value={phoneNumber.value}
+                    onChange={phoneNumber.onChange}
+                    className={cn(
+                      "pr-10",
+                      !phoneNumber.isValid && phoneNumber.value.length > 3 && "border-red-500",
+                      phoneCheckState.isValid === false && "border-red-500",
+                      phoneCheckState.isValid === true && "border-green-500"
+                    )}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {phoneCheckState.isChecking ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                    ) : phoneCheckState.isValid === true ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : phoneCheckState.isValid === false ? (
+                      <X className="h-4 w-4 text-red-500" />
+                    ) : null}
+                  </div>
+                </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-gray-500">010으로 시작하며 자동으로 하이픈이 추가됩니다</p>
-                  {phoneNumber.value.length > 3 && (
+                  {phoneNumber.value.length > 3 && !phoneCheckState.message && (
                     <p className={`text-xs ${phoneNumber.isValid ? 'text-green-600' : 'text-red-500'}`}>
                       {phoneNumber.isValid ? '✓ 올바른 형식' : '✗ 잘못된 형식'}
                     </p>
                   )}
                 </div>
+                {phoneCheckState.message && (
+                  <p className={`text-sm ${phoneCheckState.isValid ? 'text-green-600' : 'text-red-500'}`}>
+                    {phoneCheckState.message}
+                  </p>
+                )}
               </div>
 
               {/* 디스코드 ID 필드 - useForm 사용 */}
@@ -404,7 +549,7 @@ const Register = () => {
               <Button
                 type="submit"
                 className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid || !isPasswordValid() || !passwordsMatch()}
+                disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid || !isPasswordValid() || !passwordsMatch() || usernameCheckState.isValid !== true || phoneCheckState.isValid !== true}
               >
                 {asyncForm.isSubmitting ? (
                   <>

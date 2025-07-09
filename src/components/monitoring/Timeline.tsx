@@ -194,7 +194,7 @@ const TimelineHeader: React.FC = () => {
 // Timeline header showing hours (for fixed layout - without scroll control)
 const FixedTimelineHeader: React.FC = () => {
   return (
-    <div className="relative h-12 bg-gray-50" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
+    <div className="relative h-12 bg-gray-50 border-b border-gray-200" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Grid lines for each hour */}
       <div className="relative h-full" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
         {/* Hour divider lines */}

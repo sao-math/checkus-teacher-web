@@ -367,7 +367,7 @@ const StudyMonitoring: React.FC = () => {
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="p-0">
+        <CardContent className="p-0 h-[calc(100vh-400px)] min-h-96">
           {isLoading ? (
             <div className="p-8 text-center">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />

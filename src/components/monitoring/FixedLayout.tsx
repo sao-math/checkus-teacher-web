@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperat
 import { cn } from '@/lib/utils';
 import { toZonedTime } from 'date-fns-tz';
 
+const KOREAN_TIMEZONE = 'Asia/Seoul';
+
 // Timeline layout constants
 const TIMELINE_CONSTANTS = {
   STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
@@ -150,7 +152,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
 
   // Calculate current time position (memoized)
   const getCurrentTimePosition = useCallback(() => {
-    // Get current time in Korean timezone using date-fns-tz
+    // Get current time in Korean timezone
     const now = new Date();
     const koreanNow = toZonedTime(now, KOREAN_TIMEZONE);
     
@@ -163,36 +165,49 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
       targetDate = `${year}-${month}-${day}`;
     }
     
-    // Create timeline start (00:00 of target date in Korean timezone)
+    // Parse target date and create timeline start/end in Korean timezone
     const [year, month, day] = targetDate.split('-').map(Number);
-    const timelineStart = new Date(year, month - 1, day, 0, 0, 0); // month is 0-indexed
-    const timelineEnd = new Date(timelineStart.getTime() + 30 * 60 * 60 * 1000); // +30 hours
+    
+    // Create timeline start as Korean time (00:00 of target date)
+    const timelineStartKorean = new Date(year, month - 1, day, 0, 0, 0);
+    const timelineEndKorean = new Date(year, month - 1, day + 1, 6, 0, 0); // Next day 06:00
     
     // Debug logging
     console.log('🕐 Current Time Position Debug:', {
       now: now.toISOString(),
       koreanNow: koreanNow.toISOString(),
       selectedDate: targetDate,
-      timelineStart: timelineStart.toISOString(),
-      timelineEnd: timelineEnd.toISOString(),
+      timelineStartKorean: timelineStartKorean.toISOString(),
+      timelineEndKorean: timelineEndKorean.toISOString(),
       koreanNowTime: `${koreanNow.getHours()}:${koreanNow.getMinutes().toString().padStart(2, '0')}`
     });
     
+    // Convert Korean times to same format for comparison
+    const koreanNowAsLocal = new Date(
+      koreanNow.getFullYear(),
+      koreanNow.getMonth(), 
+      koreanNow.getDate(),
+      koreanNow.getHours(),
+      koreanNow.getMinutes(),
+      koreanNow.getSeconds()
+    );
+    
     // Check if current Korean time is within the timeline range
-    if (koreanNow < timelineStart || koreanNow >= timelineEnd) {
+    if (koreanNowAsLocal < timelineStartKorean || koreanNowAsLocal >= timelineEndKorean) {
       console.log('❌ Current time is outside timeline range');
       return null; // Current time is outside the timeline
     }
     
-    // Calculate hours difference from timeline start
-    const hoursDiff = (koreanNow.getTime() - timelineStart.getTime()) / (60 * 60 * 1000);
+    // Calculate hours difference from timeline start (in Korean timezone)
+    const hoursDiff = (koreanNowAsLocal.getTime() - timelineStartKorean.getTime()) / (60 * 60 * 1000);
     
     // Calculate percentage position within 30-hour timeline
     const percentage = (hoursDiff / 30) * 100;
     
     console.log('✅ Current time position calculated:', {
       hoursDiff: hoursDiff.toFixed(2),
-      percentage: percentage.toFixed(2)
+      percentage: percentage.toFixed(2),
+      koreanNowAsLocal: koreanNowAsLocal.toISOString()
     });
     
     return Math.max(0, Math.min(100, percentage));
@@ -272,77 +287,58 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
   }));
 
   return (
-    <div className={cn("relative", className)}>
-      {/* Header Row */}
-      <div className="flex w-full">
-        {/* Fixed Student Name Header */}
-        <div 
-          className="h-12 border-b border-r border-gray-200 bg-gray-50 flex items-center px-3 flex-shrink-0 z-30"
-          style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
-        >
-          <span className="text-sm font-medium text-gray-600">학생</span>
+    <div className="relative h-full flex flex-col">
+      {/* Sticky Header */}
+      <div 
+        ref={headerScrollRef}
+        className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
+      >
+        <div className="flex min-w-max">
+          {/* Student name column header */}
+          <div 
+            className="flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center font-medium text-gray-700 h-12"
+            style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
+          >
+            학생
+          </div>
+          {/* Timeline header */}
+          <div className="flex-shrink-0">
+            {header}
+          </div>
         </div>
         
-        {/* Scrollable Timeline Header - Show scrollbar here */}
-        <div 
-          ref={headerScrollRef}
-          className="flex-1 overflow-x-auto overflow-y-visible border-b border-gray-200 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
-        >
-          <div className="relative" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
-            {header}
-            
-            {/* Current Time Indicator in Header - Higher z-index */}
-            {currentTimePosition !== null && (
-              <div 
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
-                style={{ 
-                  left: `${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-                  zIndex: 15
-                }}
-              >
-                {/* Current Time Box - Positioned at the top of the timeline */}
-                <div 
-                  className="absolute bg-red-600 text-white text-xs px-2 py-1 rounded shadow-lg font-medium"
-                  style={{
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    top: '1px',
-                    zIndex: 16,
-                    whiteSpace: 'nowrap',
-                    textAlign: 'center'
-                  }}
-                >
-                  {(() => {
-                    const koreanTime = toZonedTime(currentTime, KOREAN_TIMEZONE);
-                    const hours = koreanTime.getHours().toString().padStart(2, '0');
-                    const minutes = koreanTime.getMinutes().toString().padStart(2, '0');
-                    return `${hours}:${minutes}`;
-                  })()}
-                </div>
-              </div>
-            )}
+        {/* Current time indicator line in header - moves with header scroll */}
+        {currentTimePosition !== null && (
+          <div 
+            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
+            style={{ 
+              left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
+            }}
+          >
+            <div className="absolute top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+              {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-      
-      {/* Content Rows */}
-      <div className="w-full">
-        <div 
-          ref={contentScrollRef}
-          className="w-full overflow-x-auto overflow-y-visible scrollbar-hide"
-        >
-          <div className="flex flex-col relative" style={{ width: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)` }}>
-            {children}
-            
-            {/* Current Time Indicator - Inside scrollable content - Extends through all rows */}
+
+      {/* Scrollable Content */}
+      <div 
+        ref={contentScrollRef}
+        className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
+      >
+        <div className="min-w-max relative">
+          {children}
+          
+          {/* Current time indicator line in content - moves with content scroll */}
+          {currentTimePosition !== null && (
             <div 
-              className="absolute top-0 bottom-0 w-0.5 bg-red-500 pointer-events-none"
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-40 pointer-events-none"
               style={{ 
-                left: `calc(${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px + ${(currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px)`,
-                zIndex: 25
+                left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
               }}
             />
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -375,7 +371,5 @@ const FixedRow: React.FC<FixedRowProps> = ({ leftContent, rightContent, classNam
     </div>
   );
 };
-
-const KOREAN_TIMEZONE = 'Asia/Seoul';
 
 export { FixedLayout, FixedRow }; 

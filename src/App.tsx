@@ -78,8 +78,8 @@ const App = () => {
               {/* Task Management route */}
               <Route path="tasks" element={<TaskManagement />} />
               
-              {/* Study Monitoring route */}
-              <Route path="monitoring" element={<StudyMonitoring />} />
+              {/* Admin-only Study Monitoring route */}
+              <Route path="monitoring" element={<AdminRoute><StudyMonitoring /></AdminRoute>} />
               
               {/* Admin-only School Management route */}
               <Route path="schools" element={<AdminRoute><SchoolManagement /></AdminRoute>} />

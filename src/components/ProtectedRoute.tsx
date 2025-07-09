@@ -62,10 +62,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
 };
 
 // Convenience component for admin-only routes
+// Now relies on server-side authorization (401 responses) instead of client-side role checking
 export const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <ProtectedRoute requiredRole="ADMIN">
-      {children}
-    </ProtectedRoute>
-  );
+  return <>{children}</>;
 }; 

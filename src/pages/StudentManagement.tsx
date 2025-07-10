@@ -9,10 +9,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Student } from '@/types/student';
 import { UserRoleResponse } from '@/types/admin';
 import { studentApi } from '@/services/studentApi';
+import { schoolApi, School } from '@/services/schoolApi';
 import { adminApi } from '@/services/adminApi';
 import { useCrudOperations } from '@/hooks/useCrudOperations';
 import ManagementList from '@/components/ui/ManagementList';
 import StatusBadge from '@/components/ui/StatusBadge';
+import InlineEditSelect from '@/components/ui/InlineEditSelect';
 import { getGradeText } from '@/utils/gradeUtils';
 import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -23,6 +25,11 @@ const StudentManagement = () => {
   const [pendingStudents, setPendingStudents] = useState<UserRoleResponse[]>([]);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // 학교 목록 상태 추가
+  const [schools, setSchools] = useState<School[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const [schoolsInitialLoaded, setSchoolsInitialLoaded] = useState(false);
 
   // 주요 학생 관리 (useCrudOperations)
   const crud = useCrudOperations<Student>({
@@ -40,7 +47,7 @@ const StudentManagement = () => {
     statusOptions: [
       { value: 'all', label: '전체' },
       { value: 'INQUIRY', label: '문의' },
-      { value: 'CONSULTATION', label: '상담' },
+      { value: 'COUNSELING_SCHEDULED', label: '상담' },
       { value: 'ENROLLED', label: '재원' },
       { value: 'WAITING', label: '대기' },
       { value: 'WITHDRAWN', label: '퇴원' },
@@ -57,6 +64,7 @@ const StudentManagement = () => {
   // 승인 대기 학생 조회
   useEffect(() => {
     fetchPendingStudents();
+    fetchSchools(); // 초기 로딩
   }, []);
 
   const fetchPendingStudents = async () => {
@@ -73,6 +81,32 @@ const StudentManagement = () => {
       });
     } finally {
       setPendingLoading(false);
+    }
+  };
+
+  const fetchSchools = async (isRefresh = false) => {
+    try {
+      if (!isRefresh) {
+        setSchoolsLoading(true);
+      }
+      console.log('Fetching schools...', { isRefresh });
+      const schoolData = await schoolApi.getSchools();
+      console.log('Schools fetched:', schoolData);
+      setSchools(schoolData);
+      if (!schoolsInitialLoaded) {
+        setSchoolsInitialLoaded(true);
+      }
+    } catch (error) {
+      console.error('Error fetching schools:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch schools: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+    } finally {
+      if (!isRefresh) {
+        setSchoolsLoading(false);
+      }
     }
   };
 
@@ -114,6 +148,131 @@ const StudentManagement = () => {
     }
   };
 
+  // 인라인 편집을 위한 업데이트 함수들
+  const handleStatusUpdate = async (studentId: number, newStatus: string | number): Promise<void> => {
+    try {
+      console.log('Updating student status:', { studentId, newStatus });
+      
+      const updateRequest: any = {
+        profile: {
+          status: newStatus as 'INQUIRY' | 'COUNSELING_SCHEDULED' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED'
+        }
+      };
+      
+      console.log('Update request:', updateRequest);
+      
+      // 낙관적 업데이트 + API 호출
+      await crud.updateItemOptimisticWithApi!(
+        studentId,
+        { status: newStatus as any },
+        () => studentApi.updateStudent(studentId, updateRequest)
+      );
+      
+      toast({
+        title: "상태 변경 완료",
+        description: "학생 상태가 성공적으로 변경되었습니다.",
+      });
+    } catch (error) {
+      console.error('Error updating student status:', {
+        studentId,
+        newStatus,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      toast({
+        title: "상태 변경 실패",
+        description: "상태 변경에 실패했습니다: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleSchoolUpdate = async (studentId: number, newSchoolId: string | number): Promise<void> => {
+    try {
+      console.log('Updating student school:', { studentId, newSchoolId });
+      
+      const updateRequest: any = {
+        profile: {
+          schoolId: Number(newSchoolId)
+        }
+      };
+      
+      console.log('Update request:', updateRequest);
+      
+      // 선택된 학교 정보 찾기
+      const selectedSchool = schools.find(school => school.id === Number(newSchoolId));
+      const schoolName = selectedSchool?.name || '알 수 없는 학교';
+      
+      // 낙관적 업데이트 + API 호출
+      await crud.updateItemOptimisticWithApi!(
+        studentId,
+        { 
+          schoolId: Number(newSchoolId),
+          school: schoolName 
+        },
+        () => studentApi.updateStudent(studentId, updateRequest)
+      );
+      
+      toast({
+        title: "학교 변경 완료",
+        description: "학생 학교가 성공적으로 변경되었습니다.",
+      });
+    } catch (error) {
+      console.error('Error updating student school:', {
+        studentId,
+        newSchoolId,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      toast({
+        title: "학교 변경 실패",
+        description: "학교 변경에 실패했습니다: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleGradeUpdate = async (studentId: number, newGrade: string | number): Promise<void> => {
+    try {
+      console.log('Updating student grade:', { studentId, newGrade });
+      
+      const updateRequest: any = {
+        profile: {
+          grade: Number(newGrade)
+        }
+      };
+      
+      console.log('Update request:', updateRequest);
+      
+      // 낙관적 업데이트 + API 호출
+      await crud.updateItemOptimisticWithApi!(
+        studentId,
+        { grade: Number(newGrade) },
+        () => studentApi.updateStudent(studentId, updateRequest)
+      );
+      
+      toast({
+        title: "학년 변경 완료",
+        description: "학생 학년이 성공적으로 변경되었습니다.",
+      });
+    } catch (error) {
+      console.error('Error updating student grade:', {
+        studentId,
+        newGrade,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      toast({
+        title: "학년 변경 실패",
+        description: "학년 변경에 실패했습니다: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   // 유틸리티 함수들
   const getRelationshipText = (relationship: string) => {
     switch (relationship) {
@@ -150,22 +309,72 @@ const StudentManagement = () => {
     {
       key: 'status',
       label: '상태',
-      render: (value: string) => (
-        <StatusBadge status={value} type="student" />
+      render: (value: string, student: Student) => (
+        <InlineEditSelect
+          options={[
+            { value: 'INQUIRY', label: '문의', color: 'text-yellow-800' },
+            { value: 'COUNSELING_SCHEDULED', label: '상담', color: 'text-orange-800' },
+            { value: 'ENROLLED', label: '재원', color: 'text-green-800' },
+            { value: 'WAITING', label: '대기', color: 'text-purple-800' },
+            { value: 'WITHDRAWN', label: '퇴원', color: 'text-red-800' },
+            { value: 'UNREGISTERED', label: '미등록', color: 'text-gray-800' },
+          ]}
+          value={value}
+          displayValue={<StatusBadge status={value} type="student" />}
+          onSave={(newValue) => handleStatusUpdate(student.id, newValue)}
+          className="w-24"
+        />
       )
     },
     {
       key: 'school',
       label: '학교',
-      render: (value: string, student: Student) => (
-        <span>{value}</span>
-      )
+      render: (value: string, student: Student) => {
+        console.log('School column render:', { 
+          value, 
+          studentSchoolId: student.schoolId, 
+          schoolsCount: schools.length,
+          schoolsLoading,
+          schools: schools.slice(0, 3) // 처음 3개만 로그에 표시
+        });
+        
+        if (schoolsLoading && !schoolsInitialLoaded) {
+          return <span className="text-gray-500">학교 목록 로딩 중...</span>;
+        }
+        
+        if (schools.length === 0) {
+          return <span className="text-red-500">학교 목록 없음</span>;
+        }
+        
+        return (
+          <InlineEditSelect
+            options={schools.map(school => ({ 
+              value: school.id, 
+              label: school.name 
+            }))}
+            value={student.schoolId}
+            displayValue={value || '학교 미설정'}
+            onSave={(newValue) => handleSchoolUpdate(student.id, newValue)}
+            onOpen={async () => {
+              console.log('학교 드롭다운 열림 - 최신 학교 목록 가져오는 중...');
+              await fetchSchools(true); // refresh 모드로 호출
+            }}
+            className="w-32"
+            disabled={schoolsLoading && !schoolsInitialLoaded}
+          />
+        );
+      }
     },
     {
       key: 'grade',
       label: '학년',
       render: (value: number, student: Student) => (
-        <span>{getGradeText(value)}</span>
+        <InlineEditSelect
+          options={Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: getGradeText(i + 1) }))}
+          value={value}
+          onSave={(newValue) => handleGradeUpdate(student.id, newValue)}
+          className="w-16"
+        />
       )
     },
     {
@@ -208,8 +417,8 @@ const StudentManagement = () => {
     }
   ];
 
-  if (crud.loading) {
-    return <PageLoadingSpinner text="학생 목록을 불러오는 중..." />;
+  if (crud.loading || (schoolsLoading && !schoolsInitialLoaded)) {
+    return <PageLoadingSpinner text="데이터를 불러오는 중..." />;
   }
 
   return (
@@ -218,7 +427,31 @@ const StudentManagement = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">학생 관리</h1>
         </div>
+        {schools.length === 0 && !schoolsLoading && schoolsInitialLoaded && (
+          <Button 
+            onClick={() => fetchSchools()}
+            variant="outline" 
+            size="sm"
+            className="text-red-600 border-red-300 hover:bg-red-50"
+          >
+            학교 목록 다시 로드
+          </Button>
+        )}
       </div>
+
+      {/* 학교 목록 로딩 실패 경고 */}
+      {schools.length === 0 && !schoolsLoading && schoolsInitialLoaded && (
+        <Card className="border-yellow-200 bg-yellow-50/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">
+                학교 목록을 불러오지 못했습니다. 학교 편집 기능이 제한될 수 있습니다.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 계정 승인 대기 섹션 - 미승인 계정이 있을 때만 표시 */}
       {pendingStudents.length > 0 && (
@@ -315,7 +548,7 @@ const StudentManagement = () => {
               >
                 <option value="all">전체</option>
                 <option value="INQUIRY">문의</option>
-                <option value="CONSULTATION">상담</option>
+                <option value="COUNSELING_SCHEDULED">상담</option>
                 <option value="ENROLLED">재원</option>
                 <option value="WAITING">대기</option>
                 <option value="WITHDRAWN">퇴원</option>

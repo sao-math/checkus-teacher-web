@@ -27,7 +27,7 @@ export interface Student {
   studentPhoneNumber: string;
   discordId: string;
   createdAt: string;
-  status: 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
+  status: 'INQUIRY' | 'COUNSELING_SCHEDULED' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
   school: string;
   schoolId: number;
   grade: number;
@@ -81,7 +81,7 @@ export interface StudentUpdateRequest {
   phoneNumber?: string;
   discordId?: string;
   profile?: {
-    status?: 'INQUIRY' | 'CONSULTATION' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
+    status?: 'INQUIRY' | 'COUNSELING_SCHEDULED' | 'ENROLLED' | 'WAITING' | 'WITHDRAWN' | 'UNREGISTERED';
     schoolId?: number;
     grade?: number;
     gender?: 'MALE' | 'FEMALE';

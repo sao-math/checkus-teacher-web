@@ -63,6 +63,10 @@ export interface CrudOperations<T> {
   deleteItem: (item: T) => Promise<void>;
   refreshItems: () => Promise<void>;
   
+  // 낙관적 업데이트 작업
+  updateItemOptimistic: (id: string | number, updates: Partial<T>) => void;
+  updateItemOptimisticWithApi?: (id: string | number, updates: Partial<T>, apiCall: () => Promise<any>) => Promise<void>;
+  
   // Navigation 헬퍼
   handleView: (item: T) => void;
   handleEdit: (item: T) => void;
@@ -165,6 +169,37 @@ export const useCrudOperations = <T extends {id: string | number; name?: string}
   // 목록 새로고침
   const refreshItems = useCallback(() => fetchItems(), [fetchItems]);
 
+  // 낙관적 업데이트: 로컬 상태만 즉시 업데이트
+  const updateItemOptimistic = useCallback((id: string | number, updates: Partial<T>) => {
+    setItems(prev => prev.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    ));
+  }, []);
+
+  // 낙관적 업데이트 + API 호출: API 실패 시 롤백
+  const updateItemOptimisticWithApi = useCallback(async (
+    id: string | number, 
+    updates: Partial<T>, 
+    apiCall: () => Promise<any>
+  ) => {
+    // 원본 상태 백업
+    const originalItem = items.find(item => item.id === id);
+    
+    // 낙관적 업데이트
+    updateItemOptimistic(id, updates);
+    
+    try {
+      // API 호출
+      await apiCall();
+    } catch (error) {
+      // API 실패 시 원본 상태로 롤백
+      if (originalItem) {
+        updateItemOptimistic(id, originalItem);
+      }
+      throw error;
+    }
+  }, [items, updateItemOptimistic]);
+
   // 필터링 로직
   const filteredItems = useMemo(() => {
     return items.filter(item => {
@@ -239,6 +274,10 @@ export const useCrudOperations = <T extends {id: string | number; name?: string}
     updateItem,
     deleteItem,
     refreshItems,
+    
+    // 낙관적 업데이트 작업
+    updateItemOptimistic,
+    updateItemOptimisticWithApi,
     
     // Navigation 헬퍼
     handleView,

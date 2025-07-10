@@ -13,7 +13,7 @@ export type StatusType = 'student' | 'teacher' | 'class' | 'custom';
 const STATUS_CONFIGS: Record<StatusType, Record<string, StatusConfig>> = {
   student: {
     INQUIRY: { label: '문의', className: 'bg-yellow-100 text-yellow-800' },
-    CONSULTATION: { label: '상담', className: 'bg-orange-100 text-orange-800' },
+    COUNSELING_SCHEDULED: { label: '상담', className: 'bg-orange-100 text-orange-800' },
     ENROLLED: { label: '재원', className: 'bg-green-100 text-green-800' },
     WAITING: { label: '대기', className: 'bg-purple-100 text-purple-800' },
     WITHDRAWN: { label: '퇴원', className: 'bg-red-100 text-red-800' },

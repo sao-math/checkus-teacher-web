@@ -115,15 +115,21 @@ export const InlineEditSelect: React.FC<InlineEditSelectProps> = ({
       selectedValue,
       oldValue: value
     });
+    
     setCurrentValue(selectedValue);
     setIsOpen(false);
-    // Remove auto save - require explicit save button click
+    // 선택한 값은 UI에만 반영, 실제 저장은 체크 버튼 클릭 시
   };
 
   const currentOption = options.find(opt => opt.value === currentValue);
   const displayText = displayValue 
     ? (typeof displayValue === 'string' ? displayValue : currentOption?.label || String(currentValue))
     : currentOption?.label || String(currentValue);
+
+  // 편집 중일 때는 현재 선택된 옵션의 라벨을 우선 표시
+  const editingDisplayText = isEditing && currentOption 
+    ? currentOption.label 
+    : displayText;
 
   // 디버깅을 위한 로그 추가
   useEffect(() => {
@@ -134,9 +140,11 @@ export const InlineEditSelect: React.FC<InlineEditSelectProps> = ({
       optionsCount: options.length,
       currentOption,
       displayText,
-      displayValue
+      editingDisplayText,
+      displayValue,
+      isEditing
     });
-  }, [value, currentValue, options, currentOption, displayText, displayValue]);
+  }, [value, currentValue, options, currentOption, displayText, editingDisplayText, displayValue, isEditing]);
 
   if (isEditing) {
     return (
@@ -148,7 +156,7 @@ export const InlineEditSelect: React.FC<InlineEditSelectProps> = ({
           )}
           onClick={() => setIsOpen(!isOpen)}
         >
-          <span className="truncate">{displayText}</span>
+          <span className="truncate">{editingDisplayText}</span>
           <ChevronDown className={cn("h-3 w-3 transition-transform", isOpen && "rotate-180")} />
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar, MessageCircle, RefreshCw, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -62,6 +62,77 @@ const LastRefreshTime: React.FC<{ lastRefreshTime: Date | null }> = ({ lastRefre
   );
 };
 
+// 학생 정렬 유틸리티 함수들
+const getNextStudyTime = (student: MonitoringStudent, currentTime: Date): Date | null => {
+  const now = currentTime.getTime();
+  
+  let nextTime: Date | null = null;
+  
+  for (const assignedTime of student.assignedStudyTimes) {
+    const startTime = new Date(assignedTime.startTime).getTime();
+    
+    // 아직 시작하지 않은 공부 시간만 고려
+    if (startTime > now) {
+      if (!nextTime || startTime < nextTime.getTime()) {
+        nextTime = new Date(startTime);
+      }
+    }
+  }
+  
+  return nextTime;
+};
+
+const getCurrentStudyTime = (student: MonitoringStudent, currentTime: Date): boolean => {
+  const now = currentTime.getTime();
+  
+  for (const assignedTime of student.assignedStudyTimes) {
+    const startTime = new Date(assignedTime.startTime).getTime();
+    const endTime = new Date(assignedTime.endTime).getTime();
+    
+    // 현재 시간이 공부 시간 범위 내에 있는지 확인
+    if (startTime <= now && now <= endTime) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+const getMinutesUntilNextStudy = (student: MonitoringStudent, currentTime: Date): number => {
+  const nextTime = getNextStudyTime(student, currentTime);
+  if (!nextTime) return Infinity; // 다음 공부 시간이 없으면 가장 뒤로
+  
+  return Math.floor((nextTime.getTime() - currentTime.getTime()) / (1000 * 60));
+};
+
+const getSortPriority = (student: MonitoringStudent, currentTime: Date): number => {
+  const isCurrentlyStudying = getCurrentStudyTime(student, currentTime);
+  const minutesUntilNext = getMinutesUntilNextStudy(student, currentTime);
+  
+  // 1순위: 현재 공부해야 하는데 결석인 학생 (가장 중요!)
+  if (isCurrentlyStudying && student.status === 'ABSENT') {
+    return 1;
+  }
+  
+  // 2순위: 곧 공부해야 하는 학생 (30분 이내)
+  if (minutesUntilNext <= 30 && minutesUntilNext !== Infinity) {
+    return 2;
+  }
+  
+  // 3순위: 현재 공부 중이고 출석한 학생
+  if (isCurrentlyStudying && student.status === 'ATTENDING') {
+    return 3;
+  }
+  
+  // 4순위: 나머지 다음 공부 시간이 있는 학생
+  if (minutesUntilNext !== Infinity) {
+    return 4;
+  }
+  
+  // 5순위: 공부 시간 할당이 없는 학생
+  return 5;
+};
+
 const StudyMonitoring: React.FC = () => {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -109,6 +180,35 @@ const StudyMonitoring: React.FC = () => {
 
   const students = monitoringData?.data?.students || [];
 
+  // 스마트 정렬된 학생 목록 (현재 결석인 학생 우선)
+  const sortedStudents = useMemo(() => {
+    const currentTime = new Date();
+    
+    return [...students].sort((a, b) => {
+      const priorityA = getSortPriority(a, currentTime);
+      const priorityB = getSortPriority(b, currentTime);
+      
+      // 우선순위가 다르면 우선순위로 정렬
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // 같은 우선순위 내에서 세부 정렬
+      if (priorityA === 2 || priorityA === 4) {
+        // 다음 공부 시간이 가까운 순서로 정렬
+        const minutesA = getMinutesUntilNextStudy(a, currentTime);
+        const minutesB = getMinutesUntilNextStudy(b, currentTime);
+        
+        if (minutesA !== minutesB) {
+          return minutesA - minutesB;
+        }
+      }
+      
+      // 최종적으로 학생 ID로 안정적 정렬 (폴링 시 순서 변동 방지)
+      return a.studentId - b.studentId;
+    });
+  }, [students]);
+
   // Handle student selection
   const handleStudentSelection = useCallback((studentId: number, selected: boolean) => {
     setSelectedStudents(prev => {
@@ -125,11 +225,11 @@ const StudyMonitoring: React.FC = () => {
   // Handle select all/none
   const handleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
-      setSelectedStudents(new Set(students.map(s => s.studentId)));
+      setSelectedStudents(new Set(sortedStudents.map(s => s.studentId)));
     } else {
       setSelectedStudents(new Set());
     }
-  }, [students]);
+  }, [sortedStudents]);
 
   // Handle bulk message action
   const handleBulkMessage = () => {
@@ -176,13 +276,13 @@ const StudyMonitoring: React.FC = () => {
   };
 
   // Get status counts
-  const statusCounts = students.reduce((acc, student) => {
+  const statusCounts = sortedStudents.reduce((acc, student) => {
     acc[student.status] = (acc[student.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const isAllSelected = students.length > 0 && selectedStudents.size === students.length;
-  const isPartiallySelected = selectedStudents.size > 0 && selectedStudents.size < students.length;
+  const isAllSelected = sortedStudents.length > 0 && selectedStudents.size === sortedStudents.length;
+  const isPartiallySelected = selectedStudents.size > 0 && selectedStudents.size < sortedStudents.length;
 
   // Show loading state while authentication is being checked
   if (authLoading) {
@@ -322,7 +422,8 @@ const StudyMonitoring: React.FC = () => {
                   onCheckedChange={handleSelectAll}
                 />
                 <span className="font-medium text-gray-800">
-                  학생 목록 ({students.length}명)
+                  학생 목록 ({sortedStudents.length}명)
+                  <span className="text-sm text-gray-500 ml-2">• 결석/곧 공부할 학생 우선</span>
                 </span>
               </div>
               
@@ -376,7 +477,7 @@ const StudyMonitoring: React.FC = () => {
           ) : (
             <FixedLayout header={<FixedTimelineHeader />} ref={fixedLayoutRef} selectedDate={selectedDate}>
               <div>
-                {students.map((student) => (
+                {sortedStudents.map((student) => (
                   <StudentRow
                     key={student.studentId}
                     student={student}
@@ -386,7 +487,7 @@ const StudyMonitoring: React.FC = () => {
                   />
                 ))}
                 
-                {students.length === 0 && (
+                {sortedStudents.length === 0 && (
                   <div className="p-8 text-center text-gray-500">
                     해당 날짜에 대한 데이터가 없습니다.
                   </div>

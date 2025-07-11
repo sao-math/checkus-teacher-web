@@ -80,23 +80,24 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     };
   }, [isUserScrolling]);
 
-  // Throttled scroll synchronization
+  // Throttled scroll synchronization - improved for fast scrolling
   const handleScroll = useCallback((sourceRef: React.RefObject<HTMLDivElement>, targetRef: React.RefObject<HTMLDivElement>) => {
     if (isScrollSyncingRef.current) return;
     
     isScrollSyncingRef.current = true;
     
     if (sourceRef.current && targetRef.current) {
+      // Immediate synchronization for better responsiveness
       targetRef.current.scrollLeft = sourceRef.current.scrollLeft;
     }
     
-    // Reset flag after a frame
-    requestAnimationFrame(() => {
+    // Use shorter timeout for faster synchronization reset
+    setTimeout(() => {
       isScrollSyncingRef.current = false;
-    });
+    }, 16); // ~1 frame at 60fps
   }, []);
 
-  // Optimized scroll handlers
+  // Optimized scroll handlers with immediate sync
   const handleHeaderScroll = useCallback(() => {
     setIsUserScrolling(true);
     if (userScrollTimeoutRef.current) {
@@ -110,6 +111,13 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     // The content scroll handler will manage the overall scroll limits
     
     handleScroll(headerScrollRef, contentScrollRef);
+    
+    // Force immediate re-sync after a frame to handle fast scrolling
+    requestAnimationFrame(() => {
+      if (headerScrollRef.current && contentScrollRef.current) {
+        contentScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+      }
+    });
   }, [handleScroll]);
 
   const handleContentScroll = useCallback(() => {
@@ -133,6 +141,13 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     }
     
     handleScroll(contentScrollRef, headerScrollRef);
+    
+    // Force immediate re-sync after a frame to handle fast scrolling
+    requestAnimationFrame(() => {
+      if (contentScrollRef.current && headerScrollRef.current) {
+        headerScrollRef.current.scrollLeft = contentScrollRef.current.scrollLeft;
+      }
+    });
   }, [handleScroll]);
 
   useEffect(() => {
@@ -140,12 +155,25 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     const contentElement = contentScrollRef.current;
 
     if (headerElement && contentElement) {
-      headerElement.addEventListener('scroll', handleHeaderScroll, { passive: true });
-      contentElement.addEventListener('scroll', handleContentScroll, { passive: true });
+      // Use passive: false for better control over scroll synchronization
+      headerElement.addEventListener('scroll', handleHeaderScroll, { passive: false });
+      contentElement.addEventListener('scroll', handleContentScroll, { passive: false });
+
+      // Additional safety mechanism for fast scrolling
+      const syncInterval = setInterval(() => {
+        if (!isScrollSyncingRef.current && headerElement && contentElement) {
+          // Check if sync is needed and apply if there's a significant difference
+          const diff = Math.abs(headerElement.scrollLeft - contentElement.scrollLeft);
+          if (diff > 1) { // Allow 1px tolerance
+            headerElement.scrollLeft = contentElement.scrollLeft;
+          }
+        }
+      }, 16); // ~60fps
 
       return () => {
         headerElement.removeEventListener('scroll', handleHeaderScroll);
         contentElement.removeEventListener('scroll', handleContentScroll);
+        clearInterval(syncInterval);
       };
     }
   }, [handleHeaderScroll, handleContentScroll]);

@@ -300,18 +300,26 @@ const StudyMonitoring: React.FC = () => {
 
   // Go to current time (change date to today and scroll to current time)
   const handleGoToCurrentTime = () => {
-    // 1. Change date to today (Korean timezone)
+    // 1. Calculate today's date in Korean timezone
     const today = new Date();
     const koreanDate = new Date(today.getTime() + (9 * 60 * 60 * 1000)); // UTC + 9 hours
     const todayString = koreanDate.toISOString().split('T')[0];
     
-    // 2. Set the date
-    setSelectedDate(todayString);
+    // 2. Check if we're already on the current day
+    const isAlreadyToday = selectedDate === todayString;
     
-    // 3. Scroll to current time after a short delay to ensure the date change is processed
-    setTimeout(() => {
+    if (isAlreadyToday) {
+      // If already on today, scroll immediately without delay
       fixedLayoutRef.current?.scrollToCurrentTime();
-    }, 100);
+    } else {
+      // If on a different day, change date first then scroll after re-render
+      setSelectedDate(todayString);
+      
+      // Wait for the date change to be processed and component to re-render
+      setTimeout(() => {
+        fixedLayoutRef.current?.scrollToCurrentTime();
+      }, 100);
+    }
   };
 
   // Show loading state while authentication is being checked

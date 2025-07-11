@@ -38,6 +38,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isScrollSyncingRef = useRef(false);
+  const isProgrammaticScrollRef = useRef(false); // 프로그래매틱 스크롤 플래그 추가
 
   // Update current time every 5 seconds for better synchronization
   useEffect(() => {
@@ -99,13 +100,16 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
 
   // Optimized scroll handlers with immediate sync
   const handleHeaderScroll = useCallback(() => {
-    setIsUserScrolling(true);
-    if (userScrollTimeoutRef.current) {
-      clearTimeout(userScrollTimeoutRef.current);
+    // 프로그래매틱 스크롤이면 사용자 스크롤로 간주하지 않음
+    if (!isProgrammaticScrollRef.current) {
+      setIsUserScrolling(true);
+      if (userScrollTimeoutRef.current) {
+        clearTimeout(userScrollTimeoutRef.current);
+      }
+      userScrollTimeoutRef.current = setTimeout(() => {
+        setIsUserScrolling(false);
+      }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     }
-    userScrollTimeoutRef.current = setTimeout(() => {
-      setIsUserScrolling(false);
-    }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     
     // Remove header scroll limit to allow full synchronization with content
     // The content scroll handler will manage the overall scroll limits
@@ -121,13 +125,16 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
   }, [handleScroll]);
 
   const handleContentScroll = useCallback(() => {
-    setIsUserScrolling(true);
-    if (userScrollTimeoutRef.current) {
-      clearTimeout(userScrollTimeoutRef.current);
+    // 프로그래매틱 스크롤이면 사용자 스크롤로 간주하지 않음
+    if (!isProgrammaticScrollRef.current) {
+      setIsUserScrolling(true);
+      if (userScrollTimeoutRef.current) {
+        clearTimeout(userScrollTimeoutRef.current);
+      }
+      userScrollTimeoutRef.current = setTimeout(() => {
+        setIsUserScrolling(false);
+      }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     }
-    userScrollTimeoutRef.current = setTimeout(() => {
-      setIsUserScrolling(false);
-    }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     
     // Limit scroll to not exceed 24:00 (end of timeline) with some buffer
     const contentElement = contentScrollRef.current;
@@ -243,38 +250,69 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
 
   // 현재 시간으로 스크롤 이동하는 함수
   const scrollToCurrentTime = useCallback(() => {
+    console.log('🎯 scrollToCurrentTime called');
     const currentTimePosition = getCurrentTimePosition();
+    console.log('📍 Current time position:', currentTimePosition);
+
+    // currentTimePosition이 null인 경우 처리
+    if (currentTimePosition === null) {
+      console.log('❌ Cannot scroll: currentTimePosition is null');
+      return;
+    }
 
     const contentElement = contentScrollRef.current;
     const headerElement = headerScrollRef.current;
     
-    if (contentElement && headerElement) {
-      // 현재 시간의 픽셀 위치 계산
-      const currentTimePixelPosition = (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
-      
-      // 학생 이름 열 너비 + 약간의 여백(50px)을 고려하여 목표 위치 설정
-      const targetScrollLeft = Math.max(0, currentTimePixelPosition - 50);
-      
-      // 부드러운 스크롤로 이동
-      contentElement.scrollTo({
-        left: targetScrollLeft,
-        behavior: 'smooth'
-      });
-      
-      headerElement.scrollTo({
-        left: targetScrollLeft,
-        behavior: 'smooth'
-      });
-      
-      // 스크롤 중임을 표시
-      setIsUserScrolling(true);
-      if (userScrollTimeoutRef.current) {
-        clearTimeout(userScrollTimeoutRef.current);
-      }
-      userScrollTimeoutRef.current = setTimeout(() => {
-        setIsUserScrolling(false);
-      }, 1000);
+    if (!contentElement || !headerElement) {
+      console.log('❌ Cannot scroll: elements not found', { contentElement: !!contentElement, headerElement: !!headerElement });
+      return;
     }
+    
+    console.log('✅ Elements found, calculating scroll position');
+    
+    // 현재 시간의 픽셀 위치 계산
+    const currentTimePixelPosition = (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
+    
+    // 학생 이름 열 너비 + 약간의 여백(50px)을 고려하여 목표 위치 설정
+    const targetScrollLeft = Math.max(0, currentTimePixelPosition - 50);
+    
+    console.log('📊 Scroll calculation:', {
+      currentTimePosition,
+      currentTimePixelPosition,
+      targetScrollLeft,
+      timelineWidth: TIMELINE_CONSTANTS.TIMELINE_WIDTH
+    });
+    
+    // 프로그래매틱 스크롤 시작 표시
+    isProgrammaticScrollRef.current = true;
+    console.log('🔒 Programmatic scroll flag set to true');
+    
+    // 스크롤 동기화를 일시적으로 비활성화
+    isScrollSyncingRef.current = true;
+    
+    // 유저 스크롤 타이머를 클리어하여 간섭 방지
+    if (userScrollTimeoutRef.current) {
+      clearTimeout(userScrollTimeoutRef.current);
+    }
+    
+    // 즉시 스크롤 (smooth 대신 auto 사용)
+    contentElement.scrollLeft = targetScrollLeft;
+    headerElement.scrollLeft = targetScrollLeft;
+    
+    console.log('✅ Scroll completed instantly');
+    
+    // 다음 프레임에서 플래그들 리셋
+    requestAnimationFrame(() => {
+      // 스크롤 동기화 재활성화
+      isScrollSyncingRef.current = false;
+      console.log('🔄 Scroll syncing re-enabled');
+      
+      // 프로그래매틱 스크롤 플래그 리셋
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+        console.log('🔓 Programmatic scroll flag reset to false');
+      }, 100); // 100ms 후에 리셋하여 스크롤 이벤트가 완전히 처리될 때까지 기다림
+    });
   }, [getCurrentTimePosition]);
 
   // Disabled auto-scroll logic to allow free browsing

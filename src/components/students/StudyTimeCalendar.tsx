@@ -1191,7 +1191,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
 
       {/* 직접 공부시간 추가 모달 */}
       <Dialog open={showManualModal} onOpenChange={setShowManualModal}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>직접 공부시간 추가</DialogTitle>
           </DialogHeader>
@@ -1229,7 +1229,7 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
       {/* 공부시간 수정 모달 */}
       {selectedStudyTimeForEdit && (
         <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>공부시간 수정</DialogTitle>
             </DialogHeader>

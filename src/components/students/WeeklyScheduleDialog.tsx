@@ -51,7 +51,7 @@ export const WeeklyScheduleDialog: React.FC<WeeklyScheduleDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {scheduleItem ? '시간표 수정' : '시간표 추가'}

@@ -122,21 +122,22 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
             name="date"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>날짜</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <DatePicker
-                      selected={field.value}
-                      onChange={(date: Date | null) => field.onChange(date)}
-                      dateFormat="yyyy-MM-dd"
-                      locale={ko}
-                      placeholderText="날짜를 선택하세요"
-                      customInput={<Input className="pr-10" />}
-                      className="w-full"
-                    />
-                    <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </FormControl>
+                <div className="inline-flex items-center gap-2 w-fit">
+                  <FormLabel className="whitespace-nowrap">날짜</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <DatePicker
+                        selected={field.value}
+                        onChange={(date: Date | null) => field.onChange(date)}
+                        dateFormat="yyyy-MM-dd"
+                        locale={ko}
+                        placeholderText="날짜를 선택하세요"
+                        customInput={<Input className="w-auto max-w-[140px]" />}
+                      />
+                      <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                    </div>
+                  </FormControl>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -172,7 +173,6 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
 
         {/* Time Input Picker */}
         <FormItem>
-          <FormLabel>시간 선택</FormLabel>
           <FormControl>
             <TimeInputPicker
               startTime={form.watch('startTime')}

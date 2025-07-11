@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Clock } from 'lucide-react';
 
 interface TimeInputPickerProps {
   startTime?: string; // "HH:mm" format
@@ -104,45 +103,39 @@ const TimeInputPicker: React.FC<TimeInputPickerProps> = ({
   return (
     <div className={cn("w-full space-y-4", className)}>
       {/* Time Input Fields */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="start-time" className="text-sm font-medium">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="start-time" className="text-sm font-medium whitespace-nowrap">
             시작 시간
           </Label>
-          <div className="relative">
-            <Input
-              id="start-time"
-              type="time"
-              value={localStartTime}
-              onChange={(e) => handleStartTimeChange(e.target.value)}
-              disabled={disabled}
-              className={cn(
-                "pr-10",
-                error && "border-red-500 focus:border-red-500"
-              )}
-            />
-            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          </div>
+          <Input
+            id="start-time"
+            type="time"
+            value={localStartTime}
+            onChange={(e) => handleStartTimeChange(e.target.value)}
+            disabled={disabled}
+            className={cn(
+              "w-auto",
+              error && "border-red-500 focus:border-red-500"
+            )}
+          />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="end-time" className="text-sm font-medium">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="end-time" className="text-sm font-medium whitespace-nowrap">
             종료 시간
           </Label>
-          <div className="relative">
-            <Input
-              id="end-time"
-              type="time"
-              value={localEndTime}
-              onChange={(e) => handleEndTimeChange(e.target.value)}
-              disabled={disabled}
-              className={cn(
-                "pr-10",
-                error && "border-red-500 focus:border-red-500"
-              )}
-            />
-            <Clock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          </div>
+          <Input
+            id="end-time"
+            type="time"
+            value={localEndTime}
+            onChange={(e) => handleEndTimeChange(e.target.value)}
+            disabled={disabled}
+            className={cn(
+              "w-auto",
+              error && "border-red-500 focus:border-red-500"
+            )}
+          />
         </div>
       </div>
 

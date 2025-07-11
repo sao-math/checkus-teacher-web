@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, MessageCircle, RefreshCw, Clock } from 'lucide-react';
+import { Calendar, MessageCircle, RefreshCw, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -285,6 +285,19 @@ const StudyMonitoring: React.FC = () => {
   const isAllSelected = sortedStudents.length > 0 && selectedStudents.size === sortedStudents.length;
   const isPartiallySelected = selectedStudents.size > 0 && selectedStudents.size < sortedStudents.length;
 
+  // Date navigation functions
+  const handlePreviousDay = () => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() - 1);
+    setSelectedDate(currentDate.toISOString().split('T')[0]);
+  };
+
+  const handleNextDay = () => {
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() + 1);
+    setSelectedDate(currentDate.toISOString().split('T')[0]);
+  };
+
   // Show loading state while authentication is being checked
   if (authLoading) {
     return (
@@ -376,13 +389,33 @@ const StudyMonitoring: React.FC = () => {
                 <label htmlFor="date" className="text-sm font-medium text-gray-700">
                   모니터링 날짜:
                 </label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-auto"
-                />
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousDay}
+                    className="h-8 w-8 p-0"
+                    title="전날"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-auto"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextDay}
+                    className="h-8 w-8 p-0"
+                    title="다음날"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
               {/* Scroll to current time button */}

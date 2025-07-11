@@ -331,8 +331,8 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     
     const timeKoreanDateStr = koreanTime.toISOString().split('T')[0];
     
-    // If the time is on the next day and in early morning (0-6), adjust position
-    if (timeKoreanDateStr > baseDate && hour < 6) {
+    // If the time is on the next day, adjust position to 24-30 range regardless of hour
+    if (timeKoreanDateStr > baseDate) {
       hour += 24; // Position it in the 24-30 range
     }
     
@@ -366,7 +366,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
       let hour = startKorean.getUTCHours() + startKorean.getUTCMinutes() / 60 + startKorean.getUTCSeconds() / 3600;
       const startDateStr = startKorean.toISOString().split('T')[0];
       
-      if (startDateStr > baseDate && hour < 6) {
+      if (startDateStr > baseDate) {
         hour += 24;
       }
       
@@ -377,7 +377,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
       let hour = endKorean.getUTCHours() + endKorean.getUTCMinutes() / 60 + endKorean.getUTCSeconds() / 3600;
       const endDateStr = endKorean.toISOString().split('T')[0];
       
-      if (endDateStr > baseDate && hour < 6) {
+      if (endDateStr > baseDate) {
         hour += 24;
       }
       

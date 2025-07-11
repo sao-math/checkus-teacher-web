@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays, CalendarIcon, Copy, Loader2, Trash2 } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, CalendarDays, CalendarIcon, Copy, Trash2 } from 'lucide-react';
 import { WeeklySchedule, AssignedStudyTime, ActualStudyTime } from '@/types/schedule';
 import { Activity } from '@/types/activity';
 import { TaskNode } from '@/types/task';

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle, createContext, useContext } from 'react';
 import { cn } from '@/lib/utils';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -12,6 +12,13 @@ const TIMELINE_CONSTANTS = {
   END_HOUR: 30, // 30시까지 (다음날 6시)
   TOTAL_HOURS: 30 // 30시간
 } as const;
+
+// Context for selected date
+const SelectedDateContext = createContext<string | undefined>(undefined);
+
+export const useSelectedDate = () => {
+  return useContext(SelectedDateContext);
+};
 
 interface FixedLayoutProps {
   header: React.ReactNode;
@@ -287,61 +294,63 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
   }));
 
   return (
-    <div className="relative h-full flex flex-col">
-      {/* Sticky Header */}
-      <div 
-        ref={headerScrollRef}
-        className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
-      >
-        <div className="flex min-w-max">
-          {/* Student name column header */}
+    <SelectedDateContext.Provider value={selectedDate}>
+      <div className="relative h-full flex flex-col">
+        {/* Sticky Header */}
         <div 
-            className="flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center font-medium text-gray-700 h-12"
-          style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
+          ref={headerScrollRef}
+          className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
         >
-            학생
+          <div className="flex min-w-max">
+            {/* Student name column header */}
+          <div 
+              className="flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center font-medium text-gray-700 h-12"
+            style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
+          >
+              학생
+            </div>
+            {/* Timeline header */}
+            <div className="flex-shrink-0">
+              {header}
+            </div>
           </div>
-          {/* Timeline header */}
-          <div className="flex-shrink-0">
-            {header}
-          </div>
+          
+          {/* Current time indicator line in header - moves with header scroll */}
+              {currentTimePosition !== null && (
+                <div 
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
+                  style={{ 
+                left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
+                  }}
+                >
+              <div className="absolute top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
+                  </div>
+                </div>
+              )}
         </div>
         
-        {/* Current time indicator line in header - moves with header scroll */}
+        {/* Scrollable Content */}
+          <div 
+            ref={contentScrollRef}
+          className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
+          >
+          <div className="min-w-max relative">
+              {children}
+              
+            {/* Current time indicator line in content - moves with content scroll */}
             {currentTimePosition !== null && (
               <div 
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
+                className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-40 pointer-events-none"
                 style={{ 
-              left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
+                  left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
                 }}
-              >
-            <div className="absolute top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-              {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
-                </div>
-              </div>
+              />
             )}
-      </div>
-      
-      {/* Scrollable Content */}
-        <div 
-          ref={contentScrollRef}
-        className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
-        >
-        <div className="min-w-max relative">
-            {children}
-            
-          {/* Current time indicator line in content - moves with content scroll */}
-          {currentTimePosition !== null && (
-            <div 
-              className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-40 pointer-events-none"
-              style={{ 
-                left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
-              }}
-            />
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </SelectedDateContext.Provider>
   );
 });
 

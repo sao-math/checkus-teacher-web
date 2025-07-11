@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { AssignedStudyTime, ConnectedActualStudyTime, UnassignedActualStudyTime } from '@/types/monitoring';
 import { formatKoreanTime, formatKoreanTimeRange } from '@/utils/dateUtils';
+import { useSelectedDate } from './FixedLayout';
 
 // Timeline layout constants (shared with FixedLayout)
 const TIMELINE_CONSTANTS = {
@@ -266,9 +267,10 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
   assignedTimes, 
   actualTimes, 
   unassignedTimes, 
-  className 
+  className
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const selectedDate = useSelectedDate(); // Use context instead of prop
   
   // Check if there are any ongoing sessions
   const hasOngoingSessions = actualTimes.some(actual => !actual.endTime) || 
@@ -278,6 +280,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
   useEffect(() => {
     console.log('📊 StudyTimeBar render data:', {
       hasOngoingSessions,
+      selectedDate,
       actualTimes: actualTimes.map(actual => ({
         id: actual.actualStudyTimeId,
         startTime: actual.startTime,
@@ -291,7 +294,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
         isOngoing: !unassigned.endTime
       }))
     });
-  }, [hasOngoingSessions, actualTimes, unassignedTimes]);
+  }, [hasOngoingSessions, actualTimes, unassignedTimes, selectedDate]);
   
   // Update current time - frequent for ongoing sessions, slower otherwise
   useEffect(() => {
@@ -316,15 +319,20 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     const startHour = TIMELINE_CONSTANTS.START_HOUR; // 0
     const endHour = TIMELINE_CONSTANTS.END_HOUR; // 30
     
-    // Check if this time falls in the "next day" part (00:00-05:59 tomorrow)
-    // by comparing the date portion
-    const today = new Date();
-    const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
-    const todayDateStr = koreanToday.toISOString().split('T')[0];
+    // Use selectedDate if provided, otherwise fall back to today
+    let baseDate: string;
+    if (selectedDate) {
+      baseDate = selectedDate;
+    } else {
+      const today = new Date();
+      const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+      baseDate = koreanToday.toISOString().split('T')[0];
+    }
+    
     const timeKoreanDateStr = koreanTime.toISOString().split('T')[0];
     
     // If the time is on the next day and in early morning (0-6), adjust position
-    if (timeKoreanDateStr > todayDateStr && hour < 6) {
+    if (timeKoreanDateStr > baseDate && hour < 6) {
       hour += 24; // Position it in the 24-30 range
     }
     
@@ -333,7 +341,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     
     const percentage = ((hour - startHour) / (endHour - startHour)) * 100;
     return percentage;
-  }, []);
+  }, [selectedDate]);
 
   const getTimeDuration = useCallback((startStr: string, endStr: string | null) => {
     // Parse times ensuring proper timezone handling
@@ -343,16 +351,22 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     const endUtc = endStr ? new Date(endStr) : new Date();
     const endKorean = new Date(endUtc.getTime() + (9 * 60 * 60 * 1000));
     
+    // Use selectedDate if provided, otherwise fall back to today
+    let baseDate: string;
+    if (selectedDate) {
+      baseDate = selectedDate;
+    } else {
+      const today = new Date();
+      const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+      baseDate = koreanToday.toISOString().split('T')[0];
+    }
+    
     // Calculate positions using the same logic as getTimePosition
     const startPosition = (() => {
       let hour = startKorean.getUTCHours() + startKorean.getUTCMinutes() / 60 + startKorean.getUTCSeconds() / 3600;
-      
-      const today = new Date();
-      const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
-      const todayDateStr = koreanToday.toISOString().split('T')[0];
       const startDateStr = startKorean.toISOString().split('T')[0];
       
-      if (startDateStr > todayDateStr && hour < 6) {
+      if (startDateStr > baseDate && hour < 6) {
         hour += 24;
       }
       
@@ -361,13 +375,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     
     const endPosition = (() => {
       let hour = endKorean.getUTCHours() + endKorean.getUTCMinutes() / 60 + endKorean.getUTCSeconds() / 3600;
-      
-      const today = new Date();
-      const koreanToday = new Date(today.getTime() + (9 * 60 * 60 * 1000));
-      const todayDateStr = koreanToday.toISOString().split('T')[0];
       const endDateStr = endKorean.toISOString().split('T')[0];
       
-      if (endDateStr > todayDateStr && hour < 6) {
+      if (endDateStr > baseDate && hour < 6) {
         hour += 24;
       }
       
@@ -385,7 +395,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     }
     
     return Math.min(duration, 100);
-  }, [currentTime]);
+  }, [selectedDate, currentTime]);
 
   return (
     <div className={cn("relative h-8 my-3", className)} style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>

@@ -52,6 +52,7 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
       endTime: '10:00',
       ...defaultValues,
     },
+    mode: 'onChange', // Enable real-time validation
   });
 
   const handleSubmit = (data: StudyTimeFormData) => {
@@ -68,15 +69,25 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
     { value: '7', label: '일요일' },
   ];
 
+  // Check if form is valid for submission
+  const isFormValid = form.watch('title')?.trim() && form.watch('activityId');
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="title"
+          rules={{
+            required: '일정 이름을 입력해주세요',
+            minLength: {
+              value: 1,
+              message: '일정 이름을 입력해주세요'
+            }
+          }}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>일정 이름</FormLabel>
+              <FormLabel>일정 이름 <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Input placeholder="일정 이름을 입력하세요" {...field} />
               </FormControl>
@@ -88,9 +99,12 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
         <FormField
           control={form.control}
           name="activityId"
+          rules={{
+            required: '활동을 선택해주세요'
+          }}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>활동</FormLabel>
+              <FormLabel>활동 <span className="text-red-500">*</span></FormLabel>
               <Select
                 onValueChange={field.onChange}
                 defaultValue={field.value}
@@ -99,16 +113,20 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
                 }}
               >
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>
                     <SelectValue placeholder="활동을 선택하세요" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {activities.map((activity) => (
-                    <SelectItem key={activity.id} value={activity.id.toString()}>
-                      {activity.name}
-                    </SelectItem>
-                  ))}
+                  {activities.length === 0 ? (
+                    <div className="px-2 py-1 text-sm text-gray-500">활동이 없습니다</div>
+                  ) : (
+                    activities.map((activity) => (
+                      <SelectItem key={activity.id} value={activity.id.toString()}>
+                        {activity.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -192,7 +210,11 @@ export const StudyTimeForm: React.FC<StudyTimeFormProps> = ({
           <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
             취소
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            disabled={isLoading || !isFormValid}
+            className={!isFormValid ? 'opacity-50 cursor-not-allowed' : ''}
+          >
             {isLoading ? "처리중..." : submitButtonText}
           </Button>
         </div>

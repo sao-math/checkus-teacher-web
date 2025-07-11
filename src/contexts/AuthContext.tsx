@@ -33,6 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       isCheckingAuth.current = true;
       
+      // Add timeout to prevent infinite loading
+      const authTimeout = setTimeout(() => {
+        console.warn('Authentication check timeout, setting unauthenticated state');
+        setIsAuthenticated(false);
+        setUser(null);
+        setError(null);
+        setIsLoading(false);
+        isCheckingAuth.current = false;
+      }, 5000); // 5 second timeout - reduced for faster user experience
+      
       try {
         console.log('Starting authentication check...');
         
@@ -42,9 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (!initSuccess) {
           console.log('No valid refresh token found, setting unauthenticated state');
+          clearTimeout(authTimeout);
           setIsAuthenticated(false);
           setUser(null);
           setError(null);
+          setIsLoading(false);
+          isCheckingAuth.current = false;
           return;
         }
 
@@ -53,25 +66,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const response = await authService.getCurrentUser();
           if (response.success && response.data) {
             console.log('Authentication check successful');
+            clearTimeout(authTimeout);
             setIsAuthenticated(true);
             setUser(response);
             setError(null);
+            setIsLoading(false);
+            isCheckingAuth.current = false;
           } else {
             console.warn('Invalid user response, clearing access token');
             authService.clearAccessToken();
+            clearTimeout(authTimeout);
             setIsAuthenticated(false);
             setUser(null);
             setError(null);
+            setIsLoading(false);
+            isCheckingAuth.current = false;
           }
         } catch (error) {
           console.error('Error checking auth:', error);
           // 사용자 정보 조회 실패시 액세스 토큰 제거
           authService.clearAccessToken();
+          clearTimeout(authTimeout);
           setIsAuthenticated(false);
           setUser(null);
           setError(null);
+          setIsLoading(false);
+          isCheckingAuth.current = false;
         }
-      } finally {
+      } catch (error) {
+        console.error('Authentication initialization failed:', error);
+        clearTimeout(authTimeout);
+        setIsAuthenticated(false);
+        setUser(null);
+        setError(null);
         setIsLoading(false);
         isCheckingAuth.current = false;
       }

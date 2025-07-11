@@ -21,7 +21,9 @@ const authService = {
     try {
       console.log('Attempting to refresh token using cookie...');
       // 리프레시 토큰은 쿠키에서 자동으로 전송됨 (withCredentials: true)
-      const response = await api.post<TokenRefreshResponse>('/auth/refresh');
+      const response = await api.post<TokenRefreshResponse>('/auth/refresh', {}, {
+        timeout: 5000 // 5 second timeout
+      });
       const { accessToken: newAccessToken } = response.data.data;
       
       // 새 액세스 토큰을 메모리에 저장
@@ -48,7 +50,9 @@ const authService = {
 
   async getCurrentUser(): Promise<UserInfo> {
     try {
-      const response = await api.get<UserInfo>('/users/me');
+      const response = await api.get<UserInfo>('/users/me', {
+        timeout: 5000 // 5 second timeout
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching current user:', error);
@@ -170,9 +174,12 @@ const authService = {
     try {
       console.log('Initializing authentication from refresh token cookie...');
       await this.refreshToken();
+      console.log('Successfully initialized from refresh token');
       return true;
-    } catch (error) {
-      console.log('Failed to initialize from refresh token:', error);
+    } catch (error: any) {
+      console.log('Failed to initialize from refresh token:', error?.response?.status || error?.message || error);
+      // Clear any stale access token
+      this.clearAccessToken();
       return false;
     }
   },

@@ -254,7 +254,7 @@ const StudyMonitoring: React.FC = () => {
 
   // 현재 시간이 타임라인 범위 내에 있는지 확인
   const isCurrentTimeInRange = () => {
-    // 0-30시 범위이므로 항상 현재 시간이 범위 내에 있음
+    // '현재시간으로' 버튼은 오늘로 이동하는 기능이 있으므로 항상 사용 가능
     return true;
   };
 
@@ -296,6 +296,22 @@ const StudyMonitoring: React.FC = () => {
     const currentDate = new Date(selectedDate);
     currentDate.setDate(currentDate.getDate() + 1);
     setSelectedDate(currentDate.toISOString().split('T')[0]);
+  };
+
+  // Go to current time (change date to today and scroll to current time)
+  const handleGoToCurrentTime = () => {
+    // 1. Change date to today (Korean timezone)
+    const today = new Date();
+    const koreanDate = new Date(today.getTime() + (9 * 60 * 60 * 1000)); // UTC + 9 hours
+    const todayString = koreanDate.toISOString().split('T')[0];
+    
+    // 2. Set the date
+    setSelectedDate(todayString);
+    
+    // 3. Scroll to current time after a short delay to ensure the date change is processed
+    setTimeout(() => {
+      fixedLayoutRef.current?.scrollToCurrentTime();
+    }, 100);
   };
 
   // Show loading state while authentication is being checked
@@ -426,10 +442,10 @@ const StudyMonitoring: React.FC = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => fixedLayoutRef.current?.scrollToCurrentTime()}
+                onClick={handleGoToCurrentTime}
                 disabled={!isCurrentTimeInRange()}
                 className="flex items-center space-x-2"
-                title={!isCurrentTimeInRange() ? '현재 시간이 타임라인 범위(00:00-06:00 다음날) 밖입니다' : '현재 시간 위치로 스크롤'}
+                title="오늘 날짜로 이동하고 현재 시간 위치로 스크롤"
               >
                 <Clock className="h-4 w-4" />
                 <span>현재 시간으로</span>

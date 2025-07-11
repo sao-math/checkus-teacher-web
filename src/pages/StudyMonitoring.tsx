@@ -368,12 +368,16 @@ const StudyMonitoring: React.FC = () => {
             onClick={handleRefresh}
             disabled={isLoading}
           >
-            <LoadingSpinner 
-              icon="refresh" 
-              size="sm" 
-              className={isLoading ? 'mr-2' : 'mr-2'} 
-              variant="default"
-            />
+            {isLoading ? (
+              <LoadingSpinner 
+                icon="refresh" 
+                size="sm" 
+                className="mr-2" 
+                variant="default"
+              />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             새로고침
           </Button>
         </div>

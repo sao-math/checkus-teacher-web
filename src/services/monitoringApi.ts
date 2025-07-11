@@ -1,6 +1,9 @@
 import api from '@/lib/axios';
 import { isAxiosError } from 'axios';
 import { MonitoringResponse } from '@/types/monitoring';
+import { fromZonedTime } from 'date-fns-tz';
+
+const KOREAN_TIMEZONE = 'Asia/Seoul';
 
 export const monitoringApi = {
   /**
@@ -35,14 +38,35 @@ export const monitoringApi = {
    */
   getStudyTimeMonitoring: async (date: string): Promise<MonitoringResponse> => {
     try {
-      // 날짜를 시간 범위로 변환 (0시부터 다음날 6시까지)
-      const startTime = `${date}T00:00:00`;
-      const nextDay = new Date(date);
-      nextDay.setDate(nextDay.getDate() + 1);
-      const endTime = `${nextDay.toISOString().split('T')[0]}T06:00:00`;
+      // 선택된 날짜를 파싱
+      const [year, month, day] = date.split('-').map(Number);
+      
+      // 한국시간 기준으로 시작시간과 종료시간 생성
+      const koreanStartTime = new Date(year, month - 1, day, 0, 0, 0); // 한국시간 00:00
+      const koreanEndTime = new Date(year, month - 1, day + 1, 6, 0, 0); // 다음날 한국시간 06:00
+      
+      // 한국시간을 UTC로 변환
+      const utcStartTime = fromZonedTime(koreanStartTime, KOREAN_TIMEZONE);
+      const utcEndTime = fromZonedTime(koreanEndTime, KOREAN_TIMEZONE);
+      
+      // UTC 시간을 ISO 문자열로 변환 (Z 접미사 포함)
+      const startTimeStr = utcStartTime.toISOString();
+      const endTimeStr = utcEndTime.toISOString();
+      
+      console.log('📅 Monitoring API 요청 범위:', {
+        selectedDate: date,
+        koreanRange: {
+          start: `${date}T00:00:00 (KST)`,
+          end: `${year}-${String(month).padStart(2, '0')}-${String(day + 1).padStart(2, '0')}T06:00:00 (KST)`
+        },
+        utcRange: {
+          start: startTimeStr,
+          end: endTimeStr
+        }
+      });
       
       // 새로운 시간 범위 API 사용
-      return await monitoringApi.getStudyTimeMonitoringByRange(startTime, endTime);
+      return await monitoringApi.getStudyTimeMonitoringByRange(startTimeStr, endTimeStr);
     } catch (error) {
       if (isAxiosError(error)) {
         console.error('API Error:', {

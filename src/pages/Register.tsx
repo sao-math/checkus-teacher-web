@@ -347,10 +347,10 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="username">아이디</Label>
                 <div className="relative">
-                  <Input
-                    id="username"
-                    {...form.getFieldProps('username')}
-                    placeholder="4-20자, 영문자/숫자/언더바만 가능"
+                <Input
+                  id="username"
+                  {...form.getFieldProps('username')}
+                  placeholder="4-20자, 영문자/숫자/언더바만 가능"
                     className={cn(
                       "pr-10",
                       form.errors.username && "border-red-500",
@@ -491,13 +491,13 @@ const Register = () => {
               <div className="space-y-2">
                 <Label htmlFor="phoneNumber">전화번호</Label>
                 <div className="relative">
-                  <Input
-                    id="phoneNumber"
-                    name="phoneNumber"
-                    type="tel"
-                    placeholder="010-0000-0000"
-                    value={phoneNumber.value}
-                    onChange={phoneNumber.onChange}
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="010-0000-0000"
+                  value={phoneNumber.value}
+                  onChange={phoneNumber.onChange}
                     className={cn(
                       "pr-10",
                       !phoneNumber.isValid && phoneNumber.value.length > 3 && "border-red-500",

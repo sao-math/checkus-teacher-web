@@ -144,10 +144,10 @@ const TeacherManagement = () => {
     try {
       await teacherApi.deleteTeacher(teacher.id);
       await fetchTeachers(); // Refresh the list
-      toast({
-        title: "선생님 삭제",
-        description: `${teacher.name} 선생님이 삭제되었습니다.`,
-      });
+    toast({
+      title: "선생님 삭제",
+      description: `${teacher.name} 선생님이 삭제되었습니다.`,
+    });
     } catch (error) {
       console.error('Error deleting teacher:', error);
       toast({

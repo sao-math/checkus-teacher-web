@@ -24,6 +24,7 @@ import { StudentWeeklySchedule } from '@/components/students/StudentWeeklySchedu
 import { StudentCalendarView } from '@/components/students/StudentCalendarView';
 import { TaskSidebar } from '@/components/students/TaskSidebar';
 import { getGradeText } from '@/utils/gradeUtils';
+import PageHeader from '@/components/ui/PageHeader';
 
 // Mock data - 실제로는 API에서 가져와야 함
 const mockStudent: Student = {
@@ -70,34 +71,25 @@ const StudentSchedule = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 헤더 */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                목록으로
-              </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">{student.name}</h1>
-                <p className="text-sm text-gray-500">
-                  {getGradeText(student.grade)} · {student.school}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleEdit}>
-                <Edit className="h-4 w-4 mr-2" />
-                정보 수정
-              </Button>
-              <Button onClick={handleAddTask}>
-                <Plus className="h-4 w-4 mr-2" />
-                할일 추가
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={student.name}
+        description={`${getGradeText(student.grade)} · ${student.school}`}
+        onBack={handleBack}
+        maxWidth="max-w-7xl"
+        actions={[
+          {
+            label: '정보 수정',
+            onClick: handleEdit,
+            variant: 'outline',
+            icon: <Edit className="h-4 w-4" />
+          },
+          {
+            label: '할일 추가',
+            onClick: handleAddTask,
+            icon: <Plus className="h-4 w-4" />
+          }
+        ]}
+      />
 
       {/* 메인 컨텐츠 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

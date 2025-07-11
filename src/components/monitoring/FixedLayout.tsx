@@ -295,10 +295,10 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
       >
         <div className="flex min-w-max">
           {/* Student name column header */}
-          <div 
+        <div 
             className="flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center font-medium text-gray-700 h-12"
-            style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
-          >
+          style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
+        >
             학생
           </div>
           {/* Timeline header */}
@@ -308,28 +308,28 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
         </div>
         
         {/* Current time indicator line in header - moves with header scroll */}
-        {currentTimePosition !== null && (
-          <div 
+            {currentTimePosition !== null && (
+              <div 
             className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
-            style={{ 
+                style={{ 
               left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
-            }}
-          >
+                }}
+              >
             <div className="absolute top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
               {currentTime.getHours().toString().padStart(2, '0')}:{currentTime.getMinutes().toString().padStart(2, '0')}
-            </div>
-          </div>
-        )}
+                </div>
+              </div>
+            )}
       </div>
-
+      
       {/* Scrollable Content */}
-      <div 
-        ref={contentScrollRef}
+        <div 
+          ref={contentScrollRef}
         className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative"
-      >
+        >
         <div className="min-w-max relative">
-          {children}
-          
+            {children}
+            
           {/* Current time indicator line in content - moves with content scroll */}
           {currentTimePosition !== null && (
             <div 

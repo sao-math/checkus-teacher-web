@@ -19,6 +19,7 @@ export interface PageHeaderProps {
   actions?: PageHeaderAction[];
   sticky?: boolean;
   className?: string;
+  maxWidth?: string; // New prop for configurable max-width
 }
 
 /**
@@ -31,6 +32,7 @@ export interface PageHeaderProps {
  *   title="학생 정보"
  *   description="김학생의 정보를 확인하고 관리할 수 있습니다"
  *   onBack={() => navigate('/students')}
+ *   maxWidth="max-w-7xl" // Optional: for wider layouts
  *   actions={[
  *     {
  *       label: '편집',
@@ -55,27 +57,28 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   actions = [],
   sticky = true,
   className = '',
+  maxWidth = 'max-w-4xl', // Default to max-w-4xl for backward compatibility
 }) => {
   const baseClasses = `bg-white border-b ${sticky ? 'sticky top-0 z-10' : ''}`;
   
   return (
     <div className={`${baseClasses} ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 min-h-16">
+      <div className={`${maxWidth} mx-auto px-4 sm:px-6 lg:px-8`}>
+        <div className="flex items-center justify-between h-16">
           {/* 왼쪽: 뒤로가기 버튼과 제목 */}
-          <div className="flex items-center gap-4 min-w-0 flex-1">
+          <div className="flex items-center gap-4">
             {onBack && (
-              <Button variant="ghost" size="sm" onClick={onBack} className="flex-shrink-0">
+              <Button variant="ghost" size="sm" onClick={onBack}>
                 <ArrowLeft className="h-4 w-4" />
-                {backLabel && <span className="ml-2 hidden sm:inline">{backLabel}</span>}
+                {backLabel && <span className="ml-2">{backLabel}</span>}
               </Button>
             )}
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-semibold text-gray-900 truncate">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
                 {title}
               </h1>
               {description && (
-                <p className="text-sm text-gray-500 truncate mt-1">
+                <p className="text-sm text-gray-500">
                   {description}
                 </p>
               )}
@@ -84,7 +87,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 
           {/* 오른쪽: 액션 버튼들 */}
           {actions.length > 0 && (
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2">
               {actions.map((action, index) => (
                 <Button
                   key={index}
@@ -95,9 +98,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
                   className={action.className}
                 >
                   {action.icon && <span className="mr-2">{action.icon}</span>}
-                  <span className="hidden sm:inline">{action.label}</span>
-                  {/* Show only icon on mobile */}
-                  <span className="sm:hidden">{action.icon}</span>
+                  {action.label}
                 </Button>
               ))}
             </div>

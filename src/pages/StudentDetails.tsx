@@ -333,6 +333,7 @@ const StudentDetails = () => {
         title={student.name}
         description={`${student.school || '학교 정보 없음'} - ${getGradeText(student.grade)}`}
         onBack={handleBack}
+        maxWidth="max-w-7xl"
         actions={[
           {
             label: '정보 수정',
@@ -341,7 +342,6 @@ const StudentDetails = () => {
             icon: <Edit className="h-4 w-4" />
           }
         ]}
-        className="max-w-7xl"
       />
 
       {/* 메인 컨텐츠 */}

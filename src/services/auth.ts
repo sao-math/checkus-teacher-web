@@ -59,7 +59,7 @@ const authService = {
   async checkUsername(username: string): Promise<{ success: boolean; data: boolean; message?: string }> {
     try {
       const response = await api.get<{ success: boolean; data: boolean; message: string }>(`/auth/check-username?username=${username}`);
-      return response.data;
+    return response.data;
     } catch (error: any) {
       // Handle 409 Conflict (duplicate username) and 400 Bad Request (invalid format)
       if (error.response && error.response.data) {
@@ -82,7 +82,7 @@ const authService = {
   async checkPhoneNumber(phoneNumber: string): Promise<{ success: boolean; data: boolean; message?: string }> {
     try {
       const response = await api.get<{ success: boolean; data: boolean; message: string }>(`/auth/check-phone?phoneNumber=${phoneNumber}`);
-      return response.data;
+    return response.data;
     } catch (error: any) {
       // Handle 409 Conflict (duplicate phone) and 400 Bad Request (invalid format)
       if (error.response && error.response.data) {

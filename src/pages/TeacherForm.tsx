@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { FullScreenLoadingSpinner, ButtonLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface TeacherFormData {
   name: string;
@@ -194,14 +195,7 @@ const TeacherForm = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-500">로딩 중...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoadingSpinner text="로딩 중..." />;
   }
 
   if (isEdit && !teacher) {
@@ -353,10 +347,7 @@ const TeacherForm = () => {
                     className="bg-blue-500 hover:bg-blue-600"
                   >
                     {asyncForm.isSubmitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        저장 중...
-                      </>
+                      <ButtonLoadingSpinner size="sm" text="저장 중..." />
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-2" />

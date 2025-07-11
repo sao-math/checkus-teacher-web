@@ -15,6 +15,7 @@ import monitoringApi from '@/services/monitoringApi';
 import { MonitoringStudent } from '@/types/monitoring';
 import { formatKoreanTime } from '@/utils/dateUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Separate component for last refresh time to optimize re-rendering
 const LastRefreshTime: React.FC<{ lastRefreshTime: Date | null }> = ({ lastRefreshTime }) => {
@@ -291,8 +292,12 @@ const StudyMonitoring: React.FC = () => {
         <Card>
           <CardContent className="p-6">
             <div className="text-center">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">인증 확인 중...</p>
+              <LoadingSpinner 
+                icon="refresh" 
+                size="lg" 
+                text="인증 확인 중..." 
+                className="mx-auto mb-4"
+              />
             </div>
           </CardContent>
         </Card>
@@ -350,7 +355,12 @@ const StudyMonitoring: React.FC = () => {
             onClick={handleRefresh}
             disabled={isLoading}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <LoadingSpinner 
+              icon="refresh" 
+              size="sm" 
+              className={isLoading ? 'mr-2' : 'mr-2'} 
+              variant="default"
+            />
             새로고침
           </Button>
         </div>
@@ -470,10 +480,12 @@ const StudyMonitoring: React.FC = () => {
         
         <CardContent className="p-0 h-[calc(100vh-400px)] min-h-96">
           {isLoading ? (
-            <div className="p-8 text-center">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-              <p>데이터를 불러오는 중...</p>
-            </div>
+            <LoadingSpinner 
+              icon="refresh" 
+              size="lg" 
+              text="데이터를 불러오는 중..." 
+              className="p-8"
+            />
           ) : (
             <FixedLayout header={<FixedTimelineHeader />} ref={fixedLayoutRef} selectedDate={selectedDate}>
               <div>

@@ -19,6 +19,7 @@ import { studentApi } from '@/services/studentApi';
 import { schoolApi, School as SchoolType } from '@/services/schoolApi';
 import api from '@/lib/axios';
 import { getGradeText } from '@/utils/gradeUtils';
+import { PageLoadingSpinner, ButtonLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface StudentFormData {
   name: string;
@@ -255,8 +256,8 @@ const StudentEdit = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <PageLoadingSpinner size="lg" text="로딩 중..." />
       </div>
     );
   }
@@ -449,10 +450,7 @@ const StudentEdit = () => {
                 disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid}
               >
                 {asyncForm.isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    저장 중...
-                  </>
+                  <ButtonLoadingSpinner size="sm" text="저장 중..." />
                 ) : (
                   '저장'
                 )}

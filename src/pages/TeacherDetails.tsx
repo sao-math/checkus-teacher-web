@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { TeacherDetailResponse } from '@/types/teacher';
 import { teacherApi } from '@/services/teacherApi';
 import { useToast } from '@/hooks/use-toast';
+import { FullScreenLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const TeacherDetails = () => {
   const { id } = useParams();
@@ -66,14 +67,7 @@ const TeacherDetails = () => {
   }, [id, isProfile, user, navigate, toast]);
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-500">로딩 중...</p>
-        </div>
-      </div>
-    );
+    return <FullScreenLoadingSpinner text="로딩 중..." />;
   }
 
   if (isProfile && !user) {

@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ButtonLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface ClassFormData {
   name: string;
@@ -218,10 +219,7 @@ const ClassForm = () => {
                 disabled={asyncForm.isSubmitting || !form.isValid}
               >
                 {asyncForm.isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-2"></div>
-                    처리 중...
-                  </>
+                  <ButtonLoadingSpinner size="sm" text="저장 중..." />
                 ) : (
                   <>
                     <Save className="h-4 w-4 mr-2" />

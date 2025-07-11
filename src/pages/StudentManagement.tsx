@@ -16,7 +16,7 @@ import ManagementList from '@/components/ui/ManagementList';
 import StatusBadge from '@/components/ui/StatusBadge';
 import InlineEditSelect from '@/components/ui/InlineEditSelect';
 import { getGradeText } from '@/utils/gradeUtils';
-import { PageLoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { PageLoadingSpinner, LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const StudentManagement = () => {
   const { toast } = useToast();
@@ -465,9 +465,11 @@ const StudentManagement = () => {
               </Badge>
             </div>
             {pendingLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
-              </div>
+                        <LoadingSpinner 
+                          size="md" 
+                          variant="colored" 
+                          className="inline-flex"
+                        />
             ) : (
               <div className="space-y-3">
                 {filteredPendingStudents.map((student) => (

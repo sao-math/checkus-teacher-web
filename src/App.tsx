@@ -18,7 +18,7 @@ import Layout from '@/components/Layout';
 import TaskManagement from './pages/TaskManagement';
 import StudentDetails from './pages/StudentDetails';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute, AdminRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute, { AdminRoute } from '@/components/ProtectedRoute';
 import Register from '@/pages/Register';
 import StudyMonitoring from './pages/StudyMonitoring';
 

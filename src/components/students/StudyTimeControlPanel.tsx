@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Calendar, Settings, Play, Loader2 } from 'lucide-react';
+import { Calendar, Settings, Play } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import { ko } from 'date-fns/locale';
 import "react-datepicker/dist/react-datepicker.css";
 import { StudyTimeCalendarToggle } from './StudyTimeCalendarToggle';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface StudyTimeControlPanelProps {
   onGenerateStudyTimes: (startDate: Date, days: number) => Promise<void>;
@@ -97,10 +98,12 @@ export const StudyTimeControlPanel: React.FC<StudyTimeControlPanelProps> = ({
               className="w-full"
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  생성 중...
-                </>
+                <LoadingSpinner 
+                  icon="loader2" 
+                  size="sm" 
+                  text="생성 중..." 
+                  variant="button"
+                />
               ) : (
                 <>
                   <Play className="mr-2 h-4 w-4" />

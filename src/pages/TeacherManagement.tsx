@@ -12,6 +12,7 @@ import { TeacherListResponse } from '@/types/teacher';
 import { adminApi } from '@/services/adminApi';
 import { teacherApi } from '@/services/teacherApi';
 import ManagementList from '@/components/ui/ManagementList';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const TeacherManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -224,9 +225,11 @@ const TeacherManagement = () => {
               </Badge>
             </div>
             {pendingLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
-              </div>
+              <LoadingSpinner 
+                size="sm" 
+                variant="colored" 
+                className="inline-flex"
+              />
             ) : (
               <div className="space-y-3">
                 {filteredPendingTeachers.map((teacher) => (

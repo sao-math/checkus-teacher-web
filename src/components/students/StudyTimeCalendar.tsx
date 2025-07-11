@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { format, isSameDay, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameMonth, addHours, parse } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import { TaskTree } from '@/components/tasks/TaskTree';
 import { formatKoreanTime, formatKoreanTimeRange, createUtcDateTime, convertLocalDateToUtc } from '@/utils/dateUtils';
 import { Progress, TimelineSegment } from '@/components/ui/progress';
 import { StudyTimeForm } from '@/components/students/StudyTimeForm';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Timeline calculation helper function
 const calculateTimeline = (assigned: AssignedStudyTime, actuals: ActualStudyTime[]): TimelineSegment[] => {
@@ -1039,7 +1040,11 @@ export const StudyTimeCalendar: React.FC<StudyTimeCalendarProps> = ({
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    <LoadingSpinner 
+                      icon="loader2" 
+                      size="sm" 
+                      className="mr-1 h-3 w-3"
+                    />
                     복사중
                   </>
                 ) : (

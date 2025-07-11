@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check, X, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface Option {
   value: string | number;
@@ -168,7 +169,7 @@ export const InlineEditSelect: React.FC<InlineEditSelectProps> = ({
           >
             {isRefreshing ? (
               <div className="px-3 py-2 text-sm text-gray-500 flex items-center gap-2">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+                <LoadingSpinner size="sm" className="h-3 w-3" />
                 목록 갱신 중...
               </div>
             ) : options.length === 0 ? (
@@ -198,7 +199,7 @@ export const InlineEditSelect: React.FC<InlineEditSelectProps> = ({
         {/* Loading/Save/Cancel buttons */}
         <div className="absolute -right-16 top-0 flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
           {isLoading || isRefreshing ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <LoadingSpinner size="sm" className="h-3 w-3" />
           ) : (
             <>
               <button
@@ -224,6 +225,11 @@ export const InlineEditSelect: React.FC<InlineEditSelectProps> = ({
             </>
           )}
         </div>
+        {isLoading && (
+          <div className="flex items-center justify-center py-2">
+            <LoadingSpinner size="sm" />
+          </div>
+        )}
       </div>
     );
   }

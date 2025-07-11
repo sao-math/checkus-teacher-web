@@ -19,10 +19,11 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, MessageSquare, Users, AlertCircle, Check } from 'lucide-react';
+import { MessageSquare, Users, AlertCircle, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import notificationApi, { NotificationTemplate } from '@/services/notificationApi';
 import { MonitoringStudent } from '@/types/monitoring';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface SendMessageDialogProps {
   open: boolean;
@@ -274,7 +275,7 @@ export const SendMessageDialog: React.FC<SendMessageDialogProps> = ({
                 <Label>템플릿 선택</Label>
                 {templatesLoading ? (
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <LoadingSpinner icon="loader2" size="sm" />
                     <span>템플릿을 불러오는 중...</span>
                   </div>
                 ) : templatesError ? (
@@ -382,10 +383,7 @@ export const SendMessageDialog: React.FC<SendMessageDialogProps> = ({
             disabled={!isValid() || isSending || availableStudents.length === 0}
           >
             {isSending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                발송 중...
-              </>
+              <LoadingSpinner icon="loader2" size="sm" text="발송 중..." />
             ) : (
               <>
                 <MessageSquare className="h-4 w-4 mr-2" />

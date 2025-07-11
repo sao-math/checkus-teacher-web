@@ -13,6 +13,7 @@ import { useForm } from '@/hooks/useForm';
 import { useAsyncForm } from '@/hooks/useAsyncForm';
 import authService from '@/services/auth';
 import api from '@/lib/axios';
+import { LoadingSpinner, ButtonLoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface RegisterFormData {
   username: string;
@@ -360,7 +361,7 @@ const Register = () => {
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {usernameCheckState.isChecking ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                      <LoadingSpinner size="sm" className="h-4 w-4" />
                     ) : usernameCheckState.isValid === true ? (
                       <Check className="h-4 w-4 text-green-600" />
                     ) : usernameCheckState.isValid === false ? (
@@ -507,7 +508,7 @@ const Register = () => {
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {phoneCheckState.isChecking ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                      <LoadingSpinner size="sm" className="h-4 w-4" />
                     ) : phoneCheckState.isValid === true ? (
                       <Check className="h-4 w-4 text-green-600" />
                     ) : phoneCheckState.isValid === false ? (
@@ -552,10 +553,7 @@ const Register = () => {
                 disabled={asyncForm.isSubmitting || !form.isValid || !phoneNumber.isValid || !isPasswordValid() || !passwordsMatch() || usernameCheckState.isValid !== true || phoneCheckState.isValid !== true}
               >
                 {asyncForm.isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    가입 중...
-                  </>
+                  <ButtonLoadingSpinner size="sm" text="가입 중..." />
                 ) : (
                   '회원가입'
                 )}

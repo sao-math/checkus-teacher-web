@@ -7,10 +7,10 @@ import { useSelectedDate } from './FixedLayout';
 // Timeline layout constants (shared with FixedLayout)
 const TIMELINE_CONSTANTS = {
   STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
-  TIMELINE_WIDTH: 2700, // 30시간 * 90px = 2700px (기존 2400px에서 확장하여 가시성 개선)
-  START_HOUR: 0, // 0시부터 시작 (기존 6시)
-  END_HOUR: 30, // 30시까지 (다음날 6시)
-  TOTAL_HOURS: 30 // 30시간
+  TIMELINE_WIDTH: 2160, // 24시간 * 90px = 2160px (여유공간 제거)
+  START_HOUR: 0, // 0시부터 시작
+  END_HOUR: 24, // 24시까지 (다음날 0시)
+  TOTAL_HOURS: 24 // 24시간
 } as const;
 
 interface TimelineProps {
@@ -198,7 +198,7 @@ const FixedTimelineHeader: React.FC = () => {
     <div className="relative h-12 bg-gray-50 border-b border-gray-200" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Grid lines for each hour */}
       <div className="relative h-full" style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
-        {/* Hour divider lines */}
+        {/* Hour divider lines (25개: 0시부터 24시까지) */}
         {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS + 1 }, (_, i) => {
           const hour = TIMELINE_CONSTANTS.START_HOUR + i;
           const position = (i / TIMELINE_CONSTANTS.TOTAL_HOURS) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
@@ -212,11 +212,10 @@ const FixedTimelineHeader: React.FC = () => {
           );
         })}
         
-        {/* Hour labels positioned at exact hour marks */}
+        {/* Hour labels (24개: 0:00부터 23:00까지만, 24:00 레이블 제외) */}
         {Array.from({ length: TIMELINE_CONSTANTS.TOTAL_HOURS }, (_, i) => {
           const hour = TIMELINE_CONSTANTS.START_HOUR + i;
-          const displayHour = hour >= 24 ? hour - 24 : hour; // 24시 이후는 다음날로 표시
-          const isNextDay = hour >= 24;
+          const displayHour = hour;
           const position = (i / TIMELINE_CONSTANTS.TOTAL_HOURS) * TIMELINE_CONSTANTS.TIMELINE_WIDTH;
           
           return (
@@ -227,15 +226,12 @@ const FixedTimelineHeader: React.FC = () => {
                 left: `${position}px`,
                 top: '0',
                 height: '100%',
-                transform: 'translateX(-50%)' // Center the label on the line
+                transform: 'translateX(-50%)' // 모든 레이블 중앙 정렬
               }}
             >
-              <span className={isNextDay ? 'text-blue-600' : ''}>
+              <span>
                 {displayHour.toString().padStart(2, '0')}:00
               </span>
-              {isNextDay && (
-                <span className="text-xs text-blue-500">+1일</span>
-              )}
             </div>
           );
         })}
@@ -315,9 +311,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     // Get hour in Korean timezone
     let hour = koreanTime.getUTCHours() + koreanTime.getUTCMinutes() / 60 + koreanTime.getUTCSeconds() / 3600;
     
-    // Handle the 30-hour timeline (00:00 today - 06:00 tomorrow)
+    // Handle the 24-hour timeline (00:00 - 24:00)
     const startHour = TIMELINE_CONSTANTS.START_HOUR; // 0
-    const endHour = TIMELINE_CONSTANTS.END_HOUR; // 30
+    const endHour = TIMELINE_CONSTANTS.END_HOUR; // 24
     
     // Use selectedDate if provided, otherwise fall back to today
     let baseDate: string;
@@ -331,9 +327,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     
     const timeKoreanDateStr = koreanTime.toISOString().split('T')[0];
     
-    // If the time is on the next day, adjust position to 24-30 range regardless of hour
-    if (timeKoreanDateStr > baseDate) {
-      hour += 24; // Position it in the 24-30 range
+    // If the time is not on the selected date, don't show it
+    if (timeKoreanDateStr !== baseDate) {
+      return -1; // Return -1 to indicate out of range
     }
     
     if (hour < startHour) return 0;
@@ -366,8 +362,9 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
       let hour = startKorean.getUTCHours() + startKorean.getUTCMinutes() / 60 + startKorean.getUTCSeconds() / 3600;
       const startDateStr = startKorean.toISOString().split('T')[0];
       
-      if (startDateStr > baseDate) {
-        hour += 24;
+      // If start time is not on the selected date, return -1
+      if (startDateStr !== baseDate) {
+        return -1;
       }
       
       return hour;
@@ -377,12 +374,18 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
       let hour = endKorean.getUTCHours() + endKorean.getUTCMinutes() / 60 + endKorean.getUTCSeconds() / 3600;
       const endDateStr = endKorean.toISOString().split('T')[0];
       
-      if (endDateStr > baseDate) {
-        hour += 24;
+      // If end time is not on the selected date, clamp to end of day
+      if (endDateStr !== baseDate) {
+        return 24; // End of the selected day
       }
       
       return hour;
     })();
+    
+    // If start position is out of range, don't show this item
+    if (startPosition < 0) {
+      return 0;
+    }
     
     const startHour = TIMELINE_CONSTANTS.START_HOUR;
     const totalHours = TIMELINE_CONSTANTS.TOTAL_HOURS;
@@ -391,7 +394,7 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
     
     // For ongoing sessions, ensure minimum width
     if (!endStr) {
-      duration = Math.max(duration, 0.2); // Minimum 0.2% width for visibility (reduced from 0.5%)
+      duration = Math.max(duration, 0.2); // Minimum 0.2% width for visibility
     }
     
     return Math.min(duration, 100);
@@ -400,43 +403,67 @@ const StudyTimeBar: React.FC<StudyTimeBarProps> = React.memo(({
   return (
     <div className={cn("relative h-8 my-3", className)} style={{ width: `${TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` }}>
       {/* Assigned study times (light blue background) */}
-      {assignedTimes.map((assigned) => (
-        <div
-          key={assigned.assignedStudyTimeId}
-          className="absolute h-full bg-gray-200 border border-gray-300 rounded"
-          style={{
-            left: `${(getTimePosition(assigned.startTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-            width: `${(getTimeDuration(assigned.startTime, assigned.endTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-          }}
-          title={`${assigned.title}: ${formatKoreanTime(assigned.startTime, 'HH:mm')} - ${formatKoreanTime(assigned.endTime, 'HH:mm')}`}
-        />
-      ))}
+      {assignedTimes.map((assigned) => {
+        const position = getTimePosition(assigned.startTime);
+        const duration = getTimeDuration(assigned.startTime, assigned.endTime);
+        
+        // Don't render if position is out of range
+        if (position < 0 || duration <= 0) return null;
+        
+        return (
+          <div
+            key={assigned.assignedStudyTimeId}
+            className="absolute h-full bg-gray-200 border border-gray-300 rounded"
+            style={{
+              left: `${(position / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+              width: `${(duration / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+            }}
+            title={`${assigned.title}: ${formatKoreanTime(assigned.startTime, 'HH:mm')} - ${formatKoreanTime(assigned.endTime, 'HH:mm')}`}
+          />
+        );
+      })}
       
       {/* Connected actual study times (dark blue) */}
-      {actualTimes.map((actual) => (
-        <div
-          key={actual.actualStudyTimeId}
-          className="absolute h-full bg-green-500 rounded z-10"
-          style={{
-            left: `${(getTimePosition(actual.startTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-            width: `${(getTimeDuration(actual.startTime, actual.endTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-          }}
-          title={`실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`}
-        />
-      ))}
+      {actualTimes.map((actual) => {
+        const position = getTimePosition(actual.startTime);
+        const duration = getTimeDuration(actual.startTime, actual.endTime);
+        
+        // Don't render if position is out of range
+        if (position < 0 || duration <= 0) return null;
+        
+        return (
+          <div
+            key={actual.actualStudyTimeId}
+            className="absolute h-full bg-green-500 rounded z-10"
+            style={{
+              left: `${(position / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+              width: `${(duration / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+            }}
+            title={`실제 접속: ${formatKoreanTime(actual.startTime, 'HH:mm')} - ${formatKoreanTime(actual.endTime, 'HH:mm')}`}
+          />
+        );
+      })}
       
       {/* Unassigned actual study times (orange) */}
-      {unassignedTimes.map((unassigned) => (
-        <div
-          key={unassigned.actualStudyTimeId}
-          className="absolute h-full bg-green-200 rounded z-10"
-          style={{
-            left: `${(getTimePosition(unassigned.startTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-            width: `${(getTimeDuration(unassigned.startTime, unassigned.endTime) / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
-          }}
-          title={`미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`}
-        />
-      ))}
+      {unassignedTimes.map((unassigned) => {
+        const position = getTimePosition(unassigned.startTime);
+        const duration = getTimeDuration(unassigned.startTime, unassigned.endTime);
+        
+        // Don't render if position is out of range
+        if (position < 0 || duration <= 0) return null;
+        
+        return (
+          <div
+            key={unassigned.actualStudyTimeId}
+            className="absolute h-full bg-green-200 rounded z-10"
+            style={{
+              left: `${(position / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+              width: `${(duration / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`,
+            }}
+            title={`미할당 시간 추가 접속: ${formatKoreanTime(unassigned.startTime, 'HH:mm')} - ${formatKoreanTime(unassigned.endTime, 'HH:mm')}`}
+          />
+        );
+      })}
     </div>
   );
 });

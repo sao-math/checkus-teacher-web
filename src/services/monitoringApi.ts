@@ -41,9 +41,9 @@ export const monitoringApi = {
       // 선택된 날짜를 파싱
       const [year, month, day] = date.split('-').map(Number);
       
-      // 한국시간 기준으로 시작시간과 종료시간 생성
+      // 한국시간 기준으로 선택된 날짜 24시간만 조회 (00:00 ~ 24:00)
       const koreanStartTime = new Date(year, month - 1, day, 0, 0, 0); // 한국시간 00:00
-      const koreanEndTime = new Date(year, month - 1, day + 1, 6, 0, 0); // 다음날 한국시간 06:00
+      const koreanEndTime = new Date(year, month - 1, day, 23, 59, 59); // 한국시간 23:59:59
       
       // 한국시간을 UTC로 변환
       const utcStartTime = fromZonedTime(koreanStartTime, KOREAN_TIMEZONE);
@@ -53,11 +53,11 @@ export const monitoringApi = {
       const startTimeStr = utcStartTime.toISOString();
       const endTimeStr = utcEndTime.toISOString();
       
-      console.log('📅 Monitoring API 요청 범위:', {
+      console.log('📅 Monitoring API 요청 범위 (24시간):', {
         selectedDate: date,
         koreanRange: {
           start: `${date}T00:00:00 (KST)`,
-          end: `${year}-${String(month).padStart(2, '0')}-${String(day + 1).padStart(2, '0')}T06:00:00 (KST)`
+          end: `${date}T23:59:59 (KST)`
         },
         utcRange: {
           start: startTimeStr,

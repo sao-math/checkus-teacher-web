@@ -7,10 +7,10 @@ const KOREAN_TIMEZONE = 'Asia/Seoul';
 // Timeline layout constants
 const TIMELINE_CONSTANTS = {
   STUDENT_NAME_WIDTH: 140, // w-35 = 140px (기존 192px에서 줄임)
-  TIMELINE_WIDTH: 2700, // 30시간 * 90px = 2700px (기존 2400px에서 확장하여 가시성 개선)
-  START_HOUR: 0, // 0시부터 시작 (기존 6시)
-  END_HOUR: 30, // 30시까지 (다음날 6시)
-  TOTAL_HOURS: 30 // 30시간
+  TIMELINE_WIDTH: 2160, // 24시간 * 90px = 2160px (여유공간 제거)
+  START_HOUR: 0, // 0시부터 시작
+  END_HOUR: 24, // 24시까지 (다음날 0시)
+  TOTAL_HOURS: 24 // 24시간
 } as const;
 
 // Context for selected date
@@ -106,15 +106,8 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
       setIsUserScrolling(false);
     }, 10000); // Increased from 500ms to 10000ms (10 seconds)
     
-    // Limit scroll to not exceed 24:00 (end of timeline) with some buffer
-    const headerElement = headerScrollRef.current;
-    if (headerElement) {
-      const maxScrollLeft = Math.max(0, TIMELINE_CONSTANTS.TIMELINE_WIDTH - headerElement.clientWidth);
-      if (headerElement.scrollLeft > maxScrollLeft) {
-        headerElement.scrollLeft = maxScrollLeft;
-        return;
-      }
-    }
+    // Remove header scroll limit to allow full synchronization with content
+    // The content scroll handler will manage the overall scroll limits
     
     handleScroll(headerScrollRef, contentScrollRef);
   }, [handleScroll]);
@@ -177,7 +170,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     
     // Create timeline start as Korean time (00:00 of target date)
     const timelineStartKorean = new Date(year, month - 1, day, 0, 0, 0);
-    const timelineEndKorean = new Date(year, month - 1, day + 1, 6, 0, 0); // Next day 06:00
+    const timelineEndKorean = new Date(year, month - 1, day + 1, 0, 0, 0); // Next day 00:00
     
     // Debug logging
     console.log('🕐 Current Time Position Debug:', {
@@ -208,8 +201,8 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
     // Calculate hours difference from timeline start (in Korean timezone)
     const hoursDiff = (koreanNowAsLocal.getTime() - timelineStartKorean.getTime()) / (60 * 60 * 1000);
     
-    // Calculate percentage position within 30-hour timeline
-    const percentage = (hoursDiff / 30) * 100;
+    // Calculate percentage position within 24-hour timeline
+    const percentage = (hoursDiff / 24) * 100;
     
     console.log('✅ Current time position calculated:', {
       hoursDiff: hoursDiff.toFixed(2),
@@ -302,9 +295,9 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
           className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
         >
           <div className="flex min-w-max">
-            {/* Student name column header */}
+            {/* Student name column header - Fixed position */}
           <div 
-              className="flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center font-medium text-gray-700 h-12"
+              className="flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center font-medium text-gray-700 h-12 sticky left-0 z-40"
             style={{ width: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH}px` }}
           >
               학생
@@ -320,7 +313,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
                 <div 
               className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-50 pointer-events-none"
                   style={{ 
-                left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
+                left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`
                   }}
                 >
               <div className="absolute top-2 -left-8 bg-red-500 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
@@ -343,7 +336,7 @@ const FixedLayout = forwardRef<FixedLayoutRef, FixedLayoutProps>(({ header, chil
               <div 
                 className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-40 pointer-events-none"
                 style={{ 
-                  left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px` 
+                  left: `${TIMELINE_CONSTANTS.STUDENT_NAME_WIDTH + (currentTimePosition / 100) * TIMELINE_CONSTANTS.TIMELINE_WIDTH}px`
                 }}
               />
             )}
